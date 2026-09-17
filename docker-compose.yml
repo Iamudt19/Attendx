@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: attendx-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PROJECT_NAME=AttendX
+      - SECRET_KEY=${SECRET_KEY:-attendx_production_secret_key_change_me_please}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:////app/storage/attendx.db}
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-43200}
+      - FACE_MATCH_THRESHOLD=${FACE_MATCH_THRESHOLD:-0.45}
+      - FACE_REVIEW_THRESHOLD=${FACE_REVIEW_THRESHOLD:-0.35}
+      - FACE_MIN_MARGIN=${FACE_MIN_MARGIN:-0.08}
+      - FACE_MIN_SIZE=${FACE_MIN_SIZE:-24}
+      - FACE_BLUR_THRESHOLD=${FACE_BLUR_THRESHOLD:-45.0}
+      - FACE_DETECTION_THRESHOLD=${FACE_DETECTION_THRESHOLD:-0.45}
+    volumes:
+      - attendx_storage:/app/storage
+      - attendx_exports:/app/exports
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=${VITE_API_URL:-}
+    container_name: attendx-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # Optional Production PostgreSQL Database (Uncomment to use PostgreSQL instead of SQLite)
+  # db:
+  #   image: postgres:16-alpine
+  #   container_name: attendx-postgres
+  #   restart: unless-stopped
+  #   environment:
+  #     - POSTGRES_USER=${POSTGRES_USER:-attendx}
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-attendx_secure_password}
+  #     - POSTGRES_DB=${POSTGRES_DB:-attendx}
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   ports:
+  #     - "5432:5432"
+
+volumes:
+  attendx_storage:
+    driver: local
+  attendx_exports:
+    driver: local
+  postgres_data:
+    driver: local
