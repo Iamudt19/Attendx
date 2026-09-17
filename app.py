@@ -31,4 +31,5 @@ with gr.Blocks(title="AttendX AI API", theme=gr.themes.Soft()) as demo:
 app = gr.mount_gradio_app(fastapi_app, demo, path="/")
 
 if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", server_port=7860, show_api=False)
+    demo.launch(server_name="0.0.0.0", server_port=7860, ssr_mode=False, show_api=False)
+
