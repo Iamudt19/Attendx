@@ -1,34 +1,40 @@
 """
 AttendX — Hugging Face Spaces Entrypoint (Gradio SDK + ZeroGPU)
-
-Architecture:
-  1. FastAPI app has all API routes (/api/*, /docs, /storage/*)
-  2. Gradio Blocks provides the landing page UI + GPU health check
-  3. gr.mount_gradio_app() merges both into a single ASGI app
-  4. uvicorn serves the combined app on port 7860
-
-We do NOT call demo.launch() — that creates a separate server without
-our FastAPI routes. Instead, uvicorn.run() serves everything together.
 """
+# 1. ZeroGPU REQUIRES 'import spaces' at the absolute top of the entrypoint file
+try:
+    import spaces
+except ImportError:
+    # Local or non-ZeroGPU fallback
+    class spaces:
+        @staticmethod
+        def GPU(fn=None, *args, **kwargs):
+            if fn is None:
+                return lambda f: f
+            if callable(fn):
+                return fn
+            return lambda f: f
+
 import os
 import sys
 
-# ── Fix module collision ─────────────────────────────────────────────────────
+# Fix module collision
 if 'app' in sys.modules and not hasattr(sys.modules['app'], '__path__'):
     del sys.modules['app']
 
-# ── Add backend to sys.path ──────────────────────────────────────────────────
+# Add backend to sys.path
 root_dir = os.path.dirname(os.path.abspath(__file__))
 backend_dir = os.path.join(root_dir, "backend")
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
-# ── Import FastAPI application ───────────────────────────────────────────────
-from app.main import app as fastapi_app  # noqa: E402
+import gradio as gr
+from fastapi.staticfiles import StaticFiles
+from app.main import app as fastapi_app
+from app.core.config import settings
 
-# ── Auto-seed on first boot ─────────────────────────────────────────────────
+# Auto-seed on first boot
 def _auto_seed_if_empty():
-    """Seed database with demo data if no users exist (first boot)."""
     try:
         from app.database.session import SessionLocal
         from app.models.models import User
@@ -46,62 +52,79 @@ def _auto_seed_if_empty():
 
 _auto_seed_if_empty()
 
-# ── Gradio UI + ZeroGPU function ─────────────────────────────────────────────
-import gradio as gr  # noqa: E402
-import spaces  # noqa: E402
-
-@spaces.GPU(duration=5)
-def gpu_health_check(input_text: str) -> str:
-    """GPU function required by ZeroGPU scheduler."""
+# ZeroGPU functions bound directly to Gradio UI events
+@spaces.GPU
+def gpu_health_check() -> str:
+    """ZeroGPU check function required during Hugging Face startup scan."""
     try:
         import torch
         if torch.cuda.is_available():
-            device_name = torch.cuda.get_device_name(0)
-            return f"✅ AttendX Online | GPU: {device_name}"
-        return "✅ AttendX Online | Mode: CPU"
+            return f"✅ AttendX API Online | GPU: {torch.cuda.get_device_name(0)}"
+        return "✅ AttendX API Online | Mode: CPU / Ready"
     except Exception:
-        return "✅ AttendX Online | Mode: CPU (torch not available)"
+        return "✅ AttendX API Online | Status: Healthy"
 
-# Build Gradio UI (intentionally NOT named 'demo' to prevent HF auto-launch)
-gradio_ui = gr.Blocks(title="AttendX — AI Attendance API")
-with gradio_ui:
+@spaces.GPU
+def demo_face_detect(image):
+    """ZeroGPU-accelerated face detection test."""
+    if image is None:
+        return "⚠️ Please upload an image to analyze."
+    try:
+        from app.cv.detector import detector
+        faces = detector.detect_faces(image)
+        if not faces:
+            return "🔍 No faces detected in the provided image."
+        return f"🎯 Detection complete! Found {len(faces)} face(s) using OpenCV YuNet."
+    except Exception as e:
+        return f"❌ Detection error: {str(e)}"
+
+# Build Gradio Blocks interface
+with gr.Blocks(title="AttendX — AI Attendance API") as demo:
     gr.Markdown("""
     # 📸 AttendX — AI Facial Attendance API
     > Production-grade facial recognition attendance system powered by OpenCV YuNet + SFace.
-
-    ### 🔗 API Endpoints
-    | Endpoint | Description |
-    |----------|-------------|
-    | [📖 Swagger Docs](/docs) | Interactive API Documentation |
-    | [📄 ReDoc](/redoc) | API Reference |
-    | [🩺 Health Check](/api/health) | System Status |
-
-    ### 🔐 Demo Credentials
-    | Role | Email | Password |
-    |------|-------|----------|
-    | Teacher | `teacher@attendx.edu` | `teacher123` |
-    | Admin | `admin@attendx.edu` | `admin123` |
-
-    ---
     """)
+    
+    with gr.Tabs():
+        with gr.TabItem("🩺 API Status & Docs"):
+            gr.Markdown("""
+            ### 🔗 Quick Links
+            - 📖 [Interactive API Documentation (Swagger UI)](/docs)
+            - 📄 [Alternative API Reference (ReDoc)](/redoc)
+            - 🩺 [System Health Check Endpoint](/api/health)
+            
+            ### 🔐 Demo Credentials
+            | Role | Email | Password |
+            |---|---|---|
+            | **Teacher** | `teacher@attendx.edu` | `teacher123` |
+            | **Admin** | `admin@attendx.edu` | `admin123` |
+            | **Student** | `STU001` | `STU001` |
+            """)
+            status_btn = gr.Button("🔍 Verify System & ZeroGPU Status", variant="primary")
+            status_box = gr.Textbox(label="Status Output", interactive=False)
+            status_btn.click(fn=gpu_health_check, inputs=None, outputs=status_box)
 
-    with gr.Row():
-        check_btn = gr.Button("🔍 Check GPU Status", variant="primary")
-        status_output = gr.Textbox(label="System Status", interactive=False)
+        with gr.TabItem("🧪 Face Recognition Quick Test"):
+            gr.Markdown("Upload a photo to test YuNet ONNX face detection in real time:")
+            with gr.Row():
+                img_in = gr.Image(type="numpy", label="Input Image")
+                result_box = gr.Textbox(label="Recognition Result", lines=3)
+            test_btn = gr.Button("🚀 Detect Faces", variant="primary")
+            test_btn.click(fn=demo_face_detect, inputs=img_in, outputs=result_box)
 
-    check_btn.click(
-        fn=gpu_health_check,
-        inputs=gr.Textbox(value="check", visible=False),
-        outputs=status_output,
+# ── Mount FastAPI routes and static storage into Gradio's internal FastAPI app ──
+for route in fastapi_app.routes:
+    if getattr(route, "path", None) == "/":
+        continue  # Preserve Gradio UI on root "/"
+    demo.app.routes.insert(0, route)
+
+# Mount storage directory
+os.makedirs(settings.STORAGE_DIR, exist_ok=True)
+demo.app.mount("/storage", StaticFiles(directory=settings.STORAGE_DIR), name="storage")
+
+if __name__ == "__main__":
+    demo.launch(
+        server_name="0.0.0.0",
+        server_port=7860,
+        show_error=True,
     )
-
-# ── Merge Gradio + FastAPI into ONE app ──────────────────────────────────────
-# Gradio UI lives at "/", FastAPI routes (/api/*, /docs, /storage/*) remain intact.
-# Direct FastAPI routes take priority over the Gradio sub-app.
-combined_app = gr.mount_gradio_app(fastapi_app, gradio_ui, path="/")
-
-# ── Serve the combined app on port 7860 ──────────────────────────────────────
-# We run uvicorn ourselves (NOT demo.launch) so both Gradio UI and FastAPI
-# routes are served from the same process on the same port.
-import uvicorn  # noqa: E402
-uvicorn.run(combined_app, host="0.0.0.0", port=7860, log_level="info")
