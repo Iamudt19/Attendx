@@ -1,14 +1,13 @@
 """
-AttendX — Hugging Face Spaces Entrypoint (Gradio SDK)
+AttendX — Hugging Face Spaces Entrypoint (Gradio SDK + ZeroGPU)
 
-Runs the FastAPI app with uvicorn on port 7860.
-With sdk:gradio, HF just runs `python app.py` — we control the server lifecycle.
+Uses Gradio as the primary host (required by ZeroGPU), then mounts all
+FastAPI API routes alongside the Gradio landing page.
 """
 import os
 import sys
 
 # ── Fix module collision ─────────────────────────────────────────────────────
-# This file is named app.py which collides with backend/app/ package.
 if 'app' in sys.modules and not hasattr(sys.modules['app'], '__path__'):
     del sys.modules['app']
 
@@ -41,6 +40,52 @@ def _auto_seed_if_empty():
 
 _auto_seed_if_empty()
 
-# ── Start uvicorn on port 7860 (required by HF Spaces) ──────────────────────
-import uvicorn  # noqa: E402
-uvicorn.run(fastapi_app, host="0.0.0.0", port=7860, log_level="info")
+# ── Gradio UI + ZeroGPU decorated function ───────────────────────────────────
+import gradio as gr  # noqa: E402
+import spaces  # noqa: E402
+
+@spaces.GPU(duration=5)
+def gpu_health_check(input_text: str) -> str:
+    """
+    Minimal GPU function required by ZeroGPU scheduler.
+    Verifies GPU is accessible and reports status.
+    """
+    import torch
+    gpu_available = torch.cuda.is_available()
+    device_name = torch.cuda.get_device_name(0) if gpu_available else "CPU-only"
+    return f"✅ AttendX API Online | GPU: {device_name} | Status: Healthy"
+
+with gr.Blocks(title="AttendX — AI Attendance API") as demo:
+    gr.Markdown("""
+    # 📸 AttendX — AI Facial Attendance API
+    > Production-grade facial recognition attendance system powered by OpenCV YuNet + SFace.
+
+    ### 🔗 API Endpoints
+    | Endpoint | Description |
+    |----------|-------------|
+    | [📖 Swagger Docs](/docs) | Interactive API Documentation |
+    | [📄 ReDoc](/redoc) | API Reference |
+    | [🩺 Health Check](/api/health) | System Status |
+
+    ### 🔐 Demo Credentials
+    | Role | Email | Password |
+    |------|-------|----------|
+    | Teacher | `teacher@attendx.edu` | `teacher123` |
+    | Admin | `admin@attendx.edu` | `admin123` |
+
+    ---
+    """)
+
+    with gr.Row():
+        check_btn = gr.Button("🔍 Check GPU Status", variant="primary")
+        status_output = gr.Textbox(label="System Status", interactive=False)
+
+    check_btn.click(fn=gpu_health_check, inputs=gr.Textbox(value="check", visible=False), outputs=status_output)
+
+# ── Mount all FastAPI routes onto the Gradio app ─────────────────────────────
+# This makes /api/*, /docs, /redoc, /storage/* all available alongside Gradio UI at /
+app = gr.mount_gradio_app(fastapi_app, demo, path="/")
+
+# ── Launch Gradio (handles serving on port 7860) ────────────────────────────
+if __name__ == "__main__":
+    demo.launch(server_name="0.0.0.0", server_port=7860, share=False, ssr_mode=False)
