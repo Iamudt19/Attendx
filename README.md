@@ -1,6 +1,18 @@
+---
+title: AttendX API
+emoji: 📸
+colorFrom: indigo
+colorTo: blue
+sdk: gradio
+sdk_version: 4.44.0
+app_file: app.py
+pinned: false
+---
+
 # AttendX — AI-Powered Classroom Attendance System
 
 > **"One Photo. Complete Attendance."**
+
 
 AttendX is a production-grade full-stack classroom attendance system built with FastAPI, React, TypeScript, and a high-precision deep facial recognition pipeline (OpenCV YuNet + SFace ONNX).
 
