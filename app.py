@@ -1,5 +1,5 @@
 """
-AttendX — Hugging Face Spaces Entrypoint (Gradio SDK + ZeroGPU)
+AttendX — Hugging Face Spaces Entrypoint (Gradio SDK + ZeroGPU + FastAPI Routes)
 """
 # 1. ZeroGPU REQUIRES 'import spaces' at the absolute top of the entrypoint file
 try:
@@ -16,6 +16,7 @@ except ImportError:
 
 import os
 import sys
+import threading
 
 # Patch Gradio schema parser for Pydantic v2 compatibility
 try:
@@ -149,7 +150,18 @@ with gr.Blocks(title="AttendX — AI Attendance API") as demo:
             test_btn = gr.Button("🚀 Detect Faces", variant="primary")
             test_btn.click(fn=demo_face_detect, inputs=img_in, outputs=result_box)
 
-# ── Configure CORS on Gradio's internal FastAPI app ──
+# ── Launch Gradio server (non-blocking) — Required for ZeroGPU detection ─────
+demo.launch(
+    server_name="0.0.0.0",
+    server_port=7860,
+    prevent_thread_lock=True,
+    show_error=True,
+    show_api=False,
+    ssr_mode=False,
+)
+
+# ── After launch(), demo.app is the active live ASGI app being served ─────────
+# 1. Add CORS middleware
 demo.app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -158,7 +170,7 @@ demo.app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Register all API routers onto Gradio's internal FastAPI app ──
+# 2. Register all FastAPI routers directly onto the active app
 demo.app.include_router(auth.router, prefix="/api")
 demo.app.include_router(classes.router, prefix="/api")
 demo.app.include_router(subjects.router, prefix="/api")
@@ -167,6 +179,7 @@ demo.app.include_router(attendance.router, prefix="/api")
 demo.app.include_router(export.router, prefix="/api")
 demo.app.include_router(student_portal.router, prefix="/api")
 
+# 3. Add health check endpoint
 @demo.app.get("/healthz")
 @demo.app.get("/api/health")
 def health_check(db: Session = Depends(get_db)):
@@ -182,28 +195,13 @@ def health_check(db: Session = Depends(get_db)):
         "version": "1.0.0"
     }
 
-# Mount Swagger Docs & OpenAPI schema on Gradio app
-@demo.app.get("/docs", include_in_schema=False)
-def custom_swagger_ui_html():
-    return get_swagger_ui_html(openapi_url="/openapi.json", title="AttendX API — Swagger UI")
-
-@demo.app.get("/redoc", include_in_schema=False)
-def custom_redoc_html():
-    return get_redoc_html(openapi_url="/openapi.json", title="AttendX API — ReDoc")
-
-@demo.app.get("/openapi.json", include_in_schema=False)
-def get_open_api_endpoint():
-    return JSONResponse(demo.app.openapi())
-
-# Mount static storage directory for images & uploads
+# 4. Mount static storage for image uploads
 os.makedirs(settings.STORAGE_DIR, exist_ok=True)
 demo.app.mount("/storage", StaticFiles(directory=settings.STORAGE_DIR), name="storage")
 
-if __name__ == "__main__":
-    demo.launch(
-        server_name="0.0.0.0",
-        server_port=7860,
-        show_error=True,
-        show_api=False,
-        ssr_mode=False,
-    )
+# 5. Rebuild Starlette middleware stack so all routers are compiled into the live dispatcher!
+demo.app.middleware_stack = demo.app.build_middleware_stack()
+print("All FastAPI routes compiled and dispatched on live ASGI server.")
+
+# 6. Keep main process running
+threading.Event().wait()
