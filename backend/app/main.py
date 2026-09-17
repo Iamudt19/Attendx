@@ -75,7 +75,7 @@ def root():
             <div class="status">Online &amp; Ready</div>
             <div class="links">
                 <a href="/docs">📖 Interactive API Docs (Swagger)</a>
-                <a href="/redoc">📄 API Reference (ReDoc)</a>
+                <a href="/gradio">🧪 Face Recognition &amp; GPU Playground</a>
                 <a href="/api/health">🩺 Health Check</a>
             </div>
         </div>
