@@ -1,14 +1,14 @@
 """
-AttendX — Hugging Face Spaces Entrypoint (Docker SDK)
+AttendX — Hugging Face Spaces Entrypoint (Gradio SDK)
 
-Starts the FastAPI application via uvicorn on port 7860 (required by HF Spaces).
-Auto-seeds the database on first boot if no users exist.
+Runs the FastAPI app with uvicorn on port 7860.
+With sdk:gradio, HF just runs `python app.py` — we control the server lifecycle.
 """
 import os
 import sys
 
 # ── Fix module collision ─────────────────────────────────────────────────────
-# This file is named app.py, which collides with the backend/app/ package.
+# This file is named app.py which collides with backend/app/ package.
 if 'app' in sys.modules and not hasattr(sys.modules['app'], '__path__'):
     del sys.modules['app']
 
@@ -18,11 +18,11 @@ backend_dir = os.path.join(root_dir, "backend")
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
-# ── Import FastAPI app ───────────────────────────────────────────────────────
-from app.main import app  # noqa: E402
+# ── Import FastAPI application ───────────────────────────────────────────────
+from app.main import app as fastapi_app  # noqa: E402
 
 # ── Auto-seed on first boot ─────────────────────────────────────────────────
-def auto_seed_if_empty():
+def _auto_seed_if_empty():
     """Seed database with demo data if no users exist (first boot)."""
     try:
         from app.database.session import SessionLocal
@@ -39,14 +39,8 @@ def auto_seed_if_empty():
     except Exception as e:
         print(f"Auto-seed check skipped: {e}")
 
-auto_seed_if_empty()
+_auto_seed_if_empty()
 
-# ── Start uvicorn server on port 7860 ────────────────────────────────────────
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=7860,
-        log_level="info",
-    )
+# ── Start uvicorn on port 7860 (required by HF Spaces) ──────────────────────
+import uvicorn  # noqa: E402
+uvicorn.run(fastapi_app, host="0.0.0.0", port=7860, log_level="info")
