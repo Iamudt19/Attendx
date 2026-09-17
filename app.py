@@ -54,6 +54,8 @@ if backend_dir not in sys.path:
 
 import gradio as gr
 from fastapi.staticfiles import StaticFiles
+from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
+from fastapi.responses import JSONResponse
 from app.main import app as fastapi_app
 from app.core.config import settings
 
@@ -112,11 +114,13 @@ with gr.Blocks(title="AttendX — AI Attendance API") as demo:
     with gr.Tabs():
         with gr.TabItem("🩺 API Status & Docs"):
             gr.Markdown("""
-            ### 🔗 Quick Links
-            - 📖 [Interactive API Documentation (Swagger UI)](/docs)
-            - 📄 [Alternative API Reference (ReDoc)](/redoc)
-            - 🩺 [System Health Check Endpoint](/api/health)
+            ### 🔗 Direct API Endpoints
+            - 📖 [**Interactive API Documentation (Swagger UI)**](https://iamudit02-attendx-api.hf.space/docs)
+            - 📄 [**Alternative API Reference (ReDoc)**](https://iamudit02-attendx-api.hf.space/redoc)
+            - 🩺 [**System Health Check Endpoint**](https://iamudit02-attendx-api.hf.space/api/health)
             
+            *(Direct API Base URL for Frontend/Postman: `https://iamudit02-attendx-api.hf.space`)*
+
             ### 🔐 Demo Credentials
             | Role | Email | Password |
             |---|---|---|
@@ -141,6 +145,19 @@ for route in fastapi_app.routes:
     if getattr(route, "path", None) == "/":
         continue  # Preserve Gradio UI on root "/"
     demo.app.routes.insert(0, route)
+
+# Mount Swagger Docs & OpenAPI schema on Gradio app
+@demo.app.get("/docs", include_in_schema=False)
+def custom_swagger_ui_html():
+    return get_swagger_ui_html(openapi_url="/openapi.json", title="AttendX API — Swagger UI")
+
+@demo.app.get("/redoc", include_in_schema=False)
+def custom_redoc_html():
+    return get_redoc_html(openapi_url="/openapi.json", title="AttendX API — ReDoc")
+
+@demo.app.get("/openapi.json", include_in_schema=False)
+def get_open_api_endpoint():
+    return JSONResponse(fastapi_app.openapi())
 
 # Mount storage directory
 os.makedirs(settings.STORAGE_DIR, exist_ok=True)
