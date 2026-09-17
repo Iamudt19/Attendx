@@ -4,8 +4,11 @@ import cv2
 import numpy as np
 from typing import List, Dict, Any
 
-_YUNET_MODEL_URL = "https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx"
-_SFACE_MODEL_URL = "https://github.com/opencv/opencv_zoo/raw/main/models/face_recognition_sface/face_recognition_sface_2021dec.onnx"
+_YUNET_URLS = [
+    "https://huggingface.co/opencv/face_detection_yunet/resolve/main/face_detection_yunet_2023mar.onnx",
+    "https://raw.githubusercontent.com/opencv/opencv_zoo/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx",
+    "https://github.com/opencv/opencv_zoo/raw/main/models/face_detection_yunet/face_detection_yunet_2023mar.onnx",
+]
 
 def get_models_dir() -> str:
     from app.core.config import settings
@@ -13,14 +16,27 @@ def get_models_dir() -> str:
     os.makedirs(models_dir, exist_ok=True)
     return models_dir
 
-def download_model_if_needed(url: str, filename: str) -> str:
+def download_model_if_needed(urls: List[str], filename: str) -> str:
     dest_path = os.path.join(get_models_dir(), filename)
-    if not (os.path.exists(dest_path) and os.path.getsize(dest_path) > 10_000):
+    if os.path.exists(dest_path) and os.path.getsize(dest_path) > 10_000:
+        return dest_path
+
+    for url in urls:
         try:
-            print(f"Downloading model {filename}...")
-            urllib.request.urlretrieve(url, dest_path)
+            print(f"Downloading model {filename} from {url}...")
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+            with urllib.request.urlopen(req, timeout=30) as response, open(dest_path, 'wb') as out_file:
+                out_file.write(response.read())
+            if os.path.exists(dest_path) and os.path.getsize(dest_path) > 10_000:
+                print(f"Successfully downloaded {filename} ({os.path.getsize(dest_path)} bytes)")
+                return dest_path
         except Exception as e:
-            print(f"Error downloading {filename}: {e}")
+            print(f"Download attempt failed from {url}: {e}")
+            if os.path.exists(dest_path):
+                try:
+                    os.remove(dest_path)
+                except Exception:
+                    pass
     return dest_path
 
 
@@ -33,7 +49,7 @@ class FaceDetector:
 
     def _init_yunet(self):
         try:
-            yunet_path = download_model_if_needed(_YUNET_MODEL_URL, "face_detection_yunet_2023mar.onnx")
+            yunet_path = download_model_if_needed(_YUNET_URLS, "face_detection_yunet_2023mar.onnx")
             if os.path.exists(yunet_path) and os.path.getsize(yunet_path) > 10_000:
                 self.yunet_detector = cv2.FaceDetectorYN_create(
                     yunet_path,
@@ -121,14 +137,6 @@ class FaceDetector:
         return results
 
     def detect_faces(self, image_bgr: np.ndarray) -> List[Dict[str, Any]]:
-        """
-        Detect all faces in an image (BGR).
-        Returns list of dicts with:
-          - box: {x, y, w, h}
-          - cropped_face: np.ndarray
-          - raw_face: np.ndarray (YuNet 15-d with 5 landmarks) or None
-          - score: float
-        """
         if image_bgr is None or image_bgr.size == 0:
             return []
 
@@ -150,4 +158,3 @@ class FaceDetector:
 
 
 face_detector = FaceDetector()
-

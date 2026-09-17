@@ -5,7 +5,6 @@ AttendX — Hugging Face Spaces Entrypoint (Gradio SDK + ZeroGPU)
 try:
     import spaces
 except ImportError:
-    # Local or non-ZeroGPU fallback
     class spaces:
         @staticmethod
         def GPU(fn=None, *args, **kwargs):
@@ -17,6 +16,31 @@ except ImportError:
 
 import os
 import sys
+
+# Patch Gradio schema parser for Pydantic v2 boolean JSON schema compatibility
+try:
+    import gradio_client.utils as gc_utils
+    orig_get_type = getattr(gc_utils, "get_type", None)
+    if orig_get_type:
+        def safe_get_type(schema):
+            if isinstance(schema, bool):
+                return "bool"
+            if not isinstance(schema, dict):
+                return "str"
+            return orig_get_type(schema)
+        gc_utils.get_type = safe_get_type
+
+    orig_json_schema_to_python_type = getattr(gc_utils, "_json_schema_to_python_type", None)
+    if orig_json_schema_to_python_type:
+        def safe_json_schema_to_python_type(schema, defs=None):
+            if isinstance(schema, bool):
+                return "bool"
+            if not isinstance(schema, dict):
+                return "str"
+            return orig_json_schema_to_python_type(schema, defs)
+        gc_utils._json_schema_to_python_type = safe_json_schema_to_python_type
+except Exception as e:
+    print(f"Gradio patch note: {e}")
 
 # Fix module collision
 if 'app' in sys.modules and not hasattr(sys.modules['app'], '__path__'):
@@ -70,8 +94,8 @@ def demo_face_detect(image):
     if image is None:
         return "⚠️ Please upload an image to analyze."
     try:
-        from app.cv.detector import detector
-        faces = detector.detect_faces(image)
+        from app.cv.detector import face_detector
+        faces = face_detector.detect_faces(image)
         if not faces:
             return "🔍 No faces detected in the provided image."
         return f"🎯 Detection complete! Found {len(faces)} face(s) using OpenCV YuNet."
@@ -127,4 +151,6 @@ if __name__ == "__main__":
         server_name="0.0.0.0",
         server_port=7860,
         show_error=True,
+        show_api=False,
+        ssr_mode=False,
     )
