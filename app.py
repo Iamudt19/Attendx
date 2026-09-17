@@ -12,17 +12,19 @@ backend_dir = os.path.join(root_dir, "backend")
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
-# ZeroGPU decorator requirement for Hugging Face ZeroGPU runtime
-try:
-    import spaces
-    @spaces.GPU
-    def _attendx_gpu_worker():
-        return "GPU_READY"
-except Exception as e:
-    print(f"ZeroGPU init note: {e}")
+import spaces
+
+@spaces.GPU
+def attendx_gpu_keepalive():
+    return {"status": "GPU_ACTIVE", "models": ["YuNet", "SFace"]}
 
 # Import the FastAPI application from backend/app/main.py
 from app.main import app
+
+# Add ZeroGPU keepalive endpoint to FastAPI app
+@app.get("/api/gpu-status")
+def get_gpu_status():
+    return attendx_gpu_keepalive()
 
 if __name__ == "__main__":
     import uvicorn
