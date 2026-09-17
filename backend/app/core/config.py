@@ -21,13 +21,25 @@ class Settings(BaseSettings):
             return ["*"]
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
 
-    # ── Database URL normalization (Render/Heroku postgres:// compatibility) ───────
-    @field_validator("DATABASE_URL", mode="before")
-    @classmethod
-    def assemble_db_connection(cls, v: str) -> str:
-        if isinstance(v, str) and v.startswith("postgres://"):
-            return v.replace("postgres://", "postgresql://", 1)
-        return v
+    # ── Database URL normalization & cleaning ─────────────────────────────────────
+    @property
+    def clean_database_url(self) -> str:
+        raw = self.DATABASE_URL
+        if not raw or not isinstance(raw, str):
+            return "sqlite:///./attendx.db"
+        
+        url = raw.strip().strip("'\"").strip()
+        if url.startswith("psql "):
+            url = url[5:].strip().strip("'\"").strip()
+        
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql://", 1)
+        
+        if not (url.startswith("sqlite") or url.startswith("postgresql") or url.startswith("mysql")):
+            return "sqlite:///./attendx.db"
+            
+        return url
+
 
     # ── Face Recognition Pipeline Configuration ──────────────────────────────────
     # Calibrated for OpenCV SFace Deep Neural 128-d Cosine Metric
