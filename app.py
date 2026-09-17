@@ -1,5 +1,5 @@
 """
-AttendX — Production Entrypoint (FastAPI + ZeroGPU + Gradio)
+AttendX — Hugging Face Spaces Entrypoint (Gradio SDK + ZeroGPU + FastAPI)
 """
 # 1. ZeroGPU REQUIRES 'import spaces' at the absolute top of the entrypoint file
 try:
@@ -16,6 +16,7 @@ except ImportError:
 
 import os
 import sys
+import threading
 
 # Patch Gradio schema parser for Pydantic v2 compatibility
 try:
@@ -52,22 +53,20 @@ backend_dir = os.path.join(root_dir, "backend")
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
-import uvicorn
 import gradio as gr
-from fastapi.middleware.cors import CORSMiddleware
-from app.main import app as fastapi_app
+from fastapi import Depends
+from fastapi.staticfiles import StaticFiles
+from sqlalchemy.orm import Session
+from sqlalchemy import text
+
 from app.core.config import settings
+from app.database.session import Base, engine, get_db
+from app.api import auth, classes, subjects, students, attendance, export, student_portal
 
-# Ensure CORS is permissive for Vercel frontends
-fastapi_app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Initialize database tables
+Base.metadata.create_all(bind=engine)
 
-# Auto-seed on first boot if DB is empty
+# Auto-seed on first boot
 def _auto_seed_if_empty():
     try:
         from app.database.session import SessionLocal
@@ -148,11 +147,46 @@ with gr.Blocks(title="AttendX — AI Attendance API") as demo:
             test_btn = gr.Button("🚀 Detect Faces", variant="primary")
             test_btn.click(fn=demo_face_detect, inputs=img_in, outputs=result_box)
 
-# Configure queue for ZeroGPU event streaming
-demo.queue()
+# ── 1. Launch Gradio server (ZeroGPU requirement) ────────────────────────────
+demo.launch(
+    server_name="0.0.0.0",
+    server_port=7860,
+    prevent_thread_lock=True,
+    show_error=True,
+    show_api=False,
+    ssr_mode=False,
+)
 
-# Mount Gradio demo onto FastAPI master app
-app = gr.mount_gradio_app(fastapi_app, demo, path="/gradio")
+# ── 2. Attach all FastAPI routers to the running Gradio app ──────────────────
+demo.app.include_router(auth.router, prefix="/api")
+demo.app.include_router(classes.router, prefix="/api")
+demo.app.include_router(subjects.router, prefix="/api")
+demo.app.include_router(students.router, prefix="/api")
+demo.app.include_router(attendance.router, prefix="/api")
+demo.app.include_router(export.router, prefix="/api")
+demo.app.include_router(student_portal.router, prefix="/api")
 
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=7860)
+# Add health check endpoint
+@demo.app.get("/healthz")
+@demo.app.get("/api/health")
+def health_check(db: Session = Depends(get_db)):
+    db_status = "healthy"
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception as e:
+        db_status = f"unhealthy: {str(e)}"
+    return {
+        "status": "ok" if db_status == "healthy" else "degraded",
+        "database": db_status,
+        "storage_dir": os.path.exists(settings.STORAGE_DIR),
+        "version": "1.0.0"
+    }
+
+# Mount static storage for image uploads
+os.makedirs(settings.STORAGE_DIR, exist_ok=True)
+demo.app.mount("/storage", StaticFiles(directory=settings.STORAGE_DIR), name="storage")
+
+print("All FastAPI routes successfully attached to running Gradio server.")
+
+# ── 3. Keep main thread alive ────────────────────────────────────────────────
+threading.Event().wait()
