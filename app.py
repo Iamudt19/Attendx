@@ -12,21 +12,23 @@ backend_dir = os.path.join(root_dir, "backend")
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
-import spaces
+import gradio as gr
+from app.main import app as fastapi_app
 
-@spaces.GPU
-def attendx_gpu_keepalive():
-    return {"status": "GPU_ACTIVE", "models": ["YuNet", "SFace"]}
+# Create Gradio UI dashboard
+with gr.Blocks(title="AttendX AI API", theme=gr.themes.Soft()) as demo:
+    gr.Markdown("""
+    # 📸 AttendX — AI Facial Attendance API
+    > Production-grade facial recognition attendance system running on OpenCV YuNet + SFace.
+    
+    ### 🔗 Live Endpoints:
+    - 📖 **[Interactive Swagger API Docs](/docs)**
+    - 🩺 **[System Health Check](/api/health)**
+    - 🚀 **Status**: `Online & Ready for Vercel Frontend`
+    """)
 
-# Import the FastAPI application from backend/app/main.py
-from app.main import app
-
-# Add ZeroGPU keepalive endpoint to FastAPI app
-@app.get("/api/gpu-status")
-def get_gpu_status():
-    return attendx_gpu_keepalive()
+# Mount Gradio onto the FastAPI app (FastAPI handles all /api and /docs routes)
+app = gr.mount_gradio_app(fastapi_app, demo, path="/")
 
 if __name__ == "__main__":
-    import uvicorn
-    port = int(os.environ.get("PORT", 7860))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    demo.launch(server_name="0.0.0.0", server_port=7860, show_api=False)
