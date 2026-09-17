@@ -1,13 +1,24 @@
 import os
 import sys
 
-# Add backend directory to Python system path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "backend")))
+# Remove current app.py file collision from sys.modules
+if 'app' in sys.modules and not hasattr(sys.modules['app'], '__path__'):
+    del sys.modules['app']
 
-import uvicorn
-from app.main import app
+# Add backend directory to Python sys.path
+root_dir = os.path.dirname(os.path.abspath(__file__))
+backend_dir = os.path.join(root_dir, "backend")
 
-# Hugging Face Spaces listens on port 7860
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
+# Import the FastAPI application from backend/app/main.py
+from app.main import app as fastapi_app
+
+# Expose app for ASGI / Gradio Space runner
+app = fastapi_app
+
 if __name__ == "__main__":
+    import uvicorn
     port = int(os.environ.get("PORT", 7860))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(fastapi_app, host="0.0.0.0", port=port)
