@@ -3,9 +3,8 @@ title: AttendX API
 emoji: 📸
 colorFrom: indigo
 colorTo: blue
-sdk: gradio
-sdk_version: "5.50.0"
-app_file: app.py
+sdk: docker
+app_port: 7860
 pinned: false
 ---
 

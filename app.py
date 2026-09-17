@@ -1,16 +1,14 @@
 """
-AttendX — Hugging Face Spaces Entrypoint (Gradio SDK)
+AttendX — Hugging Face Spaces Entrypoint (Docker SDK)
 
-The HF Space supervisor discovers the `demo` variable in this file
-and launches it automatically on port 7860.
-We MUST NOT call demo.launch() or uvicorn.run() ourselves.
+Starts the FastAPI application via uvicorn on port 7860 (required by HF Spaces).
+Auto-seeds the database on first boot if no users exist.
 """
 import os
 import sys
 
 # ── Fix module collision ─────────────────────────────────────────────────────
 # This file is named app.py, which collides with the backend/app/ package.
-# Remove any stale 'app' reference from sys.modules so the real package loads.
 if 'app' in sys.modules and not hasattr(sys.modules['app'], '__path__'):
     del sys.modules['app']
 
@@ -20,27 +18,35 @@ backend_dir = os.path.join(root_dir, "backend")
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
-# ── Import FastAPI app from backend ──────────────────────────────────────────
-from app.main import app as fastapi_app  # noqa: E402
+# ── Import FastAPI app ───────────────────────────────────────────────────────
+from app.main import app  # noqa: E402
 
-# ── Build Gradio dashboard ───────────────────────────────────────────────────
-import gradio as gr  # noqa: E402
+# ── Auto-seed on first boot ─────────────────────────────────────────────────
+def auto_seed_if_empty():
+    """Seed database with demo data if no users exist (first boot)."""
+    try:
+        from app.database.session import SessionLocal
+        from app.models.models import User
+        db = SessionLocal()
+        user_count = db.query(User).count()
+        db.close()
+        if user_count == 0:
+            print("No users found — running database seed for demo data...")
+            from seed import seed_db
+            seed_db()
+        else:
+            print(f"Database already has {user_count} users — skipping seed.")
+    except Exception as e:
+        print(f"Auto-seed check skipped: {e}")
 
-with gr.Blocks(title="AttendX — AI Attendance", theme=gr.themes.Soft()) as demo:
-    gr.Markdown("""
-    # 📸 AttendX — AI Facial Attendance System
-    > Production-grade facial recognition attendance powered by OpenCV YuNet + SFace.
+auto_seed_if_empty()
 
-    ### 🔗 Live API Endpoints
-    | Endpoint | Description |
-    |----------|-------------|
-    | [`/docs`](/docs) | Interactive Swagger API Documentation |
-    | [`/api/health`](/api/health) | System Health Check |
-
-    ### 🚀 Status: **Online & Ready**
-    """)
-
-# ── Mount FastAPI onto Gradio ────────────────────────────────────────────────
-# This makes all FastAPI routes (/api/*, /docs, /storage/*) available
-# alongside the Gradio UI at the root path.
-app = gr.mount_gradio_app(fastapi_app, demo, path="/")
+# ── Start uvicorn server on port 7860 ────────────────────────────────────────
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=7860,
+        log_level="info",
+    )

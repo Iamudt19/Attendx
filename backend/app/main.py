@@ -41,12 +41,48 @@ app.include_router(student_portal.router, prefix="/api")
 
 @app.get("/")
 def root():
-    return {
-        "app": settings.PROJECT_NAME,
-        "tagline": "One Photo. Complete Attendance.",
-        "status": "online",
-        "docs": "/docs"
-    }
+    from fastapi.responses import HTMLResponse
+    html = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>AttendX — AI Attendance API</title>
+        <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                   background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+                   color: #e0e0e0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+            .card { background: rgba(255,255,255,0.06); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1);
+                    border-radius: 20px; padding: 48px; max-width: 520px; text-align: center; }
+            h1 { font-size: 2rem; margin-bottom: 8px; background: linear-gradient(135deg, #667eea, #764ba2);
+                 -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+            .tagline { color: #aaa; font-size: 0.95rem; margin-bottom: 28px; }
+            .status { display: inline-block; background: #22c55e22; color: #4ade80; padding: 6px 16px;
+                      border-radius: 20px; font-size: 0.85rem; margin-bottom: 28px; }
+            .status::before { content: '●'; margin-right: 6px; }
+            .links { display: flex; flex-direction: column; gap: 10px; }
+            .links a { display: block; padding: 12px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+                       border-radius: 12px; color: #c4b5fd; text-decoration: none; transition: all 0.2s; }
+            .links a:hover { background: rgba(255,255,255,0.14); transform: translateY(-1px); }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <h1>📸 AttendX API</h1>
+            <p class="tagline">AI-Powered Facial Recognition Attendance System</p>
+            <div class="status">Online &amp; Ready</div>
+            <div class="links">
+                <a href="/docs">📖 Interactive API Docs (Swagger)</a>
+                <a href="/redoc">📄 API Reference (ReDoc)</a>
+                <a href="/api/health">🩺 Health Check</a>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html)
 
 @app.get("/healthz")
 @app.get("/api/health")
