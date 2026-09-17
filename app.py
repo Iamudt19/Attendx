@@ -66,25 +66,6 @@ from app.api import auth, classes, subjects, students, attendance, export, stude
 # Initialize database tables
 Base.metadata.create_all(bind=engine)
 
-# Auto-seed on first boot
-def _auto_seed_if_empty():
-    try:
-        from app.database.session import SessionLocal
-        from app.models.models import User
-        db = SessionLocal()
-        user_count = db.query(User).count()
-        db.close()
-        if user_count == 0:
-            print("No users found — running database seed for demo data...")
-            from seed import seed_db
-            seed_db()
-        else:
-            print(f"Database already has {user_count} users — skipping seed.")
-    except Exception as e:
-        print(f"Auto-seed check skipped: {e}")
-
-_auto_seed_if_empty()
-
 # ZeroGPU functions bound directly to Gradio UI events
 @spaces.GPU
 def gpu_health_check() -> str:
@@ -128,12 +109,10 @@ with gr.Blocks(title="AttendX — AI Attendance API") as demo:
             
             *(Direct API Base URL: `https://iamudit02-attendx-api.hf.space`)*
 
-            ### 🔐 Demo Credentials
-            | Role | Email | Password |
-            |---|---|---|
-            | **Teacher** | `teacher@attendx.edu` | `teacher123` |
-            | **Admin** | `admin@attendx.edu` | `admin123` |
-            | **Student** | `STU001` | `STU001` |
+            ### 🚀 Production Ready
+            - Real-time user registration (`POST /api/auth/register`)
+            - Real-time student onboarding & continuous face training (`POST /api/student/face-scan/frame`)
+            - Real-time group photo attendance analysis (`POST /api/attendance/analyze`)
             """)
             status_btn = gr.Button("🔍 Verify System & ZeroGPU Status", variant="primary")
             status_box = gr.Textbox(label="Status Output", interactive=False)

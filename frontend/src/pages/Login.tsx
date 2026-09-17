@@ -13,8 +13,8 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [activeTab, setActiveTab] = useState<'signin' | 'signup'>('signin');
 
   // Sign In State
-  const [email, setEmail] = useState('teacher@attendx.edu');
-  const [password, setPassword] = useState('teacher123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   // Sign Up State
   const [name, setName] = useState('');
@@ -76,17 +76,6 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       setError(err.response?.data?.detail || 'Registration failed. Please try again with another email.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fillQuickCreds = (roleType: 'teacher' | 'admin') => {
-    setActiveTab('signin');
-    if (roleType === 'teacher') {
-      setEmail('teacher@attendx.edu');
-      setPassword('teacher123');
-    } else {
-      setEmail('admin@attendx.edu');
-      setPassword('admin123');
     }
   };
 
@@ -348,29 +337,6 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
               >
                 Student Portal
                 <ExternalLink className="w-3 h-3" />
-              </button>
-            </div>
-          </div>
-
-          {/* Quick Demo Pre-fills */}
-          <div className="mt-4 pt-4 border-t border-slate-800/80">
-            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2 text-center">
-              Quick Demo Login Pre-fills
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => fillQuickCreds('teacher')}
-                className="py-1.5 px-3 bg-slate-800/80 hover:bg-slate-700/80 text-xs font-medium text-slate-300 rounded-lg border border-slate-700/60 transition-all text-center"
-              >
-                Teacher Account
-              </button>
-              <button
-                type="button"
-                onClick={() => fillQuickCreds('admin')}
-                className="py-1.5 px-3 bg-slate-800/80 hover:bg-slate-700/80 text-xs font-medium text-slate-300 rounded-lg border border-slate-700/60 transition-all text-center"
-              >
-                Admin Account
               </button>
             </div>
           </div>

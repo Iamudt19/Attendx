@@ -195,7 +195,7 @@ export const StudentPortalService = {
     return res.data;
   },
 
-  submitFaceFrame: async (angleLabel: ScanAngle, imageBlob: Blob): Promise<FaceFrameUploadResult> => {
+  submitFaceFrame: async (angleLabel: string, imageBlob: Blob): Promise<FaceFrameUploadResult> => {
     const formData = new FormData();
     formData.append('angle_label', angleLabel);
     formData.append('file', imageBlob, `scan_${angleLabel}.jpg`);

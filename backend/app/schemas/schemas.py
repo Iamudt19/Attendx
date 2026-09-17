@@ -134,6 +134,9 @@ class FaceFrameUploadResult(BaseModel):
     remaining_angles: List[str]    # e.g. ["right", "chin_down", "smile"]
     total_required: int
     registration_complete: bool
+    total_embeddings: Optional[int] = None
+    training_level: Optional[str] = None
+    recognition_readiness_score: Optional[float] = None
 
 class StudentUpdateClassRequest(BaseModel):
     class_id: int
@@ -151,6 +154,8 @@ class FaceRegistrationStatus(BaseModel):
     remaining_angles: List[str]
     total_embeddings: int
     total_required: int
+    training_level: Optional[str] = None
+    recognition_readiness_score: Optional[float] = None
 
 # Recognition Bounding Box & Proposal Schema
 class BoundingBox(BaseModel):

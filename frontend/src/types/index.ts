@@ -55,12 +55,15 @@ export const ANGLE_ICONS: Record<ScanAngle, string> = {
 
 export interface FaceFrameUploadResult {
   accepted: boolean;
-  angle_label: ScanAngle;
+  angle_label: string;
   reason: string;
   completed_angles: ScanAngle[];
   remaining_angles: ScanAngle[];
   total_required: number;
   registration_complete: boolean;
+  total_embeddings?: number;
+  training_level?: string;
+  recognition_readiness_score?: number;
 }
 
 export interface FaceRegistrationStatus {
@@ -75,6 +78,8 @@ export interface FaceRegistrationStatus {
   remaining_angles: ScanAngle[];
   total_embeddings: number;
   total_required: number;
+  training_level?: string;
+  recognition_readiness_score?: number;
 }
 
 
