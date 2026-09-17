@@ -12,24 +12,17 @@ backend_dir = os.path.join(root_dir, "backend")
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
-# Import the FastAPI application from backend/app/main.py
-from app.main import app as fastapi_app
-
+# ZeroGPU decorator requirement for Hugging Face ZeroGPU runtime
 try:
-    import gradio as gr
-    with gr.Blocks(title="AttendX AI API", theme=gr.themes.Soft()) as demo:
-        gr.Markdown("""
-        # 📸 AttendX — AI Facial Attendance API
-        > Production facial recognition attendance system running on OpenCV YuNet + SFace.
-        
-        - 📖 **Interactive Swagger API Docs**: [/docs](/docs)
-        - 🩺 **Health Check**: [/api/health](/api/health)
-        - 🚀 **Status**: `Online & Ready for Vercel Frontend`
-        """)
-    app = gr.mount_gradio_app(fastapi_app, demo, path="/")
+    import spaces
+    @spaces.GPU
+    def _attendx_gpu_worker():
+        return "GPU_READY"
 except Exception as e:
-    print(f"Gradio mount note: {e}")
-    app = fastapi_app
+    print(f"ZeroGPU init note: {e}")
+
+# Import the FastAPI application from backend/app/main.py
+from app.main import app
 
 if __name__ == "__main__":
     import uvicorn
