@@ -53,11 +53,20 @@ if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
 import gradio as gr
+from fastapi import Depends
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
 from fastapi.responses import JSONResponse
-from app.main import app as fastapi_app
+from sqlalchemy.orm import Session
+from sqlalchemy import text
+
 from app.core.config import settings
+from app.database.session import Base, engine, get_db
+from app.api import auth, classes, subjects, students, attendance, export, student_portal
+
+# Initialize database tables
+Base.metadata.create_all(bind=engine)
 
 # Auto-seed on first boot
 def _auto_seed_if_empty():
@@ -140,11 +149,38 @@ with gr.Blocks(title="AttendX — AI Attendance API") as demo:
             test_btn = gr.Button("🚀 Detect Faces", variant="primary")
             test_btn.click(fn=demo_face_detect, inputs=img_in, outputs=result_box)
 
-# ── Mount FastAPI routes and static storage into Gradio's internal FastAPI app ──
-for route in fastapi_app.routes:
-    if getattr(route, "path", None) == "/":
-        continue  # Preserve Gradio UI on root "/"
-    demo.app.routes.insert(0, route)
+# ── Configure CORS on Gradio's internal FastAPI app ──
+demo.app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ── Register all API routers onto Gradio's internal FastAPI app ──
+demo.app.include_router(auth.router, prefix="/api")
+demo.app.include_router(classes.router, prefix="/api")
+demo.app.include_router(subjects.router, prefix="/api")
+demo.app.include_router(students.router, prefix="/api")
+demo.app.include_router(attendance.router, prefix="/api")
+demo.app.include_router(export.router, prefix="/api")
+demo.app.include_router(student_portal.router, prefix="/api")
+
+@demo.app.get("/healthz")
+@demo.app.get("/api/health")
+def health_check(db: Session = Depends(get_db)):
+    db_status = "healthy"
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception as e:
+        db_status = f"unhealthy: {str(e)}"
+    return {
+        "status": "ok" if db_status == "healthy" else "degraded",
+        "database": db_status,
+        "storage_dir": os.path.exists(settings.STORAGE_DIR),
+        "version": "1.0.0"
+    }
 
 # Mount Swagger Docs & OpenAPI schema on Gradio app
 @demo.app.get("/docs", include_in_schema=False)
@@ -157,9 +193,9 @@ def custom_redoc_html():
 
 @demo.app.get("/openapi.json", include_in_schema=False)
 def get_open_api_endpoint():
-    return JSONResponse(fastapi_app.openapi())
+    return JSONResponse(demo.app.openapi())
 
-# Mount storage directory
+# Mount static storage directory for images & uploads
 os.makedirs(settings.STORAGE_DIR, exist_ok=True)
 demo.app.mount("/storage", StaticFiles(directory=settings.STORAGE_DIR), name="storage")
 
