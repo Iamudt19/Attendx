@@ -15,10 +15,23 @@ if backend_dir not in sys.path:
 # Import the FastAPI application from backend/app/main.py
 from app.main import app as fastapi_app
 
-# Expose app for ASGI / Gradio Space runner
-app = fastapi_app
+try:
+    import gradio as gr
+    with gr.Blocks(title="AttendX AI API", theme=gr.themes.Soft()) as demo:
+        gr.Markdown("""
+        # 📸 AttendX — AI Facial Attendance API
+        > Production facial recognition attendance system running on OpenCV YuNet + SFace.
+        
+        - 📖 **Interactive Swagger API Docs**: [/docs](/docs)
+        - 🩺 **Health Check**: [/api/health](/api/health)
+        - 🚀 **Status**: `Online & Ready for Vercel Frontend`
+        """)
+    app = gr.mount_gradio_app(fastapi_app, demo, path="/")
+except Exception as e:
+    print(f"Gradio mount note: {e}")
+    app = fastapi_app
 
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 7860))
-    uvicorn.run(fastapi_app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=port)
