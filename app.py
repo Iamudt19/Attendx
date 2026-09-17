@@ -1,36 +1,46 @@
+"""
+AttendX — Hugging Face Spaces Entrypoint (Gradio SDK)
+
+The HF Space supervisor discovers the `demo` variable in this file
+and launches it automatically on port 7860.
+We MUST NOT call demo.launch() or uvicorn.run() ourselves.
+"""
 import os
 import sys
 
-# Remove current app.py file collision from sys.modules
+# ── Fix module collision ─────────────────────────────────────────────────────
+# This file is named app.py, which collides with the backend/app/ package.
+# Remove any stale 'app' reference from sys.modules so the real package loads.
 if 'app' in sys.modules and not hasattr(sys.modules['app'], '__path__'):
     del sys.modules['app']
 
-# Add backend directory to Python sys.path
+# ── Add backend to sys.path ──────────────────────────────────────────────────
 root_dir = os.path.dirname(os.path.abspath(__file__))
 backend_dir = os.path.join(root_dir, "backend")
-
 if backend_dir not in sys.path:
     sys.path.insert(0, backend_dir)
 
-import gradio as gr
-from app.main import app as fastapi_app
+# ── Import FastAPI app from backend ──────────────────────────────────────────
+from app.main import app as fastapi_app  # noqa: E402
 
-# Create Gradio UI dashboard
-with gr.Blocks(title="AttendX AI API", theme=gr.themes.Soft()) as demo:
+# ── Build Gradio dashboard ───────────────────────────────────────────────────
+import gradio as gr  # noqa: E402
+
+with gr.Blocks(title="AttendX — AI Attendance", theme=gr.themes.Soft()) as demo:
     gr.Markdown("""
-    # 📸 AttendX — AI Facial Attendance API
-    > Production-grade facial recognition attendance system running on OpenCV YuNet + SFace.
-    
-    ### 🔗 Live Endpoints:
-    - 📖 **[Interactive Swagger API Docs](/docs)**
-    - 🩺 **[System Health Check](/api/health)**
-    - 🚀 **Status**: `Online & Ready for Vercel Frontend`
+    # 📸 AttendX — AI Facial Attendance System
+    > Production-grade facial recognition attendance powered by OpenCV YuNet + SFace.
+
+    ### 🔗 Live API Endpoints
+    | Endpoint | Description |
+    |----------|-------------|
+    | [`/docs`](/docs) | Interactive Swagger API Documentation |
+    | [`/api/health`](/api/health) | System Health Check |
+
+    ### 🚀 Status: **Online & Ready**
     """)
 
-# Mount Gradio onto the FastAPI app (FastAPI handles all /api, /docs, and /storage routes)
+# ── Mount FastAPI onto Gradio ────────────────────────────────────────────────
+# This makes all FastAPI routes (/api/*, /docs, /storage/*) available
+# alongside the Gradio UI at the root path.
 app = gr.mount_gradio_app(fastapi_app, demo, path="/")
-
-if __name__ == "__main__":
-    import uvicorn
-    port = int(os.environ.get("PORT", 7860))
-    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
