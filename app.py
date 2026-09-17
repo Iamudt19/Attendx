@@ -27,9 +27,10 @@ with gr.Blocks(title="AttendX AI API", theme=gr.themes.Soft()) as demo:
     - 🚀 **Status**: `Online & Ready for Vercel Frontend`
     """)
 
-# Mount Gradio onto the FastAPI app (FastAPI handles all /api and /docs routes)
+# Mount Gradio onto the FastAPI app (FastAPI handles all /api, /docs, and /storage routes)
 app = gr.mount_gradio_app(fastapi_app, demo, path="/")
 
 if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", server_port=7860, ssr_mode=False, show_api=False)
-
+    import uvicorn
+    port = int(os.environ.get("PORT", 7860))
+    uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
