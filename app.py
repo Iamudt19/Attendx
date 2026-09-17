@@ -1,8 +1,14 @@
 """
 AttendX — Hugging Face Spaces Entrypoint (Gradio SDK + ZeroGPU)
 
-Uses Gradio as the primary host (required by ZeroGPU), then mounts all
-FastAPI API routes alongside the Gradio landing page.
+Architecture:
+  1. FastAPI app has all API routes (/api/*, /docs, /storage/*)
+  2. Gradio Blocks provides the landing page UI + GPU health check
+  3. gr.mount_gradio_app() merges both into a single ASGI app
+  4. uvicorn serves the combined app on port 7860
+
+We do NOT call demo.launch() — that creates a separate server without
+our FastAPI routes. Instead, uvicorn.run() serves everything together.
 """
 import os
 import sys
@@ -40,22 +46,25 @@ def _auto_seed_if_empty():
 
 _auto_seed_if_empty()
 
-# ── Gradio UI + ZeroGPU decorated function ───────────────────────────────────
+# ── Gradio UI + ZeroGPU function ─────────────────────────────────────────────
 import gradio as gr  # noqa: E402
 import spaces  # noqa: E402
 
 @spaces.GPU(duration=5)
 def gpu_health_check(input_text: str) -> str:
-    """
-    Minimal GPU function required by ZeroGPU scheduler.
-    Verifies GPU is accessible and reports status.
-    """
-    import torch
-    gpu_available = torch.cuda.is_available()
-    device_name = torch.cuda.get_device_name(0) if gpu_available else "CPU-only"
-    return f"✅ AttendX API Online | GPU: {device_name} | Status: Healthy"
+    """GPU function required by ZeroGPU scheduler."""
+    try:
+        import torch
+        if torch.cuda.is_available():
+            device_name = torch.cuda.get_device_name(0)
+            return f"✅ AttendX Online | GPU: {device_name}"
+        return "✅ AttendX Online | Mode: CPU"
+    except Exception:
+        return "✅ AttendX Online | Mode: CPU (torch not available)"
 
-with gr.Blocks(title="AttendX — AI Attendance API") as demo:
+# Build Gradio UI (intentionally NOT named 'demo' to prevent HF auto-launch)
+gradio_ui = gr.Blocks(title="AttendX — AI Attendance API")
+with gradio_ui:
     gr.Markdown("""
     # 📸 AttendX — AI Facial Attendance API
     > Production-grade facial recognition attendance system powered by OpenCV YuNet + SFace.
@@ -80,12 +89,19 @@ with gr.Blocks(title="AttendX — AI Attendance API") as demo:
         check_btn = gr.Button("🔍 Check GPU Status", variant="primary")
         status_output = gr.Textbox(label="System Status", interactive=False)
 
-    check_btn.click(fn=gpu_health_check, inputs=gr.Textbox(value="check", visible=False), outputs=status_output)
+    check_btn.click(
+        fn=gpu_health_check,
+        inputs=gr.Textbox(value="check", visible=False),
+        outputs=status_output,
+    )
 
-# ── Mount all FastAPI routes onto the Gradio app ─────────────────────────────
-# This makes /api/*, /docs, /redoc, /storage/* all available alongside Gradio UI at /
-app = gr.mount_gradio_app(fastapi_app, demo, path="/")
+# ── Merge Gradio + FastAPI into ONE app ──────────────────────────────────────
+# Gradio UI lives at "/", FastAPI routes (/api/*, /docs, /storage/*) remain intact.
+# Direct FastAPI routes take priority over the Gradio sub-app.
+combined_app = gr.mount_gradio_app(fastapi_app, gradio_ui, path="/")
 
-# ── Launch Gradio (handles serving on port 7860) ────────────────────────────
-if __name__ == "__main__":
-    demo.launch(server_name="0.0.0.0", server_port=7860, share=False, ssr_mode=False)
+# ── Serve the combined app on port 7860 ──────────────────────────────────────
+# We run uvicorn ourselves (NOT demo.launch) so both Gradio UI and FastAPI
+# routes are served from the same process on the same port.
+import uvicorn  # noqa: E402
+uvicorn.run(combined_app, host="0.0.0.0", port=7860, log_level="info")
