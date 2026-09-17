@@ -11,8 +11,12 @@ import { Students } from './pages/Students';
 import { StudentDetail } from './pages/StudentDetail';
 import { Classes } from './pages/Classes';
 import { StudentPortal } from './pages/StudentPortal';
+import { AdminPortal } from './pages/AdminPortal';
 import { AuthService } from './services/api';
 import { User, AttendanceAnalysisResponse } from './types';
+
+// ── Admin Portal Root ─────────────────────────────────────────────────────────
+const AdminPortalRoot: React.FC = () => <AdminPortal />;
 
 // ── Student Portal (completely separate) ──────────────────────────────────────
 // If the URL starts with /student, render the StudentPortal only
@@ -113,6 +117,8 @@ export const App: React.FC = () => {
   return (
     <BrowserRouter>
       <Routes>
+        {/* /admin/* routes go directly to the Admin Portal */}
+        <Route path="/admin/*" element={<AdminPortalRoot />} />
         {/* All /student/* routes go to the student portal */}
         <Route path="/student/*" element={<StudentPortalRoot />} />
         {/* Everything else goes to the teacher portal */}

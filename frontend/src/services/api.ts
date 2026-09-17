@@ -38,6 +38,10 @@ export const AuthService = {
     const res = await api.post('/auth/login', { email, password });
     return res.data;
   },
+  adminMasterLogin: async (password: string) => {
+    const res = await api.post('/auth/admin-master-login', { password });
+    return res.data;
+  },
   register: async (data: { name: string; email: string; password: string; role?: string }) => {
     const res = await api.post('/auth/register', data);
     return res.data;
@@ -57,6 +61,10 @@ export const ClassService = {
     const res = await api.post('/classes', data);
     return res.data;
   },
+  deleteClass: async (classId: number) => {
+    const res = await api.delete(`/classes/${classId}`);
+    return res.data;
+  },
   getClassStudents: async (classId: number): Promise<StudentItem[]> => {
     const res = await api.get(`/classes/${classId}/students`);
     return res.data;
@@ -70,6 +78,10 @@ export const SubjectService = {
   },
   createSubject: async (data: { name: string; code: string; class_id: number }): Promise<SubjectItem> => {
     const res = await api.post('/subjects', data);
+    return res.data;
+  },
+  deleteSubject: async (subjectId: number) => {
+    const res = await api.delete(`/subjects/${subjectId}`);
     return res.data;
   }
 };
@@ -85,6 +97,10 @@ export const StudentService = {
   },
   createStudent: async (data: { student_id: string; name: string; roll_number: string; class_id: number; email?: string }): Promise<StudentItem> => {
     const res = await api.post('/students', data);
+    return res.data;
+  },
+  deleteStudent: async (studentId: number) => {
+    const res = await api.delete(`/students/${studentId}`);
     return res.data;
   },
   uploadFaceImages: async (studentId: number, files: File[]) => {

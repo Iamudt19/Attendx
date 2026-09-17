@@ -26,3 +26,12 @@ def create_subject(req: SubjectCreate, db: Session = Depends(get_db), token: dic
     db.commit()
     db.refresh(subject)
     return subject
+
+@router.delete("/{subject_id}")
+def delete_subject(subject_id: int, db: Session = Depends(get_db), token: dict = Depends(get_current_user_token)):
+    subject = db.query(Subject).filter(Subject.id == subject_id).first()
+    if not subject:
+        raise HTTPException(status_code=404, detail="Subject not found")
+    db.delete(subject)
+    db.commit()
+    return {"message": f"Subject '{subject.name}' successfully deleted."}

@@ -42,3 +42,12 @@ def get_class_students(class_id: int, db: Session = Depends(get_db), token: dict
         s_out.face_count = len(s.embeddings)
         results.append(s_out)
     return results
+
+@router.delete("/{class_id}")
+def delete_class(class_id: int, db: Session = Depends(get_db), token: dict = Depends(get_current_user_token)):
+    cls = db.query(Class).filter(Class.id == class_id).first()
+    if not cls:
+        raise HTTPException(status_code=404, detail="Class not found")
+    db.delete(cls)
+    db.commit()
+    return {"message": f"Class '{cls.name}' successfully deleted."}

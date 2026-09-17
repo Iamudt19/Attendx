@@ -165,3 +165,19 @@ def delete_student_face_data(student_id: int, db: Session = Depends(get_db), tok
 
     db.commit()
     return {"message": f"Successfully deleted all {count} face biometric records for student {student.name}."}
+
+@router.delete("/{student_id}")
+def delete_student(student_id: int, db: Session = Depends(get_db), token: dict = Depends(get_current_user_token)):
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    # Delete embeddings and records
+    for emb in student.embeddings:
+        if emb.source_image:
+            storage_service.delete_file(emb.source_image)
+        db.delete(emb)
+    
+    db.delete(student)
+    db.commit()
+    return {"message": f"Student '{student.name}' successfully deleted."}

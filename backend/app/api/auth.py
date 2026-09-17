@@ -56,6 +56,36 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
         "user": user
     }
 
+@router.post("/admin-master-login", response_model=TokenResponse)
+def admin_master_login(req: dict, db: Session = Depends(get_db)):
+    """Authenticate to Admin Portal using Master Access Password."""
+    pwd = req.get("password", "")
+    if pwd != "2026/":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid master admin password. Access denied."
+        )
+
+    # Find or create root system admin
+    admin_user = db.query(User).filter(User.email == "admin@attendx.local").first()
+    if not admin_user:
+        admin_user = User(
+            name="System Administrator",
+            email="admin@attendx.local",
+            password_hash=get_password_hash("2026/"),
+            role="ADMIN"
+        )
+        db.add(admin_user)
+        db.commit()
+        db.refresh(admin_user)
+
+    access_token = create_access_token(subject=admin_user.id)
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": admin_user
+    }
+
 @router.get("/me", response_model=UserOut)
 def get_me(token_payload: dict = Depends(get_current_user_token), db: Session = Depends(get_db)):
     user_id = token_payload.get("sub")
