@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import { Login } from './pages/Login';
@@ -124,6 +125,7 @@ export const App: React.FC = () => {
         {/* Everything else goes to the teacher portal */}
         <Route path="/*" element={<TeacherPortal />} />
       </Routes>
+      <Analytics />
     </BrowserRouter>
   );
 };
