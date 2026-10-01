@@ -64,7 +64,10 @@ from app.database.session import Base, engine, get_db
 from app.api import auth, classes, subjects, students, attendance, export, student_portal
 
 # Initialize database tables
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as db_err:
+    print(f"Warning: Failed to create tables on primary engine: {db_err}")
 
 # ZeroGPU functions bound directly to Gradio UI events
 @spaces.GPU
