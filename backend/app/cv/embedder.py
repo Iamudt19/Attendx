@@ -2,7 +2,7 @@ import os
 import urllib.request
 import cv2
 import numpy as np
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Dict
 
 _SFACE_URLS = [
     "https://huggingface.co/opencv/face_recognition_sface/resolve/main/face_recognition_sface_2021dec.onnx",
