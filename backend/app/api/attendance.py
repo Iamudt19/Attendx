@@ -21,24 +21,13 @@ router = APIRouter(prefix="/attendance", tags=["Attendance"])
 
 @router.post("/analyze", response_model=AttendanceAnalysisResponse)
 async def analyze_classroom_photo(
-    request: Request,
+    class_id: int = Form(...),
+    subject_id: int = Form(...),
+    files: Optional[List[UploadFile]] = File(default=None),
+    file: Optional[UploadFile] = File(default=None),
     db: Session = Depends(get_db),
     token: dict = Depends(get_current_user_token)
 ):
-    form_data = await request.form()
-    
-    class_id_val = form_data.get("class_id")
-    subject_id_val = form_data.get("subject_id")
-    
-    if not class_id_val or not subject_id_val:
-        raise HTTPException(status_code=400, detail="Missing class_id or subject_id in request.")
-    
-    try:
-        class_id = int(class_id_val)
-        subject_id = int(subject_id_val)
-    except (ValueError, TypeError):
-        raise HTTPException(status_code=400, detail="Invalid class_id or subject_id format.")
-
     cls = db.query(Class).filter(Class.id == class_id).first()
     if not cls:
         raise HTTPException(status_code=404, detail="Class not found.")
@@ -47,31 +36,17 @@ async def analyze_classroom_photo(
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found.")
 
-    # Gather all uploaded files cleanly
-    uploaded_files: List[Any] = []
-    
-    # 1. First preference: all items under 'files'
-    for item in form_data.getlist("files"):
-        if hasattr(item, "read") or isinstance(item, UploadFile):
-            if item not in uploaded_files:
-                uploaded_files.append(item)
-
-    # 2. If 'files' was empty, check 'file'
-    if not uploaded_files:
-        for item in form_data.getlist("file"):
-            if hasattr(item, "read") or isinstance(item, UploadFile):
-                if item not in uploaded_files:
-                    uploaded_files.append(item)
-
-    # 3. Comprehensive fallback: scan all items in form_data for any file stream
-    if not uploaded_files:
-        for key, value in form_data.multi_items():
-            if hasattr(value, "read") or isinstance(value, UploadFile):
-                if value not in uploaded_files:
-                    uploaded_files.append(value)
+    uploaded_files: List[UploadFile] = []
+    if files:
+        for f in files:
+            if hasattr(f, "filename") and f.filename:
+                uploaded_files.append(f)
+    if file and hasattr(file, "filename") and file.filename:
+        if file not in uploaded_files:
+            uploaded_files.append(file)
 
     if not uploaded_files:
-        raise HTTPException(status_code=400, detail="No classroom photo uploaded. Please select or capture at least one photo.")
+        raise HTTPException(status_code=400, detail="No classroom photo uploaded. Please stage at least one photo.")
 
     # Read image contents and save files
     images_bytes_list = []
