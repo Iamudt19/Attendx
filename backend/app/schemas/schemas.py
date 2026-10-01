@@ -176,6 +176,7 @@ class RecognizedFace(BaseModel):
     confidence: float # 0.0 to 1.0
     status: str # PRESENT, NEEDS_REVIEW, UNKNOWN
     verification_status: str = "AUTO"
+    image_index: Optional[int] = 0
 
 class AttendanceProposalItem(BaseModel):
     student_db_id: int
@@ -188,6 +189,7 @@ class AttendanceProposalItem(BaseModel):
 
 class AttendanceAnalysisResponse(BaseModel):
     image_url: str
+    image_urls: Optional[List[str]] = None
     total_detected_faces: int
     recognized_faces: List[RecognizedFace]
     proposed_attendance: List[AttendanceProposalItem]

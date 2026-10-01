@@ -213,5 +213,114 @@ class RecognitionPipeline:
             "processing_time_sec": round(duration, 2)
         }
 
+    def process_multiple_classroom_images(
+        self,
+        images_bytes_list: List[bytes],
+        enrolled_students: List[Dict[str, Any]],
+        student_embeddings_map: Dict[int, List[List[float]]]
+    ) -> Dict[str, Any]:
+        """
+        Process multiple classroom photos (e.g. Left Wing, Center, Right Wing, Back Benches).
+        Aggregates detections and matches across all photos for a single attendance session.
+        """
+        start_time = time.time()
+        all_recognized_faces = []
+        detected_student_matches: Dict[int, Dict[str, Any]] = {}
+        all_quality_warnings = []
+        total_detected_overall = 0
+
+        for img_idx, img_bytes in enumerate(images_bytes_list):
+            try:
+                single_res = self.process_classroom_image(
+                    image_bytes=img_bytes,
+                    enrolled_students=enrolled_students,
+                    student_embeddings_map=student_embeddings_map
+                )
+            except Exception as err:
+                logger.warning(f"Error processing image #{img_idx+1}: {err}")
+                continue
+
+            total_detected_overall += single_res["total_detected_faces"]
+            for face in single_res["recognized_faces"]:
+                face_copy = dict(face)
+                face_copy["image_index"] = img_idx
+                all_recognized_faces.append(face_copy)
+
+                sid = face_copy.get("student_id")
+                if sid is not None:
+                    score = face_copy.get("match_score", 0.0)
+                    status = face_copy.get("status", "NEEDS_REVIEW")
+                    v_status = face_copy.get("verification_status", "NEEDS_REVIEW")
+
+                    if sid not in detected_student_matches or score > detected_student_matches[sid]["match_score"]:
+                        detected_student_matches[sid] = {
+                            "match_score": score,
+                            "status": status,
+                            "verification_status": v_status
+                        }
+
+            if single_res.get("quality_warnings"):
+                for w in single_res["quality_warnings"]:
+                    all_quality_warnings.append(f"Photo #{img_idx+1}: {w}")
+
+        # Build proposed attendance for ALL enrolled students
+        proposed_attendance = []
+        present_count = 0
+        absent_count = 0
+        needs_review_count = 0
+
+        for student in enrolled_students:
+            s_id = student["id"]
+            if s_id in detected_student_matches:
+                match_data = detected_student_matches[s_id]
+                match_status = match_data["status"]
+                score = match_data["match_score"]
+
+                if match_status == "PRESENT":
+                    final_status = "PRESENT"
+                    v_status = "AUTO"
+                    present_count += 1
+                elif match_status == "NEEDS_REVIEW":
+                    final_status = "PRESENT"
+                    v_status = "NEEDS_REVIEW"
+                    needs_review_count += 1
+                else:
+                    final_status = "ABSENT"
+                    v_status = "AUTO"
+                    absent_count += 1
+            else:
+                final_status = "ABSENT"
+                score = 0.0
+                v_status = "AUTO"
+                absent_count += 1
+
+            proposed_attendance.append({
+                "student_db_id": student["id"],
+                "student_id": student["student_id"],
+                "name": student["name"],
+                "roll_number": student["roll_number"],
+                "status": final_status,
+                "match_score": score,
+                "confidence": score,
+                "verification_status": v_status
+            })
+
+        duration = time.time() - start_time
+        logger.info(
+            f"Multi-photo analysis complete ({len(images_bytes_list)} photos) in {duration:.2f}s | "
+            f"Total Faces: {total_detected_overall}, Present: {present_count}, Review: {needs_review_count}"
+        )
+
+        return {
+            "total_detected_faces": total_detected_overall,
+            "recognized_faces": all_recognized_faces,
+            "proposed_attendance": proposed_attendance,
+            "present_count": present_count,
+            "absent_count": absent_count,
+            "needs_review_count": needs_review_count,
+            "quality_warnings": all_quality_warnings,
+            "processing_time_sec": round(duration, 2)
+        }
+
 
 pipeline = RecognitionPipeline()

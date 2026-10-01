@@ -41,10 +41,21 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
   );
   const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
   const [editingFaceIndex, setEditingFaceIndex] = useState<number | null>(null);
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState<number>(0);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const [savedSessionId, setSavedSessionId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Available photo URLs list
+  const imageUrls = analysisResult.image_urls && analysisResult.image_urls.length > 0 
+    ? analysisResult.image_urls 
+    : [analysisResult.image_url];
+  
+  const activeImageUrl = imageUrls[currentPhotoIndex] || imageUrls[0];
+
+  // Filter faces for the currently active photo
+  const activePhotoFaces = faces.filter((f) => (f.image_index ?? 0) === currentPhotoIndex);
 
   // Quick exception review items
   const needsReviewItems = proposedList.filter(item => item.verification_status === 'NEEDS_REVIEW');
@@ -367,16 +378,43 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
             </div>
           </div>
 
-          <p className="text-[11px] text-slate-400">
-            Hover over any student face to see confidence details. Click to reassign or highlight in the table.
-          </p>
+          {/* Photo Selector Tabs (Only shown if multiple photos) */}
+          {imageUrls.length > 1 && (
+            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+              {imageUrls.map((url, idx) => {
+                const photoFacesCount = faces.filter((f) => (f.image_index ?? 0) === idx).length;
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => {
+                      setCurrentPhotoIndex(idx);
+                      setEditingFaceIndex(null);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+                      currentPhotoIndex === idx
+                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400'
+                        : 'bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700'
+                    }`}
+                  >
+                    <span>Photo #{idx + 1}</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                      currentPhotoIndex === idx ? 'bg-blue-800 text-blue-100' : 'bg-slate-900 text-slate-400'
+                    }`}>
+                      {photoFacesCount} faces
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           <BoundingBoxCanvas
-            imageUrl={analysisResult.image_url}
-            recognizedFaces={faces}
+            imageUrl={activeImageUrl}
+            recognizedFaces={activePhotoFaces}
             selectedStudentId={selectedStudentId}
             onSelectFace={(face: RecognizedFace) => {
-              const idx = faces.findIndex(f => f === face || (f.box.x === face.box.x && f.box.y === face.box.y));
+              const idx = faces.findIndex(f => f === face || (f.box.x === face.box.x && f.box.y === face.box.y && (f.image_index ?? 0) === (face.image_index ?? 0)));
               if (idx !== -1) {
                 setEditingFaceIndex(idx);
               }
@@ -445,10 +483,19 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
                   const isSelected = selectedStudentId === item.student_db_id;
                   const pct = Math.round(item.confidence * 100);
 
+                  const handleRowClick = () => {
+                    setSelectedStudentId(item.student_db_id);
+                    // Find if student appeared in a specific photo
+                    const matchedFace = faces.find((f) => f.student_id === item.student_db_id);
+                    if (matchedFace && matchedFace.image_index !== undefined) {
+                      setCurrentPhotoIndex(matchedFace.image_index);
+                    }
+                  };
+
                   return (
                     <tr
                       key={item.student_db_id}
-                      onClick={() => setSelectedStudentId(item.student_db_id)}
+                      onClick={handleRowClick}
                       className={`cursor-pointer transition-colors ${
                         isSelected ? 'bg-blue-600/15 ring-1 ring-blue-500/50' : 'hover:bg-slate-800/40'
                       }`}

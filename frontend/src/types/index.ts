@@ -126,6 +126,7 @@ export interface RecognizedFace {
   confidence: number;
   status: 'PRESENT' | 'NEEDS_REVIEW' | 'UNKNOWN';
   verification_status: string;
+  image_index?: number;
 }
 
 export interface AttendanceProposalItem {
@@ -140,6 +141,7 @@ export interface AttendanceProposalItem {
 
 export interface AttendanceAnalysisResponse {
   image_url: string;
+  image_urls?: string[];
   total_detected_faces: number;
   recognized_faces: RecognizedFace[];
   proposed_attendance: AttendanceProposalItem[];

@@ -118,15 +118,18 @@ export const StudentService = {
 };
 
 export const AttendanceService = {
-  analyzePhoto: async (classId: number, subjectId: number, file: File): Promise<AttendanceAnalysisResponse> => {
+  analyzePhotos: async (classId: number, subjectId: number, files: File[]): Promise<AttendanceAnalysisResponse> => {
     const formData = new FormData();
     formData.append('class_id', classId.toString());
     formData.append('subject_id', subjectId.toString());
-    formData.append('file', file);
+    files.forEach((file) => formData.append('files', file));
     const res = await api.post('/attendance/analyze', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
     return res.data;
+  },
+  analyzePhoto: async (classId: number, subjectId: number, file: File): Promise<AttendanceAnalysisResponse> => {
+    return AttendanceService.analyzePhotos(classId, subjectId, [file]);
   },
   saveSession: async (data: {
     class_id: number;

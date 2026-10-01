@@ -23,7 +23,8 @@ router = APIRouter(prefix="/attendance", tags=["Attendance"])
 def analyze_classroom_photo(
     class_id: int = Form(...),
     subject_id: int = Form(...),
-    file: UploadFile = File(...),
+    file: Optional[UploadFile] = File(None),
+    files: Optional[List[UploadFile]] = File(None),
     db: Session = Depends(get_db),
     token: dict = Depends(get_current_user_token)
 ):
@@ -35,8 +36,25 @@ def analyze_classroom_photo(
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
 
-    # Read image contents
-    image_bytes = file.file.read()
+    # Gather all uploaded files
+    uploaded_files: List[UploadFile] = []
+    if files:
+        uploaded_files.extend(files)
+    if file and file not in uploaded_files:
+        uploaded_files.append(file)
+
+    if not uploaded_files:
+        raise HTTPException(status_code=400, detail="No classroom photo uploaded")
+
+    # Read image contents and save files
+    images_bytes_list = []
+    image_urls = []
+    for f in uploaded_files:
+        content = f.file.read()
+        images_bytes_list.append(content)
+        f.file.seek(0)
+        saved_rel = storage_service.save_file(f, subfolder="classroom_photos")
+        image_urls.append(f"/storage/{saved_rel}")
 
     # Query all active enrolled students in this class
     students = db.query(Student).filter(Student.class_id == class_id, Student.active == True).order_by(Student.roll_number).all()
@@ -57,22 +75,26 @@ def analyze_classroom_photo(
         if embs:
             student_embeddings_map[s.id] = [e.embedding for e in embs]
 
-    # Save uploaded classroom image temporarily/permanently
-    file.file.seek(0)
-    saved_rel_path = storage_service.save_file(file, subfolder="classroom_photos")
-
-    # Run CV pipeline
+    # Run CV pipeline across all photos
     try:
-        pipeline_res = pipeline.process_classroom_image(
-            image_bytes=image_bytes,
-            enrolled_students=enrolled_list,
-            student_embeddings_map=student_embeddings_map
-        )
+        if len(images_bytes_list) == 1:
+            pipeline_res = pipeline.process_classroom_image(
+                image_bytes=images_bytes_list[0],
+                enrolled_students=enrolled_list,
+                student_embeddings_map=student_embeddings_map
+            )
+        else:
+            pipeline_res = pipeline.process_multiple_classroom_images(
+                images_bytes_list=images_bytes_list,
+                enrolled_students=enrolled_list,
+                student_embeddings_map=student_embeddings_map
+            )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
     return AttendanceAnalysisResponse(
-        image_url=f"/storage/{saved_rel_path}",
+        image_url=image_urls[0],
+        image_urls=image_urls,
         total_detected_faces=pipeline_res["total_detected_faces"],
         recognized_faces=pipeline_res["recognized_faces"],
         proposed_attendance=pipeline_res["proposed_attendance"],
