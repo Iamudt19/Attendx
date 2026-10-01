@@ -15,6 +15,7 @@ import { AdminPortal } from './pages/AdminPortal';
 import { AuthService } from './services/api';
 import { User, AttendanceAnalysisResponse } from './types';
 import { Analytics } from '@vercel/analytics/react';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // ── Admin Portal Root ─────────────────────────────────────────────────────────
 const AdminPortalRoot: React.FC = () => <AdminPortal />;
@@ -116,16 +117,18 @@ const TeacherPortal: React.FC = () => {
 // ── App Root: Route split ─────────────────────────────────────────────────────
 export const App: React.FC = () => {
   return (
-    <BrowserRouter>
-      <Analytics />
-      <Routes>
-        {/* /admin/* routes go directly to the Admin Portal */}
-        <Route path="/admin/*" element={<AdminPortalRoot />} />
-        {/* All /student/* routes go to the student portal */}
-        <Route path="/student/*" element={<StudentPortalRoot />} />
-        {/* Everything else goes to the teacher portal */}
-        <Route path="/*" element={<TeacherPortal />} />
-      </Routes>
-    </BrowserRouter>
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Analytics />
+        <Routes>
+          {/* /admin/* routes go directly to the Admin Portal */}
+          <Route path="/admin/*" element={<AdminPortalRoot />} />
+          {/* All /student/* routes go to the student portal */}
+          <Route path="/student/*" element={<StudentPortalRoot />} />
+          {/* Everything else goes to the teacher portal */}
+          <Route path="/*" element={<TeacherPortal />} />
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 };

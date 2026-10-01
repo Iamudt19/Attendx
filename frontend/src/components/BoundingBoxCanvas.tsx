@@ -1,18 +1,18 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { Eye, EyeOff, CheckCircle2, AlertTriangle, HelpCircle, Layers, SlidersHorizontal, UserCheck } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Eye, EyeOff, CheckCircle2, AlertTriangle, HelpCircle, SlidersHorizontal } from 'lucide-react';
 import { RecognizedFace } from '../types';
 import { getStorageUrl } from '../services/api';
 
 interface BoundingBoxCanvasProps {
-  imageUrl: string;
-  recognizedFaces: RecognizedFace[];
+  imageUrl?: string;
+  recognizedFaces?: RecognizedFace[];
   selectedStudentId?: number | null;
   onSelectFace?: (face: RecognizedFace) => void;
 }
 
 export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
-  imageUrl,
-  recognizedFaces,
+  imageUrl = '',
+  recognizedFaces = [],
   selectedStudentId,
   onSelectFace
 }) => {
@@ -22,15 +22,24 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
   // Visibility & mode filters
   const [showPresent, setShowPresent] = useState(true);
   const [showReview, setShowReview] = useState(true);
-  const [showUnknown, setShowUnknown] = useState(false); // Default OFF to eliminate clutter!
-  const [alwaysShowLabels, setAlwaysShowLabels] = useState(false); // Default OFF: tooltips on hover only!
+  const [showUnknown, setShowUnknown] = useState(false);
+  const [alwaysShowLabels, setAlwaysShowLabels] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
-  const resolvedImageUrl = getStorageUrl(imageUrl);
+  const resolvedImageUrl = imageUrl ? getStorageUrl(imageUrl) : '';
 
-  const presentCount = recognizedFaces.filter(f => f.status === 'PRESENT').length;
-  const reviewCount = recognizedFaces.filter(f => f.status === 'NEEDS_REVIEW').length;
-  const unknownCount = recognizedFaces.filter(f => f.status === 'UNKNOWN').length;
+  const safeFaces = Array.isArray(recognizedFaces) ? recognizedFaces : [];
+  const presentCount = safeFaces.filter(f => f?.status === 'PRESENT').length;
+  const reviewCount = safeFaces.filter(f => f?.status === 'NEEDS_REVIEW').length;
+  const unknownCount = safeFaces.filter(f => f?.status === 'UNKNOWN').length;
+
+  if (!resolvedImageUrl) {
+    return (
+      <div className="w-full h-56 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-center text-slate-500 text-xs">
+        No classroom photo available
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-2">
@@ -88,7 +97,7 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
           className="text-[11px] text-slate-400 hover:text-slate-200 flex items-center gap-1 px-2 py-1 rounded bg-slate-900 border border-slate-800 transition-colors"
         >
           {alwaysShowLabels ? <Eye className="w-3 h-3 text-violet-400" /> : <EyeOff className="w-3 h-3 text-slate-400" />}
-          {alwaysShowLabels ? 'Labels: Always Visible' : 'Labels: On Hover'}
+          {alwaysShowLabels ? 'Labels: Always' : 'Labels: Hover'}
         </button>
       </div>
 
@@ -103,8 +112,9 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
 
         {/* Bounding Boxes Layer */}
         <div className="absolute inset-0 pointer-events-none">
-          {recognizedFaces.map((face, idx) => {
-            const { box, name, confidence, status, student_id } = face;
+          {safeFaces.map((face, idx) => {
+            if (!face || !face.box) return null;
+            const { box, name = 'Face', confidence = 0, status = 'UNKNOWN', student_id } = face;
 
             // Visibility filtering
             if (status === 'PRESENT' && !showPresent) return null;
@@ -116,10 +126,10 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
             const scaleX = img.clientWidth / (img.naturalWidth || img.clientWidth || 1);
             const scaleY = img.clientHeight / (img.naturalHeight || img.clientHeight || 1);
 
-            const left = box.x * scaleX;
-            const top = box.y * scaleY;
-            const width = box.w * scaleX;
-            const height = box.h * scaleY;
+            const left = (box.x ?? 0) * scaleX;
+            const top = (box.y ?? 0) * scaleY;
+            const width = Math.max(10, (box.w ?? 20) * scaleX);
+            const height = Math.max(10, (box.h ?? 20) * scaleY);
 
             const isSelected = selectedStudentId && student_id === selectedStudentId;
             const isHovered = hoveredIndex === idx;
@@ -139,7 +149,7 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
               badgeBg = 'bg-rose-500/20 text-rose-300 border-rose-500/40';
             }
 
-            const pct = Math.round(confidence * 100);
+            const pct = Math.round((confidence ?? 0) * 100);
 
             return (
               <div
@@ -158,7 +168,6 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
                   borderStyle: status === 'UNKNOWN' ? 'dashed' : 'solid'
                 }}
               >
-                {/* Minimalist Floating Tooltip: Only rendered on Hover/Selection or when Always Visible */}
                 {showTooltip && (
                   <div
                     className={`absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-lg text-[11px] font-bold whitespace-nowrap shadow-2xl bg-slate-950/95 text-white flex items-center gap-1.5 border border-slate-700/80 backdrop-blur-md transition-all duration-150 z-40`}
