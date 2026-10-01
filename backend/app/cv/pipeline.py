@@ -220,27 +220,48 @@ class RecognitionPipeline:
         student_embeddings_map: Dict[int, List[List[float]]]
     ) -> Dict[str, Any]:
         """
-        Process multiple classroom photos (e.g. Left Wing, Center, Right Wing, Back Benches).
-        Aggregates detections and matches across all photos for a single attendance session.
+        Process multiple classroom photos in parallel (e.g. Left Wing, Center, Right Wing, Back Benches).
+        Aggregates detections, deduplicates common faces across overlapping photos, and produces unified attendance.
         """
+        import concurrent.futures
+
         start_time = time.time()
         all_recognized_faces = []
-        detected_student_matches: Dict[int, Dict[str, Any]] = {}
+        detected_student_matches: Dict[int, Dict[str, Any]] = {} # student_db_id -> highest confidence match
         all_quality_warnings = []
         total_detected_overall = 0
 
-        for img_idx, img_bytes in enumerate(images_bytes_list):
+        # Helper function to process a single image in a parallel thread worker
+        def _process_indexed_image(idx_and_bytes):
+            img_idx, img_bytes = idx_and_bytes
             try:
-                single_res = self.process_classroom_image(
+                result = self.process_classroom_image(
                     image_bytes=img_bytes,
                     enrolled_students=enrolled_students,
                     student_embeddings_map=student_embeddings_map
                 )
-            except Exception as err:
-                logger.warning(f"Error processing image #{img_idx+1}: {err}")
+                return img_idx, result, None
+            except Exception as e:
+                logger.error(f"Parallel image processing error for Photo #{img_idx+1}: {e}")
+                return img_idx, None, str(e)
+
+        # Execute parallel detection & embedding extraction across CPU worker threads
+        max_workers = min(len(images_bytes_list), 6)
+        indexed_inputs = list(enumerate(images_bytes_list))
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_results = list(executor.map(_process_indexed_image, indexed_inputs))
+
+        # Sort results by original image index to preserve sequence
+        future_results.sort(key=lambda x: x[0])
+
+        for img_idx, single_res, err in future_results:
+            if err or not single_res:
+                all_quality_warnings.append(f"Photo #{img_idx+1} could not be processed: {err}")
                 continue
 
             total_detected_overall += single_res["total_detected_faces"]
+
             for face in single_res["recognized_faces"]:
                 face_copy = dict(face)
                 face_copy["image_index"] = img_idx
@@ -252,18 +273,28 @@ class RecognitionPipeline:
                     status = face_copy.get("status", "NEEDS_REVIEW")
                     v_status = face_copy.get("verification_status", "NEEDS_REVIEW")
 
-                    if sid not in detected_student_matches or score > detected_student_matches[sid]["match_score"]:
+                    # Deduplication: retain the highest confidence detection across all photos
+                    if sid not in detected_student_matches:
                         detected_student_matches[sid] = {
                             "match_score": score,
                             "status": status,
-                            "verification_status": v_status
+                            "verification_status": v_status,
+                            "best_image_index": img_idx,
+                            "occurrences": 1
                         }
+                    else:
+                        detected_student_matches[sid]["occurrences"] += 1
+                        if score > detected_student_matches[sid]["match_score"]:
+                            detected_student_matches[sid]["match_score"] = score
+                            detected_student_matches[sid]["status"] = status
+                            detected_student_matches[sid]["verification_status"] = v_status
+                            detected_student_matches[sid]["best_image_index"] = img_idx
 
             if single_res.get("quality_warnings"):
                 for w in single_res["quality_warnings"]:
                     all_quality_warnings.append(f"Photo #{img_idx+1}: {w}")
 
-        # Build proposed attendance for ALL enrolled students
+        # Build proposed attendance for ALL enrolled students in the class
         proposed_attendance = []
         present_count = 0
         absent_count = 0
@@ -307,8 +338,8 @@ class RecognitionPipeline:
 
         duration = time.time() - start_time
         logger.info(
-            f"Multi-photo analysis complete ({len(images_bytes_list)} photos) in {duration:.2f}s | "
-            f"Total Faces: {total_detected_overall}, Present: {present_count}, Review: {needs_review_count}"
+            f"Parallel multi-photo analysis complete ({len(images_bytes_list)} photos, {max_workers} threads) in {duration:.2f}s | "
+            f"Total Faces: {total_detected_overall}, Unique Present: {present_count}, Review: {needs_review_count}, Absent: {absent_count}"
         )
 
         return {
