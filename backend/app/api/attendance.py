@@ -47,32 +47,31 @@ async def analyze_classroom_photo(
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found.")
 
-    # Gather all uploaded files cleanly without duplicate files
-    uploaded_files: List[UploadFile] = []
+    # Gather all uploaded files cleanly
+    uploaded_files: List[Any] = []
     
-    # 1. Check primary 'files' list (for multi-image analysis)
-    files_list = form_data.getlist("files")
-    if files_list:
-        for item in files_list:
-            if hasattr(item, "filename") and item.filename:
+    # 1. First preference: all items under 'files'
+    for item in form_data.getlist("files"):
+        if hasattr(item, "read") or isinstance(item, UploadFile):
+            if item not in uploaded_files:
                 uploaded_files.append(item)
 
-    # 2. Fallback to 'file' if 'files' was not provided
+    # 2. If 'files' was empty, check 'file'
     if not uploaded_files:
-        file_list = form_data.getlist("file")
-        for item in file_list:
-            if hasattr(item, "filename") and item.filename:
-                uploaded_files.append(item)
+        for item in form_data.getlist("file"):
+            if hasattr(item, "read") or isinstance(item, UploadFile):
+                if item not in uploaded_files:
+                    uploaded_files.append(item)
 
-    # 3. Fallback to scanning all values in form_data
+    # 3. Comprehensive fallback: scan all items in form_data for any file stream
     if not uploaded_files:
         for key, value in form_data.multi_items():
-            if hasattr(value, "filename") and value.filename:
+            if hasattr(value, "read") or isinstance(value, UploadFile):
                 if value not in uploaded_files:
                     uploaded_files.append(value)
 
     if not uploaded_files:
-        raise HTTPException(status_code=400, detail="No classroom photo uploaded.")
+        raise HTTPException(status_code=400, detail="No classroom photo uploaded. Please select or capture at least one photo.")
 
     # Read image contents and save files
     images_bytes_list = []
