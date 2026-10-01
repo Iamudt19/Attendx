@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 from typing import List, Optional
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Request
 from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.models.models import AttendanceSession, AttendanceRecord, Student, Class, Subject, FaceEmbedding, User
@@ -20,39 +20,49 @@ from app.services.excel_service import excel_service
 router = APIRouter(prefix="/attendance", tags=["Attendance"])
 
 @router.post("/analyze", response_model=AttendanceAnalysisResponse)
-def analyze_classroom_photo(
-    class_id: int = Form(...),
-    subject_id: int = Form(...),
-    file: Optional[UploadFile] = File(None),
-    files: Optional[List[UploadFile]] = File(None),
+async def analyze_classroom_photo(
+    request: Request,
     db: Session = Depends(get_db),
     token: dict = Depends(get_current_user_token)
 ):
+    form_data = await request.form()
+    
+    class_id_val = form_data.get("class_id")
+    subject_id_val = form_data.get("subject_id")
+    
+    if not class_id_val or not subject_id_val:
+        raise HTTPException(status_code=400, detail="Missing class_id or subject_id in request.")
+    
+    try:
+        class_id = int(class_id_val)
+        subject_id = int(subject_id_val)
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=400, detail="Invalid class_id or subject_id format.")
+
     cls = db.query(Class).filter(Class.id == class_id).first()
     if not cls:
-        raise HTTPException(status_code=404, detail="Class not found")
+        raise HTTPException(status_code=404, detail="Class not found.")
 
     subject = db.query(Subject).filter(Subject.id == subject_id).first()
     if not subject:
-        raise HTTPException(status_code=404, detail="Subject not found")
+        raise HTTPException(status_code=404, detail="Subject not found.")
 
-    # Gather all uploaded files
+    # Gather all uploaded files (handles 'files', 'file', 'image', etc.)
     uploaded_files: List[UploadFile] = []
-    if files:
-        uploaded_files.extend(files)
-    if file and file not in uploaded_files:
-        uploaded_files.append(file)
+    for key, value in form_data.multi_items():
+        if isinstance(value, UploadFile) and value.filename:
+            uploaded_files.append(value)
 
     if not uploaded_files:
-        raise HTTPException(status_code=400, detail="No classroom photo uploaded")
+        raise HTTPException(status_code=400, detail="No classroom photo uploaded.")
 
     # Read image contents and save files
     images_bytes_list = []
     image_urls = []
     for f in uploaded_files:
-        content = f.file.read()
+        content = await f.read()
         images_bytes_list.append(content)
-        f.file.seek(0)
+        await f.seek(0)
         saved_rel = storage_service.save_file(f, subfolder="classroom_photos")
         image_urls.append(f"/storage/{saved_rel}")
 

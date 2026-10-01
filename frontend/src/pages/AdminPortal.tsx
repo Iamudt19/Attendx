@@ -8,6 +8,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { AuthService, ClassService, StudentService, SubjectService, api } from '../services/api';
 import { ClassItem, StudentItem, SubjectItem } from '../types';
+import { extractErrorMessage } from '../utils/error';
 
 type AdminTab = 'overview' | 'classes' | 'students' | 'subjects' | 'diagnostics';
 
@@ -87,7 +88,7 @@ export const AdminPortal: React.FC = () => {
         setIsAuthenticated(true);
         setPasswordInput('');
       } else {
-        setAuthError(err.response?.data?.detail || 'Authentication failed.');
+        setAuthError(extractErrorMessage(err, 'Authentication failed.'));
       }
     } finally {
       setAuthLoading(false);
@@ -149,7 +150,7 @@ export const AdminPortal: React.FC = () => {
       notify('Class section created successfully.');
       refreshAllData();
     } catch (err: any) {
-      notify(err.response?.data?.detail || 'Failed to create class.', 'error');
+      notify(extractErrorMessage(err, 'Failed to create class.'), 'error');
     }
   };
 
@@ -160,7 +161,7 @@ export const AdminPortal: React.FC = () => {
       notify(`Class "${name}" deleted.`);
       refreshAllData();
     } catch (err: any) {
-      notify(err.response?.data?.detail || 'Failed to delete class.', 'error');
+      notify(extractErrorMessage(err, 'Failed to delete class.'), 'error');
     }
   };
 
@@ -183,7 +184,7 @@ export const AdminPortal: React.FC = () => {
       notify('Student enrolled successfully.');
       refreshAllData();
     } catch (err: any) {
-      notify(err.response?.data?.detail || 'Failed to enroll student.', 'error');
+      notify(extractErrorMessage(err, 'Failed to enroll student.'), 'error');
     }
   };
 
@@ -194,7 +195,7 @@ export const AdminPortal: React.FC = () => {
       notify(`Student "${name}" deleted.`);
       refreshAllData();
     } catch (err: any) {
-      notify(err.response?.data?.detail || 'Failed to delete student.', 'error');
+      notify(extractErrorMessage(err, 'Failed to delete student.'), 'error');
     }
   };
 
@@ -224,7 +225,7 @@ export const AdminPortal: React.FC = () => {
       notify('Subject added successfully.');
       refreshAllData();
     } catch (err: any) {
-      notify(err.response?.data?.detail || 'Failed to add subject.', 'error');
+      notify(extractErrorMessage(err, 'Failed to add subject.'), 'error');
     }
   };
 

@@ -3,6 +3,7 @@ import { Camera, Lock, Mail, User as UserIcon, ArrowRight, ShieldCheck, Graduati
 import { useNavigate } from 'react-router-dom';
 import { AuthService } from '../services/api';
 import { User } from '../types';
+import { extractErrorMessage } from '../utils/error';
 
 interface LoginProps {
   onLoginSuccess: (user: User, token: string) => void;
@@ -38,7 +39,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       localStorage.setItem('attendx_token', data.access_token);
       onLoginSuccess(data.user, data.access_token);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Login failed. Please check your email and password.');
+      setError(extractErrorMessage(err, 'Login failed. Please check your email and password.'));
     } finally {
       setLoading(false);
     }
@@ -73,7 +74,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         onLoginSuccess(data.user, data.access_token);
       }, 500);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Registration failed. Please try again with another email.');
+      setError(extractErrorMessage(err, 'Registration failed. Please try again with another email.'));
     } finally {
       setLoading(false);
     }

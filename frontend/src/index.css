@@ -4,23 +4,41 @@
 
 @layer base {
   body {
-    @apply bg-slate-900 text-slate-100 antialiased font-sans min-h-screen;
-    background-color: #0F172A;
+    @apply bg-[#070A0F] text-slate-100 antialiased font-sans min-h-screen selection:bg-blue-600 selection:text-white;
+    background-color: #070A0F;
+    letter-spacing: -0.01em;
   }
+}
+
+/* Distinctive architectural surface styles */
+.surface-card {
+  background-color: #0D121C;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.surface-elevated {
+  background-color: #121927;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.surface-inset {
+  background-color: #080C14;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 /* Custom sleek scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #1E293B;
+  background: #070A0F;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 4px;
+  background: #1E293B;
+  border-radius: 2px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #334155;
 }
+

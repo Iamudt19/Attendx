@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Camera, History, Users, BookOpen, FileSpreadsheet, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Camera, History, Users, BookOpen, ShieldCheck } from 'lucide-react';
 import { User } from '../types';
 
 interface SidebarProps {
@@ -17,10 +17,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
   ];
 
   return (
-    <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col shrink-0 min-h-[calc(100vh-4rem)]">
-      <div className="p-4 flex-1 space-y-1">
-        <div className="px-3 py-2 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-          Main Navigation
+    <aside className="w-64 bg-[#070A0F] border-r border-white/[0.08] flex flex-col shrink-0 min-h-[calc(100vh-4rem)]">
+      <div className="p-3 flex-1 space-y-1">
+        <div className="px-3 py-2 text-[10px] font-mono font-bold text-slate-500 uppercase tracking-widest">
+          NAVIGATION //
         </div>
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -29,10 +29,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30'
+                    : 'text-slate-400 hover:text-white hover:bg-[#0D121C]'
                 }`
               }
             >
@@ -43,14 +43,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ user }) => {
         })}
       </div>
 
-      {/* Privacy Notice Box */}
-      <div className="p-4 m-3 rounded-xl bg-slate-800/40 border border-slate-700/40 text-xs text-slate-400 space-y-2">
-        <div className="flex items-center gap-1.5 font-semibold text-slate-300 text-[11px]">
+      {/* Security & System Info */}
+      <div className="p-3 m-3 rounded-lg bg-[#0D121C] border border-white/[0.06] text-xs text-slate-400 space-y-1.5">
+        <div className="flex items-center gap-1.5 font-bold text-slate-300 text-[10px] font-mono uppercase tracking-wider">
           <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
-          <span>Biometric Privacy Notice</span>
+          <span>Biometric Privacy</span>
         </div>
-        <p className="text-[11px] leading-relaxed text-slate-400">
-          Facial embeddings are encrypted and processed locally. Consent is managed institutionally.
+        <p className="text-[10px] leading-relaxed text-slate-500">
+          Vectors processed locally with 128-D Euclidean hashing. No raw biometric imagery retained without authorization.
         </p>
       </div>
     </aside>

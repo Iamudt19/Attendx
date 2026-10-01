@@ -8,6 +8,7 @@ import {
 import { StudentPortalService } from '../services/api';
 import { StudentUser, ScanAngle, SCAN_ANGLES, ANGLE_LABELS, ANGLE_ICONS, FaceFrameUploadResult, StudentPublicClass } from '../types';
 import { NeuralFaceMeshOverlay } from '../components/NeuralFaceMeshOverlay';
+import { extractErrorMessage } from '../utils/error';
 
 interface FaceEnrollmentWizardProps {
   student: StudentUser;
@@ -167,7 +168,7 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
       }
       setClassMessage('Class successfully registered and updated!');
     } catch (err: any) {
-      setClassMessage(err.response?.data?.detail || 'Failed to update class.');
+      setClassMessage(extractErrorMessage(err, 'Failed to update class.'));
     } finally {
       setSavingClass(false);
     }
@@ -298,7 +299,7 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
       setLastResult({
         accepted: false,
         angle_label: angleToSubmit,
-        reason: err.response?.data?.detail || 'Upload failed. Please try again.',
+        reason: extractErrorMessage(err, 'Upload failed. Please try again.'),
         completed_angles: completedAngles,
         remaining_angles: SCAN_ANGLES.filter(a => !completedAngles.includes(a as ScanAngle)) as ScanAngle[],
         total_required: 5,

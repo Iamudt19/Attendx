@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   CheckCircle2, XCircle, AlertTriangle, Save, 
-  FileSpreadsheet, ArrowLeft, Check, Sparkles, ShieldCheck, UserCheck, Edit3, X, Zap, ChevronRight, HelpCircle 
+  FileSpreadsheet, ArrowLeft, Check, Sparkles, ShieldCheck, UserCheck, Edit3, X, Zap, ChevronRight, HelpCircle, Camera 
 } from 'lucide-react';
 import { BoundingBoxCanvas } from '../components/BoundingBoxCanvas';
 import { AttendanceService } from '../services/api';
 import { AttendanceAnalysisResponse, AttendanceProposalItem, RecognizedFace } from '../types';
+import { extractErrorMessage } from '../utils/error';
 
 interface ReviewAttendanceProps {
   analysisResult: AttendanceAnalysisResponse | null;
@@ -178,7 +179,7 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
       setSavedSessionId(savedSession.id);
       setSaveSuccess(true);
     } catch (err: any) {
-      setError(err.response?.data?.detail || "Failed to save attendance record.");
+      setError(extractErrorMessage(err, "Failed to save attendance record."));
     } finally {
       setSaving(false);
     }
@@ -234,65 +235,60 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      {/* ── Header Bar ── */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/[0.08] pb-4">
         <div>
           <button
             onClick={() => navigate('/take-attendance')}
-            className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1 mb-1 font-semibold"
+            className="text-xs font-mono text-slate-400 hover:text-white flex items-center gap-1 mb-1 font-semibold"
           >
-            <ArrowLeft className="w-3.5 h-3.5" /> Back to Take Attendance
+            <ArrowLeft className="w-3.5 h-3.5" /> RETURN TO CAPTURE
           </button>
           <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            Attendance Verification
-            <span className="px-2.5 py-0.5 rounded-full bg-violet-600/20 border border-violet-500/30 text-violet-300 text-xs font-mono font-bold">
-              AI Powered
-            </span>
+            Attendance Verification Ledger
           </h1>
-          <p className="text-xs text-slate-400">
-            High-confidence matches are auto-verified. Review any exception cases below and confirm in 1 click.
+          <p className="text-xs text-slate-400 mt-0.5">
+            High-confidence matches are auto-verified. Confirm any ambiguous exception cases below and archive session.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
             onClick={markAllVerified}
-            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 flex items-center gap-1.5 transition-all"
+            className="px-3.5 py-2 bg-[#121927] hover:bg-slate-800 text-slate-200 rounded-lg text-xs font-semibold border border-white/10 flex items-center gap-1.5 transition-all"
           >
-            <Check className="w-4 h-4 text-emerald-400" />
+            <Check className="w-3.5 h-3.5 text-emerald-400" />
             Approve All ({presentCount})
           </button>
           <button
             onClick={handleSaveAttendance}
             disabled={saving}
-            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-600/25 flex items-center gap-2 disabled:opacity-50 transition-all"
+            className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase tracking-wider rounded-lg shadow-lg shadow-blue-600/30 flex items-center gap-2 disabled:opacity-50 transition-all"
           >
-            <Save className="w-4 h-4" />
-            <span>{saving ? 'Saving & Training...' : 'Confirm & Save Attendance'}</span>
+            <Save className="w-3.5 h-3.5" />
+            <span>{saving ? 'Archiving...' : 'Confirm & Save'}</span>
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium">
+        <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium">
           {error}
         </div>
       )}
 
-      {/* Exception Review Banner (Only shown if ambiguous cases exist) */}
+      {/* Exception Review Banner */}
       {needsReviewItems.length > 0 && (
-        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-400 animate-pulse" />
-              <div>
-                <h3 className="text-sm font-bold text-amber-300">
-                  {needsReviewItems.length} Student(s) Need Quick Confirmation
-                </h3>
-                <p className="text-[11px] text-amber-400/80">
-                  Confidence was moderate or lighting was tricky. Confirm identity in 1 click:
-                </p>
-              </div>
+        <div className="p-4 rounded-xl surface-card border border-amber-500/30 space-y-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-400 animate-pulse" />
+            <div>
+              <h3 className="text-xs font-bold text-amber-300 font-mono uppercase tracking-wider">
+                {needsReviewItems.length} Student(s) Require Visual Confirmation
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                Confidence was moderate or lighting was tricky. Confirm identity in 1 click:
+              </p>
             </div>
           </div>
 
@@ -300,7 +296,7 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
             {needsReviewItems.map((item) => (
               <div
                 key={item.student_db_id}
-                className="p-3 bg-slate-900/90 border border-amber-500/20 rounded-xl flex items-center justify-between gap-3 shadow-lg"
+                className="p-3 bg-[#080C14] border border-amber-500/20 rounded-lg flex items-center justify-between gap-3"
               >
                 <div>
                   <div className="flex items-center gap-1.5">
@@ -309,19 +305,19 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
                       {Math.round(item.confidence * 100)}%
                     </span>
                   </div>
-                  <p className="text-[10px] text-slate-400">Roll: {item.roll_number}</p>
+                  <p className="text-[10px] font-mono text-slate-400">Roll: {item.roll_number}</p>
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     onClick={() => confirmStudentPresent(item.student_db_id)}
-                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition-all"
+                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold flex items-center gap-1 transition-all"
                   >
-                    <Check className="w-3.5 h-3.5" /> Present
+                    <Check className="w-3 h-3" /> Present
                   </button>
                   <button
                     onClick={() => markStudentAbsent(item.student_db_id)}
-                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition-all"
+                    className="px-2 py-1 bg-[#121927] hover:bg-slate-800 text-slate-400 rounded text-xs font-medium border border-white/10 transition-all"
                   >
                     Absent
                   </button>
@@ -334,51 +330,51 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
 
       {/* Metrics Bar */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
+        <div className="surface-card p-4 rounded-xl border border-white/10 flex items-center justify-between">
           <div>
-            <div className="text-xs text-slate-400 font-medium">Present</div>
-            <div className="text-xl font-bold text-emerald-400">{presentCount}</div>
+            <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Present</div>
+            <div className="text-2xl font-bold font-mono text-emerald-400">{presentCount}</div>
           </div>
-          <CheckCircle2 className="w-6 h-6 text-emerald-500/40" />
+          <CheckCircle2 className="w-5 h-5 text-emerald-500/30" />
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
+        <div className="surface-card p-4 rounded-xl border border-white/10 flex items-center justify-between">
           <div>
-            <div className="text-xs text-slate-400 font-medium">Absent</div>
-            <div className="text-xl font-bold text-rose-400">{absentCount}</div>
+            <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Absent</div>
+            <div className="text-2xl font-bold font-mono text-rose-400">{absentCount}</div>
           </div>
-          <XCircle className="w-6 h-6 text-rose-500/40" />
+          <XCircle className="w-5 h-5 text-rose-500/30" />
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl flex items-center justify-between">
+        <div className="surface-card p-4 rounded-xl border border-white/10 flex items-center justify-between">
           <div>
-            <div className="text-xs text-slate-400 font-medium">Needs Review</div>
-            <div className="text-xl font-bold text-amber-400">{needsReviewCount}</div>
+            <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">Needs Review</div>
+            <div className="text-2xl font-bold font-mono text-amber-400">{needsReviewCount}</div>
           </div>
-          <AlertTriangle className="w-6 h-6 text-amber-500/40" />
+          <AlertTriangle className="w-5 h-5 text-amber-500/30" />
         </div>
       </div>
 
-      {/* Main Grid: Image Bounding Box Canvas + Student Table */}
+      {/* Main Grid: Visualizer + Table */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left column: Image Bounding Box Canvas */}
-        <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-white flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-blue-400" />
-              Classroom Photo Visualizer
+        {/* Left column: Visualizer */}
+        <div className="lg:col-span-5 surface-card rounded-xl p-4 border border-white/10 space-y-3">
+          <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+              <Camera className="w-4 h-4 text-blue-400" />
+              Classroom Visualizer
             </h2>
-            <div className="flex items-center gap-2 text-[10px] font-medium">
+            <div className="flex items-center gap-2 text-[10px] font-mono">
               <span className="flex items-center gap-1 text-emerald-400">
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span> Recognized
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Recognized
               </span>
               <span className="flex items-center gap-1 text-amber-400">
-                <span className="w-2 h-2 rounded-full bg-amber-500"></span> Review
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Review
               </span>
             </div>
           </div>
 
-          {/* Photo Selector Tabs (Only shown if multiple photos) */}
+          {/* Photo Selector Tabs */}
           {imageUrls.length > 1 && (
             <div className="flex items-center gap-2 overflow-x-auto pb-1">
               {imageUrls.map((url, idx) => {
@@ -391,17 +387,15 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
                       setCurrentPhotoIndex(idx);
                       setEditingFaceIndex(null);
                     }}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+                    className={`px-3 py-1.5 rounded text-xs font-mono font-bold transition-all flex items-center gap-1.5 shrink-0 ${
                       currentPhotoIndex === idx
-                        ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-1 ring-blue-400'
-                        : 'bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700'
+                        ? 'bg-blue-600 text-white shadow-sm ring-1 ring-blue-400'
+                        : 'bg-[#080C14] text-slate-400 hover:text-white border border-white/10'
                     }`}
                   >
-                    <span>Photo #{idx + 1}</span>
-                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                      currentPhotoIndex === idx ? 'bg-blue-800 text-blue-100' : 'bg-slate-900 text-slate-400'
-                    }`}>
-                      {photoFacesCount} faces
+                    <span>PHOTO #{idx + 1}</span>
+                    <span className="text-[10px] px-1 bg-black/40 rounded">
+                      {photoFacesCount}
                     </span>
                   </button>
                 );
@@ -426,11 +420,10 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
 
           {/* Reassign / Correction Box */}
           {editingFaceIndex !== null && (
-            <div className="p-3 bg-slate-950 border border-violet-500/40 rounded-xl space-y-2 mt-2 shadow-xl">
+            <div className="p-3 bg-[#080C14] border border-blue-500/40 rounded-lg space-y-2 mt-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-violet-300 flex items-center gap-1.5">
-                  <UserCheck className="w-3.5 h-3.5" />
-                  Assign Face #{editingFaceIndex + 1} ({faces[editingFaceIndex]?.name})
+                <span className="text-xs font-bold text-blue-300 font-mono">
+                  REASSIGN FACE #{editingFaceIndex + 1} ({faces[editingFaceIndex]?.name})
                 </span>
                 <button
                   onClick={() => setEditingFaceIndex(null)}
@@ -441,7 +434,7 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
               </div>
               <div className="flex gap-2">
                 <select
-                  className="flex-1 bg-slate-900 border border-slate-700 text-white rounded-lg text-xs p-2 focus:ring-1 focus:ring-violet-500 focus:outline-none"
+                  className="flex-1 bg-[#121927] border border-white/10 text-white rounded text-xs p-2 focus:border-blue-500 focus:outline-none font-mono"
                   defaultValue=""
                   onChange={(e) => {
                     const sid = parseInt(e.target.value);
@@ -460,32 +453,33 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
           )}
         </div>
 
-        {/* Right column: Student Proposed Attendance Table */}
-        <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-white">Class Roster & Attendance ({proposedList.length} Students)</h2>
-            <span className="text-xs text-slate-400">Click any row to focus on photo</span>
+        {/* Right column: Roster Table */}
+        <div className="lg:col-span-7 surface-card rounded-xl p-4 border border-white/10 space-y-3">
+          <div className="flex items-center justify-between border-b border-white/[0.06] pb-2">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+              Class Roster ({proposedList.length} Students)
+            </h2>
+            <span className="text-[11px] font-mono text-slate-500">CLICK ROW TO LOCATE IN PHOTO</span>
           </div>
 
-          <div className="overflow-x-auto max-h-[500px] overflow-y-auto border border-slate-800/80 rounded-xl">
+          <div className="overflow-x-auto max-h-[480px] overflow-y-auto border border-white/[0.06] rounded-lg">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider font-semibold sticky top-0 border-b border-slate-800">
+              <thead className="bg-[#080C14] text-slate-400 uppercase tracking-wider font-mono text-[10px] sticky top-0 border-b border-white/[0.08]">
                 <tr>
-                  <th className="py-3 px-4">Roll No</th>
-                  <th className="py-3 px-4">Student Name</th>
-                  <th className="py-3 px-4">AI Score</th>
-                  <th className="py-3 px-4 text-center">Status</th>
-                  <th className="py-3 px-4 text-right">Action</th>
+                  <th className="py-2.5 px-3">Roll No</th>
+                  <th className="py-2.5 px-3">Student Name</th>
+                  <th className="py-2.5 px-3">AI Score</th>
+                  <th className="py-2.5 px-3 text-center">Status</th>
+                  <th className="py-2.5 px-3 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60 font-medium">
+              <tbody className="divide-y divide-white/[0.04]">
                 {proposedList.map((item) => {
                   const isSelected = selectedStudentId === item.student_db_id;
                   const pct = Math.round(item.confidence * 100);
 
                   const handleRowClick = () => {
                     setSelectedStudentId(item.student_db_id);
-                    // Find if student appeared in a specific photo
                     const matchedFace = faces.find((f) => f.student_id === item.student_db_id);
                     if (matchedFace && matchedFace.image_index !== undefined) {
                       setCurrentPhotoIndex(matchedFace.image_index);
@@ -497,56 +491,51 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
                       key={item.student_db_id}
                       onClick={handleRowClick}
                       className={`cursor-pointer transition-colors ${
-                        isSelected ? 'bg-blue-600/15 ring-1 ring-blue-500/50' : 'hover:bg-slate-800/40'
+                        isSelected ? 'bg-blue-600/20' : 'hover:bg-white/[0.02]'
                       }`}
                     >
-                      <td className="py-3 px-4 text-slate-400">{item.roll_number}</td>
-                      <td className="py-3 px-4 font-semibold text-slate-200">
+                      <td className="py-2.5 px-3 font-mono text-slate-400">{item.roll_number}</td>
+                      <td className="py-2.5 px-3 font-medium text-slate-200">
                         {item.name}
                         {item.verification_status === 'TEACHER_VERIFIED' && (
-                          <span className="ml-2 px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-300 text-[9px] font-bold">
-                            Verified
+                          <span className="ml-2 px-1 py-0.2 rounded bg-blue-500/20 text-blue-300 text-[9px] font-mono">
+                            VERIFIED
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-2.5 px-3 font-mono">
                         <span
-                          className={`px-2 py-0.5 rounded text-[11px] font-bold ${
+                          className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
                             pct >= 65
                               ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                               : pct >= 40
                               ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                              : 'bg-slate-800 text-slate-400'
+                              : 'bg-slate-800 text-slate-500'
                           }`}
                         >
-                          {pct > 0 ? `${pct}%` : 'N/A'}
+                          {pct > 0 ? `${pct}%` : '—'}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-center">
+                      <td className="py-2.5 px-3 text-center font-mono">
                         <span
-                          className={`px-2.5 py-1 rounded-full text-[11px] font-bold inline-flex items-center gap-1 ${
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold inline-flex items-center gap-1 ${
                             item.status === 'PRESENT'
-                              ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
-                              : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                              : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                           }`}
                         >
-                          {item.status === 'PRESENT' ? (
-                            <CheckCircle2 className="w-3 h-3" />
-                          ) : (
-                            <XCircle className="w-3 h-3" />
-                          )}
                           {item.status}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-right">
+                      <td className="py-2.5 px-3 text-right">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             toggleStatus(item.student_db_id);
                           }}
-                          className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-[11px] font-semibold border border-slate-700 transition-all"
+                          className="px-2 py-1 bg-[#121927] hover:bg-slate-800 text-slate-300 rounded text-[11px] font-mono border border-white/10 transition-all"
                         >
-                          Toggle {item.status === 'PRESENT' ? 'Absent' : 'Present'}
+                          {item.status === 'PRESENT' ? 'Set Absent' : 'Set Present'}
                         </button>
                       </td>
                     </tr>

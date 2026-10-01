@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ScanFace, Lock, User, ArrowRight, ChevronLeft, BookOpen, Hash, Mail, UserPlus, LogIn } from 'lucide-react';
 import { StudentPortalService } from '../services/api';
 import { StudentUser, StudentPublicClass } from '../types';
+import { extractErrorMessage } from '../utils/error';
 
 interface StudentLoginProps {
   onLoginSuccess: (student: StudentUser) => void;
@@ -55,7 +56,7 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
       localStorage.setItem('attendx_student_token', student.access_token);
       onLoginSuccess(student);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Login failed. Please check your Student ID and password.');
+      setError(extractErrorMessage(err, 'Login failed. Please check your Student ID and password.'));
     } finally {
       setLoading(false);
     }
@@ -88,7 +89,7 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
       localStorage.setItem('attendx_student_token', student.access_token);
       onLoginSuccess(student);
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Registration failed. Please try again.');
+      setError(extractErrorMessage(err, 'Registration failed. Please try again.'));
     } finally {
       setLoading(false);
     }
