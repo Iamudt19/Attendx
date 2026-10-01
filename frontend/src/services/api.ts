@@ -106,9 +106,7 @@ export const StudentService = {
   uploadFaceImages: async (studentId: number, files: File[]) => {
     const formData = new FormData();
     files.forEach((file) => formData.append('files', file));
-    const res = await api.post(`/students/${studentId}/face-images`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    const res = await api.post(`/students/${studentId}/face-images`, formData);
     return res.data;
   },
   deleteFaceData: async (studentId: number) => {
@@ -123,17 +121,15 @@ export const AttendanceService = {
     formData.append('class_id', classId.toString());
     formData.append('subject_id', subjectId.toString());
     
-    // Append 'file' (first file) for backward compatibility with older backend schemas
+    // Append each file to 'files'
+    files.forEach((file) => formData.append('files', file));
+    
+    // Also append the first file as 'file' for backwards compatibility
     if (files.length > 0) {
       formData.append('file', files[0]);
     }
-    
-    // Append 'files' for multi-file parallel processing
-    files.forEach((file) => formData.append('files', file));
 
-    const res = await api.post('/attendance/analyze', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    const res = await api.post('/attendance/analyze', formData);
     return res.data;
   },
   analyzePhoto: async (classId: number, subjectId: number, file: File): Promise<AttendanceAnalysisResponse> => {
@@ -226,9 +222,7 @@ export const StudentPortalService = {
     const formData = new FormData();
     formData.append('angle_label', angleLabel);
     formData.append('file', imageBlob, `scan_${angleLabel}.jpg`);
-    const res = await studentApi.post('/student/face-scan/frame', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    const res = await studentApi.post('/student/face-scan/frame', formData);
     return res.data;
   },
 

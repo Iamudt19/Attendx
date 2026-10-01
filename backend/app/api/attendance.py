@@ -47,11 +47,29 @@ async def analyze_classroom_photo(
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found.")
 
-    # Gather all uploaded files (handles 'files', 'file', 'image', etc.)
+    # Gather all uploaded files cleanly without duplicate files
     uploaded_files: List[UploadFile] = []
-    for key, value in form_data.multi_items():
-        if isinstance(value, UploadFile) and value.filename:
-            uploaded_files.append(value)
+    
+    # 1. Check primary 'files' list (for multi-image analysis)
+    files_list = form_data.getlist("files")
+    if files_list:
+        for item in files_list:
+            if hasattr(item, "filename") and item.filename:
+                uploaded_files.append(item)
+
+    # 2. Fallback to 'file' if 'files' was not provided
+    if not uploaded_files:
+        file_list = form_data.getlist("file")
+        for item in file_list:
+            if hasattr(item, "filename") and item.filename:
+                uploaded_files.append(item)
+
+    # 3. Fallback to scanning all values in form_data
+    if not uploaded_files:
+        for key, value in form_data.multi_items():
+            if hasattr(value, "filename") and value.filename:
+                if value not in uploaded_files:
+                    uploaded_files.append(value)
 
     if not uploaded_files:
         raise HTTPException(status_code=400, detail="No classroom photo uploaded.")
