@@ -25,21 +25,25 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch: Stale-while-revalidate for assets, Network-first for API requests
+// Fetch: Only handle GET requests for local static assets
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+
+  // Only GET requests can be cached by Cache API
+  if (request.method !== 'GET') {
+    return;
+  }
+
   const url = new URL(request.url);
 
-  // Do not cache API endpoints or dynamic uploads
-  if (url.pathname.startsWith('/api') || url.pathname.startsWith('/storage')) {
-    event.respondWith(
-      fetch(request).catch(() => {
-        return new Response(
-          JSON.stringify({ error: 'You are currently offline. Please check your connection.' }),
-          { status: 503, headers: { 'Content-Type': 'application/json' } }
-        );
-      })
-    );
+  // Do not cache external APIs, backend endpoints, or dynamic storage
+  if (
+    url.pathname.startsWith('/api') || 
+    url.pathname.startsWith('/storage') || 
+    url.hostname.includes('hf.space') || 
+    url.hostname.includes('supabase.co') ||
+    url.origin !== self.location.origin
+  ) {
     return;
   }
 
