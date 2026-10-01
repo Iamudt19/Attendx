@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   CheckCircle2, XCircle, AlertTriangle, Save, 
-  FileSpreadsheet, ArrowLeft, Check, Sparkles, ShieldCheck, UserCheck, Edit3, X 
+  FileSpreadsheet, ArrowLeft, Check, Sparkles, ShieldCheck, UserCheck, Edit3, X, Zap, ChevronRight, HelpCircle 
 } from 'lucide-react';
 import { BoundingBoxCanvas } from '../components/BoundingBoxCanvas';
 import { AttendanceService } from '../services/api';
@@ -46,6 +46,9 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
   const [savedSessionId, setSavedSessionId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Quick exception review items
+  const needsReviewItems = proposedList.filter(item => item.verification_status === 'NEEDS_REVIEW');
+
   const toggleStatus = (studentDbId: number) => {
     setProposedList((prev) =>
       prev.map((item) => {
@@ -54,6 +57,36 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
           return {
             ...item,
             status: newStatus,
+            verification_status: 'TEACHER_VERIFIED'
+          };
+        }
+        return item;
+      })
+    );
+  };
+
+  const confirmStudentPresent = (studentDbId: number) => {
+    setProposedList((prev) =>
+      prev.map((item) => {
+        if (item.student_db_id === studentDbId) {
+          return {
+            ...item,
+            status: 'PRESENT',
+            verification_status: 'TEACHER_VERIFIED'
+          };
+        }
+        return item;
+      })
+    );
+  };
+
+  const markStudentAbsent = (studentDbId: number) => {
+    setProposedList((prev) =>
+      prev.map((item) => {
+        if (item.student_db_id === studentDbId) {
+          return {
+            ...item,
+            status: 'ABSENT',
             verification_status: 'TEACHER_VERIFIED'
           };
         }
@@ -153,7 +186,7 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
         <div className="space-y-2">
           <h1 className="text-2xl font-extrabold text-white">Attendance Saved & Model Trained!</h1>
           <p className="text-slate-400 text-sm">
-            Attendance has been recorded and teacher-verified faces have been automatically added to student training profiles.
+            Attendance has been recorded and verified faces have been automatically added to student training profiles.
           </p>
         </div>
 
@@ -199,27 +232,32 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Back to Take Attendance
           </button>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Attendance Review & Correction</h1>
+          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+            Attendance Verification
+            <span className="px-2.5 py-0.5 rounded-full bg-violet-600/20 border border-violet-500/30 text-violet-300 text-xs font-mono font-bold">
+              AI Powered
+            </span>
+          </h1>
           <p className="text-xs text-slate-400">
-            Review AI recognition results. Any corrections you make will automatically train the AI recognition engine.
+            High-confidence matches are auto-verified. Review any exception cases below and confirm in 1 click.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
             onClick={markAllVerified}
-            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 flex items-center gap-1.5"
+            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 flex items-center gap-1.5 transition-all"
           >
             <Check className="w-4 h-4 text-emerald-400" />
-            Mark All Verified
+            Approve All ({presentCount})
           </button>
           <button
             onClick={handleSaveAttendance}
             disabled={saving}
-            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-600/20 flex items-center gap-2 disabled:opacity-50"
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-blue-600/25 flex items-center gap-2 disabled:opacity-50 transition-all"
           >
             <Save className="w-4 h-4" />
-            <span>{saving ? 'Saving & Training...' : 'Save Attendance'}</span>
+            <span>{saving ? 'Saving & Training...' : 'Confirm & Save Attendance'}</span>
           </button>
         </div>
       </div>
@@ -227,6 +265,59 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
       {error && (
         <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium">
           {error}
+        </div>
+      )}
+
+      {/* Exception Review Banner (Only shown if ambiguous cases exist) */}
+      {needsReviewItems.length > 0 && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-400 animate-pulse" />
+              <div>
+                <h3 className="text-sm font-bold text-amber-300">
+                  {needsReviewItems.length} Student(s) Need Quick Confirmation
+                </h3>
+                <p className="text-[11px] text-amber-400/80">
+                  Confidence was moderate or lighting was tricky. Confirm identity in 1 click:
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+            {needsReviewItems.map((item) => (
+              <div
+                key={item.student_db_id}
+                className="p-3 bg-slate-900/90 border border-amber-500/20 rounded-xl flex items-center justify-between gap-3 shadow-lg"
+              >
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-white">{item.name}</span>
+                    <span className="text-[10px] font-mono px-1 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      {Math.round(item.confidence * 100)}%
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400">Roll: {item.roll_number}</p>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={() => confirmStudentPresent(item.student_db_id)}
+                    className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition-all"
+                  >
+                    <Check className="w-3.5 h-3.5" /> Present
+                  </button>
+                  <button
+                    onClick={() => markStudentAbsent(item.student_db_id)}
+                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition-all"
+                  >
+                    Absent
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -264,7 +355,7 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-bold text-white flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-blue-400" />
-              Detected Faces Visualizer
+              Classroom Photo Visualizer
             </h2>
             <div className="flex items-center gap-2 text-[10px] font-medium">
               <span className="flex items-center gap-1 text-emerald-400">
@@ -273,14 +364,11 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
               <span className="flex items-center gap-1 text-amber-400">
                 <span className="w-2 h-2 rounded-full bg-amber-500"></span> Review
               </span>
-              <span className="flex items-center gap-1 text-rose-400">
-                <span className="w-2 h-2 rounded-full bg-rose-500"></span> Unknown
-              </span>
             </div>
           </div>
 
           <p className="text-[11px] text-slate-400">
-            Tip: Click on any face box to highlight the student or reassign an unknown face.
+            Hover over any student face to see confidence details. Click to reassign or highlight in the table.
           </p>
 
           <BoundingBoxCanvas
@@ -300,7 +388,7 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
 
           {/* Reassign / Correction Box */}
           {editingFaceIndex !== null && (
-            <div className="p-3 bg-slate-950 border border-violet-500/40 rounded-xl space-y-2 mt-2">
+            <div className="p-3 bg-slate-950 border border-violet-500/40 rounded-xl space-y-2 mt-2 shadow-xl">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-violet-300 flex items-center gap-1.5">
                   <UserCheck className="w-3.5 h-3.5" />
@@ -337,8 +425,8 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
         {/* Right column: Student Proposed Attendance Table */}
         <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-white">Proposed Attendance List ({proposedList.length} Students)</h2>
-            <span className="text-xs text-slate-400">Click toggle to switch Present/Absent</span>
+            <h2 className="text-sm font-bold text-white">Class Roster & Attendance ({proposedList.length} Students)</h2>
+            <span className="text-xs text-slate-400">Click any row to focus on photo</span>
           </div>
 
           <div className="overflow-x-auto max-h-[500px] overflow-y-auto border border-slate-800/80 rounded-xl">
@@ -347,7 +435,7 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
                 <tr>
                   <th className="py-3 px-4">Roll No</th>
                   <th className="py-3 px-4">Student Name</th>
-                  <th className="py-3 px-4">AI Confidence</th>
+                  <th className="py-3 px-4">AI Score</th>
                   <th className="py-3 px-4 text-center">Status</th>
                   <th className="py-3 px-4 text-right">Action</th>
                 </tr>
@@ -362,7 +450,7 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
                       key={item.student_db_id}
                       onClick={() => setSelectedStudentId(item.student_db_id)}
                       className={`cursor-pointer transition-colors ${
-                        isSelected ? 'bg-blue-600/10' : 'hover:bg-slate-800/40'
+                        isSelected ? 'bg-blue-600/15 ring-1 ring-blue-500/50' : 'hover:bg-slate-800/40'
                       }`}
                     >
                       <td className="py-3 px-4 text-slate-400">{item.roll_number}</td>
@@ -377,9 +465,9 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
                       <td className="py-3 px-4">
                         <span
                           className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                            pct >= 80
+                            pct >= 65
                               ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                              : pct >= 50
+                              : pct >= 40
                               ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                               : 'bg-slate-800 text-slate-400'
                           }`}
@@ -425,4 +513,3 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
     </div>
   );
 };
-
