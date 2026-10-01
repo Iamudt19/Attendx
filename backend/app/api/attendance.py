@@ -79,10 +79,15 @@ async def analyze_classroom_photo(
     image_urls = []
     for f in uploaded_files:
         content = await f.read()
+        if not content or len(content) == 0:
+            continue
         images_bytes_list.append(content)
-        await f.seek(0)
-        saved_rel = storage_service.save_file(f, subfolder="classroom_photos")
+        ext = os.path.splitext(f.filename)[1] if f.filename else ".jpg"
+        saved_rel = storage_service.save_bytes(content, ext=ext, subfolder="classroom_photos")
         image_urls.append(f"/storage/{saved_rel}")
+
+    if not images_bytes_list:
+        raise HTTPException(status_code=400, detail="Uploaded photo files contained empty or unreadable byte streams.")
 
     # Query all active enrolled students in this class
     students = db.query(Student).filter(Student.class_id == class_id, Student.active == True).order_by(Student.roll_number).all()

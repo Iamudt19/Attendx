@@ -9,6 +9,17 @@ class StorageService:
         self.base_dir = base_dir
         os.makedirs(self.base_dir, exist_ok=True)
 
+    def save_bytes(self, data: bytes, ext: str = ".jpg", subfolder: str = "general") -> str:
+        folder_path = os.path.join(self.base_dir, subfolder)
+        os.makedirs(folder_path, exist_ok=True)
+        if not ext.startswith("."):
+            ext = f".{ext}"
+        filename = f"{uuid.uuid4().hex}{ext}"
+        filepath = os.path.join(folder_path, filename)
+        with open(filepath, "wb") as buffer:
+            buffer.write(data)
+        return os.path.join(subfolder, filename).replace("\\", "/")
+
     def save_file(self, file: UploadFile, subfolder: str = "general") -> str:
         folder_path = os.path.join(self.base_dir, subfolder)
         os.makedirs(folder_path, exist_ok=True)
