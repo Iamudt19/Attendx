@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { StudentPortalService } from '../services/api';
 import { StudentUser, ScanAngle, SCAN_ANGLES, ANGLE_LABELS, ANGLE_ICONS, FaceFrameUploadResult, StudentPublicClass } from '../types';
+import { NeuralFaceMeshOverlay } from '../components/NeuralFaceMeshOverlay';
 
 interface FaceEnrollmentWizardProps {
   student: StudentUser;
@@ -511,6 +512,13 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
                       className="w-full h-full object-cover max-h-[420px]"
                     />
 
+                    {/* 3D Neural Face Mesh Overlay */}
+                    <NeuralFaceMeshOverlay
+                      videoRef={videoRef}
+                      isActive={isWebcamActive}
+                      targetAngle={selectedTrainingPreset}
+                    />
+
                     {/* AI Target Overlay */}
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <div
@@ -833,6 +841,13 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
                       ref={videoRef}
                       autoPlay playsInline muted
                       className="w-full h-full object-cover"
+                    />
+
+                    {/* 3D Neural Face Mesh Overlay */}
+                    <NeuralFaceMeshOverlay
+                      videoRef={videoRef}
+                      isActive={isWebcamActive}
+                      targetAngle={currentAngle}
                     />
                     {/* Oval face guide overlay */}
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

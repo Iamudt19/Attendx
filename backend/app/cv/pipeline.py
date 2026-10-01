@@ -59,32 +59,35 @@ class RecognitionPipeline:
         recognized_faces = []
         detected_student_matches: Dict[int, Dict[str, Any]] = {} # student_db_id -> match info
 
-        # 3. Process each detected face
-        for idx, item in enumerate(detected):
+        # 3. Quality assessment and candidate embeddings extraction
+        quality_infos = []
+        for item in detected:
             box = item["box"]
-            cropped = item["cropped_face"]
-            raw_face = item.get("raw_face")
-
-            # Quality assessment
-            quality_info = check_face_quality(img, box)
-            if not quality_info["size_ok"]:
+            q_info = check_face_quality(img, box)
+            quality_infos.append(q_info)
+            if not q_info["size_ok"]:
                 small_faces_count += 1
-            if not quality_info["blur_ok"]:
+            if not q_info["blur_ok"]:
                 blurry_faces_count += 1
 
-            # Landmark alignment & Deep embedding
-            candidate_emb = self.embedder.compute_embedding(
-                face_image_bgr=cropped,
-                full_image_bgr=img,
-                raw_face=raw_face
-            )
+        # Extract embeddings in batch
+        candidate_embs = self.embedder.compute_embeddings_batch(
+            faces_data=detected,
+            full_image_bgr=img
+        )
 
-            # Cosine matching against enrolled class students with margin check
-            match = self.matcher.match_embedding(
-                candidate_embedding=candidate_emb,
-                student_embeddings_map=student_embeddings_map,
-                quality_assessment=quality_info
-            )
+        # Batch matching against enrolled class students with margin check
+        matches = self.matcher.batch_match_embeddings(
+            candidate_embeddings=candidate_embs,
+            student_embeddings_map=student_embeddings_map,
+            quality_assessments=quality_infos
+        )
+
+        # Build recognized faces map
+        for idx, item in enumerate(detected):
+            box = item["box"]
+            quality_info = quality_infos[idx]
+            match = matches[idx]
 
             matched_student_id = match["student_id"]
             match_score = match["match_score"]
