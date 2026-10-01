@@ -122,7 +122,15 @@ export const AttendanceService = {
     const formData = new FormData();
     formData.append('class_id', classId.toString());
     formData.append('subject_id', subjectId.toString());
+    
+    // Append 'file' (first file) for backward compatibility with older backend schemas
+    if (files.length > 0) {
+      formData.append('file', files[0]);
+    }
+    
+    // Append 'files' for multi-file parallel processing
     files.forEach((file) => formData.append('files', file));
+
     const res = await api.post('/attendance/analyze', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
