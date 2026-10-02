@@ -119,34 +119,37 @@ const TeacherPortalApp: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <ErrorBoundary>
-      <BrowserRouter>
-        <Analytics />
-        <Routes>
-          {/* Landing / Hero Page */}
-          <Route path="/" element={<HeroLanding />} />
-          <Route path="/landing" element={<HeroLanding />} />
-          
-          {/* Direct Login Route */}
-          <Route path="/login" element={<TeacherPortalApp />} />
+      <ThemeProvider>
+        <BrowserRouter>
+          <Analytics />
+          <Routes>
+            {/* Landing / Hero Page */}
+            <Route path="/" element={<HeroLanding />} />
+            <Route path="/landing" element={<HeroLanding />} />
+            
+            {/* Direct Login Route */}
+            <Route path="/login" element={<TeacherPortalApp />} />
 
-          {/* Admin Portal Routes */}
-          <Route path="/admin/*" element={<AdminPortalRoot />} />
+            {/* Admin Portal Routes */}
+            <Route path="/admin/*" element={<AdminPortalRoot />} />
 
-          {/* Student Portal Routes */}
-          <Route path="/student/*" element={<StudentPortalRoot />} />
+            {/* Student Portal Routes */}
+            <Route path="/student/*" element={<StudentPortalRoot />} />
 
-          {/* Teacher / Admin Authenticated Routes */}
-          <Route path="/dashboard/*" element={<TeacherPortalApp />} />
-          <Route path="/take-attendance/*" element={<TeacherPortalApp />} />
-          <Route path="/review-attendance/*" element={<TeacherPortalApp />} />
-          <Route path="/history/*" element={<TeacherPortalApp />} />
-          <Route path="/students/*" element={<TeacherPortalApp />} />
-          <Route path="/classes/*" element={<TeacherPortalApp />} />
+            {/* Teacher / Admin Authenticated Routes */}
+            <Route path="/dashboard/*" element={<TeacherPortalApp />} />
+            <Route path="/take-attendance/*" element={<TeacherPortalApp />} />
+            <Route path="/review-attendance/*" element={<TeacherPortalApp />} />
+            <Route path="/history/*" element={<TeacherPortalApp />} />
+            <Route path="/students/*" element={<TeacherPortalApp />} />
+            <Route path="/classes/*" element={<TeacherPortalApp />} />
 
-          {/* Fallback */}
-          <Route path="*" element={<HeroLanding />} />
-        </Routes>
-      </BrowserRouter>
+            {/* Fallback */}
+            <Route path="*" element={<HeroLanding />} />
+          </Routes>
+        </BrowserRouter>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 };
+

@@ -82,10 +82,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      showToast(`Staging ${e.target.files.length} photo(s) for classroom verification...`);
-      setTimeout(() => {
-        navigate('/take-attendance');
-      }, 600);
+      showToast(`Redirecting to Attendance Canvas to stage ${e.target.files.length} photo(s)...`);
+      navigate('/take-attendance');
     }
   };
 
@@ -224,8 +222,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
             </div>
           </div>
           <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-white tracking-tight">1.8<span className="text-lg text-slate-400 font-normal">s</span></span>
-            <span className="text-xs text-emerald-400 font-mono font-medium">YuNet + SFace</span>
+            <span className="text-3xl font-bold text-white tracking-tight">&lt;0.9<span className="text-lg text-slate-400 font-normal">s</span></span>
+            <span className="text-xs text-emerald-400 font-mono font-medium">Parallel YuNet + SFace</span>
           </div>
           <div className="mt-3 flex items-center justify-between text-xs text-slate-400 pt-3 border-t border-slate-800/60">
             <span>ZeroGPU Accelerated</span>
@@ -445,9 +443,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                           </td>
                           <td className="py-4 px-4 text-right">
                             <button
-                              onClick={() => navigate('/history')}
+                              onClick={() => navigate(`/history?session_id=${sess.id}`)}
                               className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 inline-flex items-center gap-1 transition-colors"
                               type="button"
+                              aria-label={`Inspect session ${sess.id} from ${sess.date}`}
                             >
                               <span>Inspect</span>
                               <ArrowRight className="w-3.5 h-3.5" />

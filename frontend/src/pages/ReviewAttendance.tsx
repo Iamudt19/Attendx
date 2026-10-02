@@ -35,60 +35,49 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
 }) => {
   const navigate = useNavigate();
 
+  if (!analysisResult) {
+    return (
+      <div className="max-w-2xl mx-auto py-20 text-center space-y-6">
+        <div className="w-16 h-16 rounded-3xl bg-slate-900 border border-slate-800 text-slate-400 flex items-center justify-center mx-auto shadow-xl">
+          <ShieldCheck className="w-8 h-8 text-emerald-400" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold text-white tracking-tight">No Active Attendance Session</h2>
+          <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+            There is no pending attendance analysis loaded in memory. Please capture or upload classroom photographs in the Attendance Canvas to run facial recognition.
+          </p>
+        </div>
+        <div className="flex items-center justify-center gap-3">
+          <button
+            onClick={() => navigate('/take-attendance')}
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 font-bold text-xs shadow-lg hover:brightness-110 transition-all flex items-center gap-2"
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>Take Classroom Attendance</span>
+          </button>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition-all border border-slate-700"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // 1. Photos list (support multi-photo)
-  const imageUrls: string[] = analysisResult?.image_urls && analysisResult.image_urls.length > 0
+  const imageUrls: string[] = analysisResult.image_urls && analysisResult.image_urls.length > 0
     ? analysisResult.image_urls
-    : analysisResult?.image_url
+    : analysisResult.image_url
       ? [analysisResult.image_url]
-      : ['/hero-scenic-1.jpg'];
+      : [];
 
   const [activePhotoIndex, setActivePhotoIndex] = useState<number>(0);
 
   // 2. Proposed attendance list
-  const initialProposed: AttendanceProposalItem[] = analysisResult?.proposed_attendance && analysisResult.proposed_attendance.length > 0
-    ? analysisResult.proposed_attendance
-    : [
-        { student_db_id: 1, student_id: 'STU001', name: 'Rahul Sharma', roll_number: '2026CSE01', status: 'PRESENT', confidence: 0.94, verification_status: 'AUTO' },
-        { student_db_id: 2, student_id: 'STU002', name: 'Amit Patel', roll_number: '2026CSE02', status: 'PRESENT', confidence: 0.88, verification_status: 'AUTO' },
-        { student_db_id: 3, student_id: 'STU003', name: 'Priya Verma', roll_number: '2026CSE03', status: 'PRESENT', confidence: 0.72, verification_status: 'NEEDS_REVIEW' },
-        { student_db_id: 4, student_id: 'STU004', name: 'Sneha Rao', roll_number: '2026CSE04', status: 'ABSENT', confidence: 0.0, verification_status: 'AUTO' },
-        { student_db_id: 26, student_id: 'UDIT01', name: 'Udit', roll_number: '2026CSE00', status: 'PRESENT', confidence: 0.96, verification_status: 'AUTO' },
-      ];
-
-  const initialFaces: RecognizedFace[] = analysisResult?.recognized_faces && analysisResult.recognized_faces.length > 0
-    ? analysisResult.recognized_faces
-    : [
-        {
-          box: { x: 140, y: 120, w: 100, h: 100, width: 100, height: 100 },
-          student_id: 1,
-          name: 'Rahul Sharma',
-          confidence: 0.94,
-          match_score: 0.94,
-          status: 'PRESENT',
-          image_index: 0,
-          verification_status: 'AUTO'
-        },
-        {
-          box: { x: 320, y: 160, w: 90, h: 90, width: 90, height: 90 },
-          student_id: 26,
-          name: 'Udit',
-          confidence: 0.96,
-          match_score: 0.96,
-          status: 'PRESENT',
-          image_index: 0,
-          verification_status: 'AUTO'
-        },
-        {
-          box: { x: 500, y: 200, w: 95, h: 95, width: 95, height: 95 },
-          student_id: 3,
-          name: 'Priya Verma',
-          confidence: 0.72,
-          match_score: 0.72,
-          status: 'NEEDS_REVIEW',
-          image_index: 0,
-          verification_status: 'NEEDS_REVIEW'
-        }
-      ];
+  const initialProposed: AttendanceProposalItem[] = analysisResult.proposed_attendance || [];
+  const initialFaces: RecognizedFace[] = analysisResult.recognized_faces || [];
 
   const [proposedList, setProposedList] = useState<AttendanceProposalItem[]>(initialProposed);
   const [faces, setFaces] = useState<RecognizedFace[]>(initialFaces);
@@ -226,7 +215,7 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-3">
             Review Attendance Results
             <span className="text-xs px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-mono font-normal">
-              {presentCount} / {totalCount} Present ({Math.round((presentCount / totalCount) * 100)}%)
+              {presentCount} / {totalCount} Present ({totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0}%)
             </span>
           </h1>
           <p className="text-xs text-slate-400">
@@ -379,11 +368,6 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
                       <div className="min-w-0">
                         <div className="text-xs font-semibold text-white truncate flex items-center gap-2">
                           <span>{stu.name}</span>
-                          {stu.student_id === 'UDIT01' && (
-                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono">
-                              You
-                            </span>
-                          )}
                         </div>
                         <div className="text-[11px] text-slate-400 font-mono flex items-center gap-2">
                           <span>{stu.roll_number}</span>

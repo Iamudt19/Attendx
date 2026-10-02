@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { Eye, EyeOff, CheckCircle2, AlertTriangle, HelpCircle, SlidersHorizontal } from 'lucide-react';
 import { RecognizedFace } from '../types';
 import { getStorageUrl } from '../services/api';
@@ -18,6 +18,10 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
+
+  // BUG-04 fix: track image load so boxes compute after naturalWidth is known
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const handleImageLoad = useCallback(() => setImageLoaded(true), []);
 
   // Visibility & mode filters
   const [showPresent, setShowPresent] = useState(true);
@@ -108,9 +112,10 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
           src={resolvedImageUrl}
           alt="Classroom Capture"
           className="w-full h-auto object-contain max-h-[520px] block mx-auto select-none"
+          onLoad={handleImageLoad}
         />
 
-        {/* Bounding Boxes Layer */}
+        {/* Bounding Boxes Layer — only rendered after image is loaded (BUG-04) */}
         <div className="absolute inset-0 pointer-events-none">
           {safeFaces.map((face, idx) => {
             if (!face || !face.box) return null;
@@ -121,10 +126,13 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
             if (status === 'NEEDS_REVIEW' && !showReview) return null;
             if (status === 'UNKNOWN' && !showUnknown) return null;
 
-            if (!imgRef.current) return null;
+            // BUG-04: don't render until image is loaded and dimensions are known
+            if (!imgRef.current || !imageLoaded) return null;
             const img = imgRef.current;
-            const scaleX = img.clientWidth / (img.naturalWidth || img.clientWidth || 1);
-            const scaleY = img.clientHeight / (img.naturalHeight || img.clientHeight || 1);
+            const naturalW = img.naturalWidth || 1;
+            const naturalH = img.naturalHeight || 1;
+            const scaleX = img.clientWidth / naturalW;
+            const scaleY = img.clientHeight / naturalH;
 
             const left = (box.x ?? 0) * scaleX;
             const top = (box.y ?? 0) * scaleY;
@@ -158,7 +166,7 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
                 onMouseLeave={() => setHoveredIndex(null)}
                 onClick={() => onSelectFace && onSelectFace(face)}
                 className={`absolute pointer-events-auto cursor-pointer transition-all duration-200 border-2 rounded-lg ${colorBorder} ${colorBg} ${
-                  isSelected ? 'ring-4 ring-white shadow-[0_0_25px_rgba(255,255,255,0.8)] scale-105 z-30' : isHovered ? 'shadow-[0_0_15px_rgba(139,92,246,0.6)] z-20 scale-102' : 'z-10'
+                  isSelected ? 'ring-4 ring-white shadow-[0_0_25px_rgba(255,255,255,0.8)] scale-105 z-30' : isHovered ? 'shadow-[0_0_15px_rgba(139,92,246,0.6)] z-20 scale-[1.02]' : 'z-10'
                 }`}
                 style={{
                   left: `${left}px`,

@@ -326,6 +326,9 @@ export const HeroLanding: React.FC = () => {
               src={activeStory.image} 
               alt="Lecture Hall Scenic"
               className="w-full h-full object-cover object-center transition-all duration-700 scale-100 filter brightness-95"
+              onError={(e) => {
+                e.currentTarget.src = "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=1600&auto=format&fit=crop&q=80";
+              }}
             />
             {/* Subtle Gradient Overlays */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none" />

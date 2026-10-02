@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User } from '../types';
 
@@ -9,6 +9,30 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Dynamic semester term indicator based on current calendar (BUG-06)
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth();
+  const currentTerm = currentMonth >= 6 && currentMonth <= 11 ? 'Fall' : 'Spring';
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleSearchSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchQuery.trim()) {
+      navigate(`/students?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
 
   return (
     <header className="h-16 bg-[#131315]/90 backdrop-blur-xl border-b border-[#3c4a42]/30 sticky top-0 z-40 px-6 flex items-center justify-between gap-4">
@@ -16,6 +40,10 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
       <div 
         onClick={() => navigate('/dashboard')} 
         className="flex items-center gap-3 cursor-pointer group select-none min-w-[220px]"
+        role="button"
+        tabIndex={0}
+        aria-label="Go to Dashboard"
+        onKeyDown={(e) => { if (e.key === 'Enter') navigate('/dashboard'); }}
       >
         <div className="w-8 h-8 rounded-lg bg-[#201f22] border border-[#3c4a42]/40 text-[#4edea3] flex items-center justify-center font-bold shadow-sm transition-transform group-hover:scale-105">
           <span className="material-symbols-outlined text-[18px]">center_focus_strong</span>
@@ -30,18 +58,23 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
       <div className="hidden lg:flex items-center gap-4 flex-1 max-w-xl">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#3c4a42]/30 bg-[#1c1b1d] text-[#bbcabf] text-[11px] uppercase tracking-wider font-semibold">
           <span className="h-1.5 w-1.5 rounded-full bg-[#4edea3]"></span>
-          <span>Fall 2024 • Term A</span>
+          <span>{currentTerm} {currentYear} • Active Session</span>
         </div>
 
         <div className="relative flex-1">
           <div className="flex items-center w-full h-9 pl-3 pr-2 rounded-lg bg-[#1c1b1d] border border-[#3c4a42]/30 focus-within:border-[#86948a] transition-colors">
             <span className="material-symbols-outlined text-[#86948a] text-[16px] mr-2">search</span>
             <input 
+              ref={searchInputRef}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearchSubmit}
               className="w-full bg-transparent border-0 outline-none text-xs text-[#e5e1e4] placeholder:text-[#86948a]/70 focus:ring-0" 
-              placeholder="Search students, courses, or session archives..." 
+              placeholder="Search students, roll numbers (Press Enter)..." 
               type="text"
+              aria-label="Search students, courses, or session archives"
             />
-            <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-[#3c4a42]/40 bg-[#201f22] font-mono text-[10px] text-[#86948a] shadow-xs">
+            <kbd className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded border border-[#3c4a42]/40 bg-[#201f22] font-mono text-[10px] text-[#86948a] shadow-xs select-none">
               ⌘K
             </kbd>
           </div>
@@ -54,6 +87,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
           onClick={() => navigate('/take-attendance')}
           className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#39393b] border border-[#3c4a42]/50 hover:bg-[#353437] text-[#e5e1e4] text-xs font-medium transition-all shadow-xs" 
           type="button"
+          aria-label="Start New Attendance Session"
         >
           <span className="material-symbols-outlined text-[16px] text-[#4edea3]">add</span>
           <span>New Session</span>
@@ -69,7 +103,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
             <div className="hidden sm:flex flex-col text-left">
               <span className="text-xs text-[#e5e1e4] font-medium leading-tight">{user.name}</span>
               <span className="text-[10px] text-[#86948a] uppercase tracking-wider font-mono leading-tight">
-                {user.role === 'ADMIN' ? 'Admin Ops' : 'Computer Science'}
+                {user.role === 'ADMIN' ? 'Admin Ops' : 'Instructor'}
               </span>
             </div>
 
@@ -77,6 +111,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
               onClick={onLogout}
               className="p-1.5 text-[#86948a] hover:text-[#ffb4ab] hover:bg-[#93000a]/20 rounded-lg transition-colors ml-1"
               title="Sign Out"
+              aria-label="Sign Out"
             >
               <span className="material-symbols-outlined text-[18px]">logout</span>
             </button>

@@ -93,9 +93,11 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
     });
 
     if (newItems.length > 0) {
-      setStagedPhotos((prev) => [...prev, ...newItems]);
-      setActivePreviewIndex(stagedPhotos.length);
-      stopWebcam();
+      setStagedPhotos((prev) => {
+        setActivePreviewIndex(prev.length + newItems.length - 1);
+        return [...prev, ...newItems];
+      });
+      // BUG-19: Do NOT stop webcam here - user might want to stage both webcam captures and uploaded files
     }
   };
 
@@ -169,8 +171,10 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
           source: 'webcam',
           label: sectionTags[currentCount] || `Section ${currentCount + 1}`
         };
-        setStagedPhotos((prev) => [...prev, newPhoto]);
-        setActivePreviewIndex(stagedPhotos.length);
+        setStagedPhotos((prev) => {
+          setActivePreviewIndex(prev.length);
+          return [...prev, newPhoto];
+        });
         if (!keepCameraOpen) {
           stopWebcam();
         }
@@ -247,9 +251,9 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
         <div className="flex items-center gap-3">
           <button
             onClick={handleAnalyze}
-            disabled={analyzing || stagedPhotos.length === 0}
+            disabled={analyzing || stagedPhotos.length === 0 || !selectedClassId || !selectedSubjectId}
             className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-xs transition-all shadow-lg ${
-              stagedPhotos.length > 0 && !analyzing
+              stagedPhotos.length > 0 && !analyzing && selectedClassId && selectedSubjectId
                 ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 hover:brightness-110 active:scale-[0.99] shadow-emerald-500/20'
                 : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
             }`}
@@ -302,11 +306,15 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
               onChange={(e) => setSelectedClassId(Number(e.target.value))}
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white font-medium focus:outline-none focus:border-emerald-500 transition-all"
             >
-              {classes.map((c) => (
-                <option key={c.id} value={c.id} className="bg-slate-900">
-                  {c.name} {c.section} ({c.academic_year})
-                </option>
-              ))}
+              {classes.length === 0 ? (
+                <option value={0}>Loading classes...</option>
+              ) : (
+                classes.map((c) => (
+                  <option key={c.id} value={c.id} className="bg-slate-900">
+                    {c.name} {c.section} ({c.academic_year})
+                  </option>
+                ))
+              )}
             </select>
           </div>
 
@@ -319,11 +327,15 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
               onChange={(e) => setSelectedSubjectId(Number(e.target.value))}
               className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white font-medium focus:outline-none focus:border-emerald-500 transition-all"
             >
-              {subjects.map((s) => (
-                <option key={s.id} value={s.id} className="bg-slate-900">
-                  {s.code} — {s.name}
-                </option>
-              ))}
+              {subjects.length === 0 ? (
+                <option value={0}>{selectedClassId ? 'No subjects found' : 'Select a class first'}</option>
+              ) : (
+                subjects.map((s) => (
+                  <option key={s.id} value={s.id} className="bg-slate-900">
+                    {s.code} — {s.name}
+                  </option>
+                ))
+              )}
             </select>
           </div>
 
