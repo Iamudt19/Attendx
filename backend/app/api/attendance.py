@@ -15,6 +15,7 @@ from app.core.security import get_current_user_token
 from app.core.storage import storage_service
 from app.cv.pipeline import pipeline
 from app.cv.embedder import face_embedder
+from app.cv.embedding_cache import embedding_cache  # Optimization #4
 from app.services.excel_service import excel_service
 
 router = APIRouter(prefix="/attendance", tags=["Attendance"])
@@ -75,12 +76,23 @@ async def analyze_classroom_photo(
         for s in students
     ]
 
-    # Build student embeddings map: { student_db_id: [list of embedding vectors] }
-    student_embeddings_map = {}
-    for s in students:
-        embs = db.query(FaceEmbedding).filter(FaceEmbedding.student_id == s.id).all()
-        if embs:
-            student_embeddings_map[s.id] = [e.embedding for e in embs]
+    # Optimization #4: Use in-memory cache to avoid N SQL queries per request.
+    # Falls back to a single bulk DB query on cache miss.
+    cached = embedding_cache.get(class_id)
+    if cached is not None:
+        student_embeddings_map, _ = cached
+    else:
+        student_ids = [s.id for s in students]
+        # Single bulk query for ALL embeddings of the class — replaces N per-student queries
+        all_embs = (
+            db.query(FaceEmbedding)
+            .filter(FaceEmbedding.student_id.in_(student_ids))
+            .all()
+        )
+        student_embeddings_map: dict = {}
+        for emb in all_embs:
+            student_embeddings_map.setdefault(emb.student_id, []).append(emb.embedding)
+        embedding_cache.set(class_id, student_embeddings_map, enrolled_list)
 
     # Run CV pipeline across all photos
     try:
@@ -256,6 +268,8 @@ def save_attendance_session(
                                 source="teacher_verified"
                             )
                             db.add(new_rec)
+                            # Invalidate cache so the next request gets fresh embeddings
+                            embedding_cache.invalidate(req.class_id)
 
                             if len(existing_embs) >= 12:
                                 oldest_tv = db.query(FaceEmbedding).filter(

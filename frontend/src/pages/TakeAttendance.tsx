@@ -9,7 +9,7 @@ import {
 import { ClassService, SubjectService, AttendanceService } from '../services/api';
 import { ClassItem, SubjectItem } from '../types';
 import { extractErrorMessage } from '../utils/error';
-import { compressClassroomPhoto } from '../utils/imageCompressor';
+import { compressClassroomPhotos } from '../utils/imageCompressor';
 
 interface TakeAttendanceProps {
   onAnalysisComplete: (resultData: any, sessionContext: { classId: number; subjectId: number; date: string; startTime: string }) => void;
@@ -192,8 +192,10 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
     setError(null);
 
     try {
-      const filesToSend = await Promise.all(
-        stagedPhotos.map((p) => compressClassroomPhoto(p.file))
+      // Optimization #5 + #6: compress ALL photos in true parallel
+      // (Web Worker pool dispatches all concurrently, not sequentially)
+      const filesToSend = await compressClassroomPhotos(
+        stagedPhotos.map((p) => p.file)
       );
       const res = await AttendanceService.analyzePhotos(selectedClassId, selectedSubjectId, filesToSend);
       

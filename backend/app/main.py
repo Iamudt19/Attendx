@@ -1,7 +1,10 @@
 import os
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.core.config import settings
@@ -11,11 +14,33 @@ from app.api import auth, classes, subjects, students, attendance, export, stude
 # Create DB tables
 Base.metadata.create_all(bind=engine)
 
+# Optimization #6: allow up to 100 MB multipart upload for bulk photo batches
+_MAX_UPLOAD_BYTES = 100 * 1024 * 1024  # 100 MB
+
+
+class LimitUploadSizeMiddleware(BaseHTTPMiddleware):
+    """Reject requests whose Content-Length exceeds the configured max."""
+    async def dispatch(self, request: Request, call_next):
+        cl = request.headers.get("content-length")
+        if cl and int(cl) > _MAX_UPLOAD_BYTES:
+            return Response(
+                content=f"Request body too large. Maximum allowed: {_MAX_UPLOAD_BYTES // (1024*1024)} MB.",
+                status_code=413
+            )
+        return await call_next(request)
+
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description="AttendX — AI-Powered Classroom Attendance System API",
     version="1.0.0"
 )
+
+# Optimization #6: Gzip compression on API responses (reduces JSON payload size)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# Optimization #6: upload body size guard
+app.add_middleware(LimitUploadSizeMiddleware)
 
 # CORS Middleware setup
 app.add_middleware(
@@ -102,5 +127,13 @@ def health_check(db: Session = Depends(get_db)):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
+    # Optimization #6: generous timeout for large multi-photo batches
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        timeout_keep_alive=120,  # keep connection alive for slow uploads
+        limit_concurrency=50,
+    )
 

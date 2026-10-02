@@ -10,6 +10,7 @@ from app.core.security import get_current_user_token
 from app.core.storage import storage_service
 from app.cv.detector import face_detector
 from app.cv.embedder import face_embedder
+from app.cv.embedding_cache import embedding_cache  # Optimization #4
 
 router = APIRouter(prefix="/students", tags=["Students"])
 
@@ -159,6 +160,8 @@ def upload_student_face_images(
 
     db.commit()
     db.refresh(student)
+    # Invalidate cache so the next attendance request loads fresh embeddings
+    embedding_cache.invalidate(student.class_id)
 
     total_faces = len(student.embeddings)
     return FaceRegistrationResult(
@@ -186,6 +189,8 @@ def delete_student_face_data(student_id: int, db: Session = Depends(get_db), tok
         db.delete(emb)
 
     db.commit()
+    # Invalidate cache for this student's class
+    embedding_cache.invalidate(student.class_id)
     return {"message": f"Successfully deleted all {count} face biometric records for student {student.name}."}
 
 @router.delete("/{student_id}")
@@ -193,13 +198,18 @@ def delete_student(student_id: int, db: Session = Depends(get_db), token: dict =
     student = db.query(Student).filter(Student.id == student_id).first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
-    
+
+    # Capture class_id before deleting the ORM object
+    class_id = student.class_id
+
     # Delete embeddings and records
     for emb in student.embeddings:
         if emb.source_image:
             storage_service.delete_file(emb.source_image)
         db.delete(emb)
-    
+
     db.delete(student)
     db.commit()
+    # Invalidate cache since student and embeddings are removed
+    embedding_cache.invalidate(class_id)
     return {"message": f"Student '{student.name}' successfully deleted."}
