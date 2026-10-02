@@ -1,16 +1,68 @@
 import os
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 from app.main import app
-from app.database.session import Base, engine, SessionLocal
-from seed import seed_db
+from app.database.session import Base, get_db
 
+# Isolated in-memory SQLite database dedicated exclusively for tests
+SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
+test_engine = create_engine(
+    SQLALCHEMY_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+
+def override_get_db():
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+app.dependency_overrides[get_db] = override_get_db
 client = TestClient(app)
 
 @pytest.fixture(scope="module", autouse=True)
 def setup_database():
-    seed_db()
+    Base.metadata.create_all(bind=test_engine)
+    # Seed only into isolated test_engine
+    test_db = TestingSessionLocal()
+    try:
+        from app.models.models import User, Class, Subject, Student, FaceEmbedding
+        from app.core.security import get_password_hash
+        teacher = User(
+            name="Prof. Alan Turing",
+            email="teacher@attendx.edu",
+            password_hash=get_password_hash("teacher123"),
+            role="TEACHER"
+        )
+        class_cse = Class(name="CSE", section="Section A", academic_year="2026-27")
+        test_db.add_all([teacher, class_cse])
+        test_db.commit()
+        test_db.refresh(class_cse)
+
+        sub = Subject(name="DBMS", code="DBMS101", class_id=class_cse.id)
+        test_db.add(sub)
+        test_db.commit()
+
+        for idx in range(1, 26):
+            s = Student(
+                student_id=f"STU{idx:03d}",
+                name=f"Student {idx}",
+                roll_number=f"2026CSE{idx:02d}",
+                class_id=class_cse.id,
+                password_hash=get_password_hash(f"STU{idx:03d}")
+            )
+            test_db.add(s)
+        test_db.commit()
+    finally:
+        test_db.close()
     yield
+    Base.metadata.drop_all(bind=test_engine)
 
 def test_login():
     response = client.post("/api/auth/login", json={

@@ -107,6 +107,8 @@ export interface StudentItem {
   email?: string;
   active: boolean;
   face_count?: number;
+  face_registration_complete?: boolean;
+  embeddings_count?: number;
   attendance_percentage?: number;
   avatar_url?: string;
   face_images?: string[];
@@ -128,9 +130,14 @@ export interface RecognizedFace {
   name: string;
   roll_number?: string | null;
   confidence: number;
+  match_score?: number;
+  second_best_score?: number;
+  margin?: number;
   status: 'PRESENT' | 'NEEDS_REVIEW' | 'UNKNOWN';
   verification_status: string;
   image_index?: number;
+  quality?: any;
+  reason?: string;
 }
 
 export interface AttendanceProposalItem {
@@ -140,6 +147,7 @@ export interface AttendanceProposalItem {
   roll_number: string;
   status: 'PRESENT' | 'ABSENT';
   confidence: number;
+  match_score?: number;
   verification_status: string;
 }
 
@@ -152,6 +160,8 @@ export interface AttendanceAnalysisResponse {
   present_count: number;
   absent_count: number;
   needs_review_count: number;
+  quality_warnings?: string[];
+  processing_time_sec?: number;
 }
 
 export interface AttendanceRecordOut {
@@ -171,6 +181,7 @@ export interface AttendanceSessionOut {
   class_name?: string;
   subject_id: number;
   subject_name?: string;
+  subject_code?: string;
   teacher_id: number;
   teacher_name?: string;
   date: string;
@@ -179,5 +190,8 @@ export interface AttendanceSessionOut {
   present_count: number;
   absent_count: number;
   total_enrolled: number;
+  verification_rate?: number;
+  flags_count?: number;
+  status?: string;
   records: AttendanceRecordOut[];
 }

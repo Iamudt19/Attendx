@@ -1,8 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { 
+  CheckCircle2, 
+  AlertTriangle, 
+  HelpCircle, 
+  ArrowLeft, 
+  Save, 
+  RotateCcw, 
+  Sparkles, 
+  Layers, 
+  UserCheck, 
+  UserX, 
+  RefreshCw, 
+  Eye, 
+  SlidersHorizontal,
+  ChevronRight,
+  ShieldCheck,
+  Zap,
+  Users
+} from 'lucide-react';
 import { AttendanceService } from '../services/api';
 import { AttendanceAnalysisResponse, AttendanceProposalItem, RecognizedFace } from '../types';
 import { extractErrorMessage } from '../utils/error';
+import { BoundingBoxCanvas } from '../components/BoundingBoxCanvas';
 
 interface ReviewAttendanceProps {
   analysisResult: AttendanceAnalysisResponse | null;
@@ -15,186 +35,167 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
 }) => {
   const navigate = useNavigate();
 
-  // Fallback state if opened directly for inspection
-  const initialProposed: AttendanceProposalItem[] = analysisResult?.proposed_attendance || [
-    { student_db_id: 1, student_id: '2024-8841', name: 'Dev Patel', roll_number: 'CS-014', status: 'PRESENT', confidence: 0.648, verification_status: 'NEEDS_REVIEW' },
-    { student_db_id: 2, student_id: '2024-8842', name: 'Elena Rostova', roll_number: 'CS-015', status: 'PRESENT', confidence: 0.984, verification_status: 'AI_VERIFIED' },
-    { student_db_id: 3, student_id: '2024-8843', name: 'David Kim', roll_number: 'CS-016', status: 'PRESENT', confidence: 0.991, verification_status: 'AI_VERIFIED' },
-    { student_db_id: 4, student_id: '2024-8844', name: 'Chloe Bennett', roll_number: 'CS-017', status: 'PRESENT', confidence: 0.712, verification_status: 'NEEDS_REVIEW' },
-    { student_db_id: 5, student_id: '2024-8845', name: 'Liam Chen', roll_number: 'CS-018', status: 'PRESENT', confidence: 0.684, verification_status: 'NEEDS_REVIEW' },
-  ];
+  // 1. Photos list (support multi-photo)
+  const imageUrls: string[] = analysisResult?.image_urls && analysisResult.image_urls.length > 0
+    ? analysisResult.image_urls
+    : analysisResult?.image_url
+      ? [analysisResult.image_url]
+      : ['/hero-scenic-1.jpg'];
 
-  const initialFaces: RecognizedFace[] = analysisResult?.recognized_faces || [
-    {
-      box: { x: 180, y: 150, w: 90, h: 90, width: 90, height: 90 },
-      student_id: 2,
-      name: 'Elena Rostova',
-      confidence: 0.984,
-      status: 'PRESENT',
-      image_index: 0,
-      verification_status: 'AI_VERIFIED'
-    },
-    {
-      box: { x: 440, y: 210, w: 95, h: 95, width: 95, height: 95 },
-      student_id: 3,
-      name: 'David Kim',
-      confidence: 0.991,
-      status: 'PRESENT',
-      image_index: 0,
-      verification_status: 'AI_VERIFIED'
-    },
-    {
-      box: { x: 300, y: 280, w: 110, h: 110, width: 110, height: 110 },
-      student_id: 1,
-      name: 'Dev Patel',
-      confidence: 0.648,
-      status: 'PRESENT',
-      image_index: 0,
-      verification_status: 'NEEDS_REVIEW'
-    }
-  ];
+  const [activePhotoIndex, setActivePhotoIndex] = useState<number>(0);
+
+  // 2. Proposed attendance list
+  const initialProposed: AttendanceProposalItem[] = analysisResult?.proposed_attendance && analysisResult.proposed_attendance.length > 0
+    ? analysisResult.proposed_attendance
+    : [
+        { student_db_id: 1, student_id: 'STU001', name: 'Rahul Sharma', roll_number: '2026CSE01', status: 'PRESENT', confidence: 0.94, verification_status: 'AUTO' },
+        { student_db_id: 2, student_id: 'STU002', name: 'Amit Patel', roll_number: '2026CSE02', status: 'PRESENT', confidence: 0.88, verification_status: 'AUTO' },
+        { student_db_id: 3, student_id: 'STU003', name: 'Priya Verma', roll_number: '2026CSE03', status: 'PRESENT', confidence: 0.72, verification_status: 'NEEDS_REVIEW' },
+        { student_db_id: 4, student_id: 'STU004', name: 'Sneha Rao', roll_number: '2026CSE04', status: 'ABSENT', confidence: 0.0, verification_status: 'AUTO' },
+        { student_db_id: 26, student_id: 'UDIT01', name: 'Udit', roll_number: '2026CSE00', status: 'PRESENT', confidence: 0.96, verification_status: 'AUTO' },
+      ];
+
+  const initialFaces: RecognizedFace[] = analysisResult?.recognized_faces && analysisResult.recognized_faces.length > 0
+    ? analysisResult.recognized_faces
+    : [
+        {
+          box: { x: 140, y: 120, w: 100, h: 100, width: 100, height: 100 },
+          student_id: 1,
+          name: 'Rahul Sharma',
+          confidence: 0.94,
+          match_score: 0.94,
+          status: 'PRESENT',
+          image_index: 0,
+          verification_status: 'AUTO'
+        },
+        {
+          box: { x: 320, y: 160, w: 90, h: 90, width: 90, height: 90 },
+          student_id: 26,
+          name: 'Udit',
+          confidence: 0.96,
+          match_score: 0.96,
+          status: 'PRESENT',
+          image_index: 0,
+          verification_status: 'AUTO'
+        },
+        {
+          box: { x: 500, y: 200, w: 95, h: 95, width: 95, height: 95 },
+          student_id: 3,
+          name: 'Priya Verma',
+          confidence: 0.72,
+          match_score: 0.72,
+          status: 'NEEDS_REVIEW',
+          image_index: 0,
+          verification_status: 'NEEDS_REVIEW'
+        }
+      ];
 
   const [proposedList, setProposedList] = useState<AttendanceProposalItem[]>(initialProposed);
   const [faces, setFaces] = useState<RecognizedFace[]>(initialFaces);
-  const [selectedStudentId, setSelectedStudentId] = useState<number>(1);
-  const [canvasFilter, setCanvasFilter] = useState<'all' | 'review' | 'unmatched'>('all');
-  const [zoomLevel, setZoomLevel] = useState<number>(100);
+  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(initialProposed[0]?.student_db_id || null);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [showReassignDropdown, setShowReassignDropdown] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'present' | 'review' | 'absent'>('all');
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3200);
   };
 
-  const selectedStudent = proposedList.find((s) => s.student_db_id === selectedStudentId) || proposedList[0];
-  const selectedConfidencePct = selectedStudent ? Math.round(selectedStudent.confidence * 1000) / 10 : 64.8;
+  // Filter faces for the currently active photo
+  const activePhotoFaces = faces.filter(f => (f.image_index ?? 0) === activePhotoIndex);
 
-  // Key Actions
-  const handleApproveSelected = () => {
-    if (!selectedStudent) return;
-    setProposedList((prev) =>
-      prev.map((s) =>
-        s.student_db_id === selectedStudent.student_db_id
-          ? { ...s, status: 'PRESENT', verification_status: 'TEACHER_VERIFIED' }
-          : s
-      )
-    );
-    showToast(`Approved ${selectedStudent.name} as PRESENT`);
+  const selectedStudent = proposedList.find((s) => s.student_db_id === selectedStudentId);
 
-    // Next pending item in queue
-    const nextPending = proposedList.find(
-      (s) => s.student_db_id !== selectedStudent.student_db_id && s.verification_status === 'NEEDS_REVIEW'
-    );
-    if (nextPending) setSelectedStudentId(nextPending.student_db_id);
-  };
+  // Status Counts
+  const presentCount = proposedList.filter(s => s.status === 'PRESENT').length;
+  const reviewCount = proposedList.filter(s => s.verification_status === 'NEEDS_REVIEW').length;
+  const absentCount = proposedList.filter(s => s.status === 'ABSENT').length;
+  const totalCount = proposedList.length;
 
-  const handleMarkAbsent = () => {
-    if (!selectedStudent) return;
-    setProposedList((prev) =>
-      prev.map((s) =>
-        s.student_db_id === selectedStudent.student_db_id
-          ? { ...s, status: 'ABSENT', verification_status: 'TEACHER_VERIFIED' }
-          : s
-      )
-    );
-    showToast(`Marked ${selectedStudent.name} as ABSENT`);
-  };
-
-  const handleReassign = (targetDbId: number) => {
-    const target = proposedList.find((s) => s.student_db_id === targetDbId);
-    if (!target || !selectedStudent) return;
-
-    setProposedList((prev) =>
-      prev.map((s) => {
-        if (s.student_db_id === targetDbId) {
-          return { ...s, status: 'PRESENT', verification_status: 'MANUAL', confidence: 1.0 };
-        }
-        if (s.student_db_id === selectedStudent.student_db_id) {
-          return { ...s, status: 'ABSENT', verification_status: 'TEACHER_VERIFIED' };
-        }
-        return s;
-      })
-    );
-    setShowReassignDropdown(false);
-    showToast(`Reassigned face to ${target.name}`);
-  };
-
-  // Keyboard Shortcuts [A], [R], [X]
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement).tagName)) return;
-      if (e.key === 'a' || e.key === 'A') {
-        handleApproveSelected();
-      } else if (e.key === 'x' || e.key === 'X') {
-        handleMarkAbsent();
-      } else if (e.key === 'r' || e.key === 'R') {
-        setShowReassignDropdown((prev) => !prev);
+  const handleToggleStatus = (studentDbId: number) => {
+    setProposedList(prev => prev.map(s => {
+      if (s.student_db_id === studentDbId) {
+        const nextStatus = s.status === 'PRESENT' ? 'ABSENT' : 'PRESENT';
+        return {
+          ...s,
+          status: nextStatus,
+          verification_status: 'TEACHER_VERIFIED'
+        };
       }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedStudent, proposedList]);
+      return s;
+    }));
+  };
+
+  const handleApproveAllReview = () => {
+    setProposedList(prev => prev.map(s => {
+      if (s.verification_status === 'NEEDS_REVIEW') {
+        return {
+          ...s,
+          status: 'PRESENT',
+          verification_status: 'TEACHER_VERIFIED'
+        };
+      }
+      return s;
+    }));
+    showToast('All review flags approved as Present');
+  };
 
   const handleSaveAttendance = async () => {
     setSaving(true);
     setError(null);
     try {
-      if (sessionContext) {
-        const records = proposedList.map((item) => ({
-          student_id: item.student_db_id,
-          status: item.status,
-          confidence: item.confidence,
-          verification_status: item.verification_status
-        }));
-        await AttendanceService.saveSession({
-          class_id: sessionContext.classId,
-          subject_id: sessionContext.subjectId,
-          date: sessionContext.date,
-          start_time: sessionContext.startTime,
-          image_path: analysisResult?.image_url || '/hero-scenic-1.jpg',
-          records,
-          recognized_faces: faces
-        } as any);
-      }
+      const records = proposedList.map((item) => ({
+        student_id: item.student_db_id,
+        status: item.status,
+        confidence: item.confidence,
+        verification_status: item.verification_status
+      }));
+
+      await AttendanceService.saveSession({
+        class_id: sessionContext?.classId || 1,
+        subject_id: sessionContext?.subjectId || 1,
+        date: sessionContext?.date || new Date().toISOString().split('T')[0],
+        start_time: sessionContext?.startTime || '09:00',
+        image_path: imageUrls[0],
+        image_urls: imageUrls,
+        records,
+        recognized_faces: faces
+      } as any);
+
       setSaveSuccess(true);
-      showToast('Attendance ledger finalized & synchronized!');
+      showToast('Attendance records finalized and synchronized to database!');
     } catch (err: any) {
-      setError(extractErrorMessage(err, "Failed to save attendance record."));
+      setError(extractErrorMessage(err, "Failed to save attendance record. Please try again."));
     } finally {
       setSaving(false);
     }
   };
 
-  const verifiedCount = proposedList.filter((s) => s.status === 'PRESENT' && s.verification_status !== 'NEEDS_REVIEW').length;
-  const reviewCount = proposedList.filter((s) => s.verification_status === 'NEEDS_REVIEW').length;
-  const unmatchedCount = proposedList.filter((s) => s.status === 'ABSENT').length;
-
   if (saveSuccess) {
     return (
-      <div className="max-w-2xl mx-auto py-16 text-center space-y-6 text-[#e5e1e4]">
-        <div className="w-16 h-16 rounded-2xl bg-[#4edea3]/20 text-[#4edea3] border border-[#4edea3]/30 mx-auto flex items-center justify-center shadow-lg">
-          <span className="material-symbols-outlined text-[36px]">verified</span>
+      <div className="max-w-2xl mx-auto py-16 text-center space-y-6 text-slate-100 animate-in fade-in duration-300">
+        <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 mx-auto flex items-center justify-center shadow-lg">
+          <CheckCircle2 className="w-8 h-8" />
         </div>
         <div className="space-y-2">
-          <h1 className="text-3xl font-semibold text-[#e5e1e4]">Attendance Ledger Finalized!</h1>
-          <p className="text-xs text-[#86948a] max-w-md mx-auto">
-            All records cryptographically signed and stored in institutional database with 128-D biometric vector updates.
+          <h1 className="text-3xl font-bold text-white">Attendance Ledger Finalized!</h1>
+          <p className="text-sm text-slate-400 max-w-md mx-auto">
+            All records cryptographically signed and stored in Supabase PostgreSQL with 128-D biometric vector active learning updates.
           </p>
         </div>
         <div className="flex items-center justify-center gap-4 pt-4">
           <button
             onClick={() => navigate('/history')}
-            className="px-5 py-2.5 bg-[#201f22] hover:bg-[#2a2a2c] text-[#e5e1e4] font-medium text-xs rounded-lg border border-[#3c4a42]/40 transition-colors"
+            className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs rounded-xl border border-slate-700 transition-colors shadow-sm"
           >
             View History Ledger
           </button>
           <button
             onClick={() => navigate('/dashboard')}
-            className="px-5 py-2.5 bg-[#4edea3] hover:bg-[#6ffbbe] text-[#003824] font-semibold text-xs rounded-lg shadow-sm transition-colors"
+            className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-400 hover:brightness-110 text-slate-950 font-bold text-xs rounded-xl shadow-lg transition-all"
           >
             Return to Dashboard
           </button>
@@ -203,530 +204,234 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
     );
   }
 
+  const filteredStudents = proposedList.filter(s => {
+    if (statusFilter === 'present') return s.status === 'PRESENT';
+    if (statusFilter === 'review') return s.verification_status === 'NEEDS_REVIEW';
+    if (statusFilter === 'absent') return s.status === 'ABSENT';
+    return true;
+  });
+
   return (
-    <div className="flex flex-col w-full text-[#e5e1e4] space-y-6">
-      {/* ── SUB-HEADER ACTION BAR ── */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-[#3c4a42]/30">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold tracking-tight text-[#e5e1e4]">CS-101: Advanced Data Structures</span>
-            <span className="inline-block w-1 h-1 rounded-full bg-[#3c4a42]"></span>
-            <span className="text-[10px] text-[#bbcabf] uppercase tracking-wider font-mono">Lecture Hall 4B</span>
-            <span className="inline-block w-1 h-1 rounded-full bg-[#3c4a42]"></span>
-            <span className="font-mono text-xs text-[#86948a]">Oct 24, 09:14 AM</span>
-          </div>
-          <div className="flex items-center gap-2 text-[#bbcabf] text-xs font-mono">
-            <span className="material-symbols-outlined text-[15px] text-[#4edea3]">videocam</span>
-            <span>Vision Node Optical Stream #04 (Sony IMX415 Array • 4K HDR)</span>
-          </div>
+    <div className="flex flex-col w-full space-y-6 text-slate-100 max-w-7xl mx-auto pb-12">
+      {/* ── Top Header & Actions ── */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+        <div className="space-y-1">
+          <button
+            onClick={() => navigate('/take-attendance')}
+            className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors mb-1"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back to Capture</span>
+          </button>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+            Review Attendance Results
+            <span className="text-xs px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-mono font-normal">
+              {presentCount} / {totalCount} Present ({Math.round((presentCount / totalCount) * 100)}%)
+            </span>
+          </h1>
+          <p className="text-xs text-slate-400">
+            Interactive bounding box audit • Confirm AI proposals or click a student to toggle status
+          </p>
         </div>
 
-        {/* Center Status Metagroup */}
-        <div className="flex items-center bg-[#0e0e10] p-1 rounded-full shadow-inner border border-[#3c4a42]/30">
-          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#4edea3]/10">
-            <span className="w-2 h-2 rounded-full bg-[#4edea3]"></span>
-            <span className="font-mono text-xs font-medium text-[#4edea3]">{verifiedCount} Verified</span>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#d97707]/20 ml-1">
-            <span className="w-2 h-2 rounded-full bg-[#ffb77d]"></span>
-            <span className="font-mono text-xs font-medium text-[#ffb77d]">{reviewCount} Review</span>
-          </div>
-          <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#2a2a2c] ml-1">
-            <span className="w-2 h-2 rounded-full bg-[#86948a]"></span>
-            <span className="font-mono text-xs text-[#bbcabf]">{unmatchedCount} Unmatched</span>
-          </div>
-        </div>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-3 flex-wrap">
+          {reviewCount > 0 && (
+            <button
+              onClick={handleApproveAllReview}
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-semibold transition-colors"
+              type="button"
+            >
+              <CheckCircle2 className="w-4 h-4 text-amber-400" />
+              <span>Approve All Review Flags ({reviewCount})</span>
+            </button>
+          )}
 
-        {/* Right Controls */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => showToast('Reverted last verification action')}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1c1b1d] hover:bg-[#201f22] text-[#bbcabf] hover:text-[#e5e1e4] transition-colors text-xs border border-[#3c4a42]/30"
-            type="button"
-          >
-            <span className="material-symbols-outlined text-[16px]">undo</span>
-            <span>Undo</span>
-            <kbd className="ml-1 px-1.5 py-0.5 rounded bg-[#353437] font-mono text-[10px] text-[#86948a]">⌘Z</kbd>
-          </button>
-          <button
-            onClick={() => showToast('Shortcuts: [A] Approve, [R] Reassign, [X] Flag Absent')}
-            className="p-2 rounded-lg bg-[#1c1b1d] hover:bg-[#201f22] text-[#bbcabf] hover:text-[#e5e1e4] border border-[#3c4a42]/30 transition-colors"
-            title="Keyboard Shortcuts [?]"
-            type="button"
-          >
-            <span className="material-symbols-outlined text-[18px]">keyboard</span>
-          </button>
           <button
             onClick={handleSaveAttendance}
             disabled={saving}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#e5e1e4] hover:bg-[#39393b] text-[#131315] hover:text-[#e5e1e4] text-xs font-semibold transition-all shadow-md ml-1"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 text-xs font-bold hover:brightness-110 active:scale-[0.99] transition-all shadow-lg shadow-emerald-500/20"
             type="button"
           >
-            <span className="material-symbols-outlined text-[18px]">verified</span>
-            <span>{saving ? 'Finalizing...' : 'Save & Finalize'}</span>
+            <Save className="w-4 h-4" />
+            <span>{saving ? 'Finalizing...' : 'Save & Finalize Attendance'}</span>
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="p-3.5 rounded-lg bg-[#93000a]/20 border border-[#93000a]/50 text-[#ffb4ab] text-xs font-medium">
-          {error}
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
-      {/* ── WORKSPACE SPLIT (70% Canvas / 30% Verification Panel) ── */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-        {/* LEFT: MAIN PHOTO CANVAS (8 cols = ~67-70%) */}
-        <div className="xl:col-span-8 flex flex-col gap-4">
-          {/* Main Photo Viewport */}
-          <div className="relative w-full aspect-[16/10] bg-[#0e0e10] rounded-xl overflow-hidden shadow-2xl group select-none border border-[#3c4a42]/30">
-            {/* Background Auditorium Photography */}
-            <img
-              className="absolute inset-0 w-full h-full object-cover object-center filter brightness-[0.78] contrast-[1.08] transition-transform duration-700 group-hover:scale-[1.01]"
-              alt="Classroom Auditorium Viewport"
-              src="/hero-scenic-1.jpg"
-              onError={(e) => {
-                e.currentTarget.src = "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=1200&q=80";
+      {/* ── Multi-Photo Selector Tabs (if more than 1 photo) ── */}
+      {imageUrls.length > 1 && (
+        <div className="flex items-center gap-2 p-2 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-xl overflow-x-auto">
+          <span className="text-xs font-mono uppercase tracking-wider text-slate-400 px-3 font-semibold flex items-center gap-1.5 shrink-0">
+            <Layers className="w-3.5 h-3.5 text-cyan-400" />
+            Classroom Sections ({imageUrls.length} Photos):
+          </span>
+          {imageUrls.map((url, idx) => {
+            const photoFaceCount = faces.filter(f => (f.image_index ?? 0) === idx).length;
+            const isActive = activePhotoIndex === idx;
+            return (
+              <button
+                key={idx}
+                onClick={() => setActivePhotoIndex(idx)}
+                className={`px-3.5 py-1.5 rounded-xl font-mono text-xs font-semibold flex items-center gap-2 transition-all shrink-0 ${
+                  isActive
+                    ? 'bg-emerald-500 text-slate-950 shadow-md'
+                    : 'bg-slate-800/80 text-slate-300 hover:text-white hover:bg-slate-700'
+                }`}
+                type="button"
+              >
+                <span>Photo #{idx + 1}</span>
+                <span className={`px-1.5 py-0.5 rounded text-[10px] ${isActive ? 'bg-slate-950/20 text-slate-950' : 'bg-slate-900 text-slate-400'}`}>
+                  {photoFaceCount} Faces
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Main Workspace (Left: Interactive Bounding Box Canvas / Right: Student Roster) ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left Column: Visual AI Bounding Box Canvas (7 cols) */}
+        <div className="lg:col-span-7 space-y-4">
+          <div className="p-4 rounded-3xl bg-slate-900/50 border border-slate-800/80 backdrop-blur-xl shadow-xl">
+            <BoundingBoxCanvas
+              imageUrl={imageUrls[activePhotoIndex] || imageUrls[0]}
+              recognizedFaces={activePhotoFaces}
+              selectedStudentId={selectedStudentId}
+              onSelectFace={(face) => {
+                if (face.student_id) {
+                  setSelectedStudentId(face.student_id);
+                }
               }}
-              style={{ transform: `scale(${zoomLevel / 100})` }}
             />
-
-            {/* Subtle Ambient Vignette Scrim */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0e0e10]/80 via-transparent to-[#0e0e10]/40 pointer-events-none"></div>
-
-            {/* CAMERA OVERLAY METADATA WATERMARK */}
-            <div className="absolute top-4 left-4 flex items-center gap-3 bg-[#0e0e10]/80 backdrop-blur-md px-3 py-1.5 rounded-md pointer-events-none border border-[#3c4a42]/40">
-              <span className="flex h-2 w-2 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ffb4ab] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#ffb4ab]"></span>
-              </span>
-              <span className="font-mono text-[11px] text-[#e5e1e4] tracking-wider uppercase font-semibold">
-                CAM-02 REC [4K 60FPS]
-              </span>
-              <span className="font-mono text-[11px] text-[#86948a]">ISO 400 • f/2.8 • 1/125s</span>
-            </div>
-
-            {/* DETECTION RETICLE 1: Verified (Elena Rostova) */}
-            <div
-              onClick={() => setSelectedStudentId(2)}
-              className="absolute top-[28%] left-[22%] -translate-x-1/2 -translate-y-1/2 pointer-events-auto cursor-pointer group/node"
-              style={{ zIndex: 10 }}
-            >
-              <div className="relative flex items-center justify-center">
-                <div className="w-14 h-14 rounded-full border border-[#4edea3]/60 transition-all duration-300 group-hover/node:border-[#4edea3] group-hover/node:scale-110 flex items-center justify-center">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#4edea3] animate-pulse"></span>
-                </div>
-                {/* Hairline Crosshairs */}
-                <div className="absolute -top-1 w-2 h-px bg-[#4edea3]/80"></div>
-                <div className="absolute -bottom-1 w-2 h-px bg-[#4edea3]/80"></div>
-                <div className="absolute -left-1 w-px h-2 bg-[#4edea3]/80"></div>
-                <div className="absolute -right-1 w-px h-2 bg-[#4edea3]/80"></div>
-                {/* Micro Tag Pill */}
-                <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 whitespace-nowrap flex items-center gap-1.5 bg-[#0e0e10]/90 backdrop-blur-md px-2.5 py-1 rounded-full shadow-lg border border-[#3c4a42]/40">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#4edea3]"></span>
-                  <span className="text-[11px] text-[#e5e1e4] font-medium">Elena Rostova</span>
-                  <span className="font-mono text-[10px] text-[#4edea3]">98.4%</span>
-                </div>
-              </div>
-            </div>
-
-            {/* DETECTION RETICLE 2: Verified (David Kim) */}
-            <div
-              onClick={() => setSelectedStudentId(3)}
-              className="absolute top-[38%] left-[54%] -translate-x-1/2 -translate-y-1/2 pointer-events-auto cursor-pointer group/node"
-              style={{ zIndex: 10 }}
-            >
-              <div className="relative flex items-center justify-center">
-                <div className="w-16 h-16 rounded-full border border-[#4edea3]/50 transition-all duration-300 group-hover/node:border-[#4edea3] group-hover/node:scale-110 flex items-center justify-center">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#4edea3]/80"></span>
-                </div>
-                <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 whitespace-nowrap flex items-center gap-1.5 bg-[#0e0e10]/90 backdrop-blur-md px-2.5 py-1 rounded-full shadow-lg border border-[#3c4a42]/40">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#4edea3]"></span>
-                  <span className="text-[11px] text-[#e5e1e4] font-medium">David Kim</span>
-                  <span className="font-mono text-[10px] text-[#4edea3]">99.1%</span>
-                </div>
-              </div>
-            </div>
-
-            {/* DETECTION RETICLE 3: Active Selected Target (Needs Review: Dev Patel) */}
-            <div
-              onClick={() => setSelectedStudentId(1)}
-              className="absolute top-[52%] left-[36%] -translate-x-1/2 -translate-y-1/2 pointer-events-auto cursor-pointer z-30"
-            >
-              <div className="relative flex items-center justify-center">
-                {/* Pulsing Concentric Aura */}
-                <div className="absolute w-28 h-28 rounded-full bg-[#d97707]/10 animate-ping opacity-60"></div>
-                {/* Minimal Geometric Focal Brackets */}
-                <div className="relative w-20 h-20 flex items-center justify-center">
-                  <span className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-[#ffb77d]"></span>
-                  <span className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-[#ffb77d]"></span>
-                  <span className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-[#ffb77d]"></span>
-                  <span className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-[#ffb77d]"></span>
-                  <div className="w-14 h-14 rounded-full border border-[#ffb77d]/40 flex items-center justify-center">
-                    <span className="w-2 h-2 rounded-full bg-[#ffb77d] shadow-sm"></span>
-                  </div>
-                </div>
-                {/* Elevated Status Floating Badge */}
-                <div className="absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap flex items-center gap-2 bg-[#353437] px-3 py-1 rounded-full shadow-2xl border border-[#ffb77d]/30">
-                  <span className="w-2 h-2 rounded-full bg-[#ffb77d]"></span>
-                  <span className="text-[10px] text-[#ffb77d] uppercase tracking-wider font-mono font-semibold">
-                    Active Review Target
-                  </span>
-                </div>
-                {/* Detail Pill */}
-                <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 whitespace-nowrap flex items-center gap-2 bg-[#0e0e10]/95 backdrop-blur-md px-3 py-1.5 rounded-full shadow-2xl ring-1 ring-[#ffb77d]/30 border border-[#3c4a42]/40">
-                  <span className="text-xs text-[#e5e1e4] font-semibold">{selectedStudent?.name || 'Dev Patel'}</span>
-                  <span className="font-mono text-[11px] text-[#ffb77d] font-bold">{selectedConfidencePct}% Match</span>
-                  <span className="material-symbols-outlined text-[#ffb77d] text-[14px]">priority_high</span>
-                </div>
-              </div>
-            </div>
-
-            {/* DETECTION RETICLE 4: Unmatched Candidate (Row 6) */}
-            <div
-              onClick={() => showToast('Unassigned student candidate face selected')}
-              className="absolute top-[22%] left-[78%] -translate-x-1/2 -translate-y-1/2 pointer-events-auto cursor-pointer group/node"
-              style={{ zIndex: 10 }}
-            >
-              <div className="relative flex items-center justify-center">
-                <div className="w-12 h-12 rounded-full border border-dashed border-[#86948a]/70 transition-all duration-300 group-hover/node:border-[#86948a] flex items-center justify-center">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#86948a]/40"></span>
-                </div>
-                <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 whitespace-nowrap flex items-center gap-1.5 bg-[#0e0e10]/80 backdrop-blur-md px-2.5 py-1 rounded-full shadow-md border border-[#3c4a42]/40">
-                  <span className="material-symbols-outlined text-[#86948a] text-[12px]">person_search</span>
-                  <span className="text-[11px] text-[#86948a] font-medium">Unassigned Candidate</span>
-                </div>
-              </div>
-            </div>
-
-            {/* FLOATING QUICK-ACTION CAPSULE */}
-            <div className="absolute top-4 right-4 z-20 flex items-center gap-2 bg-[#0e0e10]/90 backdrop-blur-md px-3 py-1.5 rounded-full shadow-xl border border-[#3c4a42]/40">
-              <span className="font-mono text-[11px] text-[#ffb77d] font-semibold uppercase tracking-wider flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#ffb77d]"></span>
-                1 Selected
-              </span>
-              <span className="text-[#3c4a42]">/</span>
-              <button
-                onClick={handleApproveSelected}
-                className="text-[10px] text-[#bbcabf] hover:text-[#e5e1e4] flex items-center gap-1"
-              >
-                <kbd className="px-1 py-0.5 rounded bg-[#2a2a2c] font-mono text-[#e5e1e4]">A</kbd> Approve
-              </button>
-              <button
-                onClick={() => setShowReassignDropdown((p) => !p)}
-                className="text-[10px] text-[#bbcabf] hover:text-[#e5e1e4] flex items-center gap-1"
-              >
-                <kbd className="px-1 py-0.5 rounded bg-[#2a2a2c] font-mono text-[#e5e1e4]">R</kbd> Reassign
-              </button>
-              <button
-                onClick={handleMarkAbsent}
-                className="text-[10px] text-[#bbcabf] hover:text-[#e5e1e4] flex items-center gap-1"
-              >
-                <kbd className="px-1 py-0.5 rounded bg-[#2a2a2c] font-mono text-[#e5e1e4]">X</kbd> Absent
-              </button>
-            </div>
-
-            {/* FLOATING BOTTOM MINIMALIST HUD */}
-            <div className="absolute bottom-4 left-4 right-4 z-20 flex flex-col sm:flex-row items-center justify-between gap-2 pointer-events-none">
-              {/* View Filtering Toggles */}
-              <div className="pointer-events-auto flex items-center bg-[#0e0e10]/90 backdrop-blur-md p-1 rounded-full shadow-lg border border-[#3c4a42]/40">
-                <button
-                  onClick={() => setCanvasFilter('all')}
-                  className={`px-3 py-1 rounded-full font-mono text-[10px] uppercase tracking-wider font-semibold transition-all ${
-                    canvasFilter === 'all' ? 'bg-[#201f22] text-[#e5e1e4]' : 'text-[#86948a] hover:text-[#e5e1e4]'
-                  }`}
-                  type="button"
-                >
-                  All ({proposedList.length})
-                </button>
-                <button
-                  onClick={() => setCanvasFilter('review')}
-                  className={`px-3 py-1 rounded-full font-mono text-[10px] uppercase tracking-wider font-semibold transition-all ${
-                    canvasFilter === 'review' ? 'bg-[#201f22] text-[#ffb77d]' : 'text-[#ffb77d] hover:text-[#e5e1e4]'
-                  }`}
-                  type="button"
-                >
-                  Review Only ({reviewCount})
-                </button>
-                <button
-                  onClick={() => setCanvasFilter('unmatched')}
-                  className={`px-3 py-1 rounded-full font-mono text-[10px] uppercase tracking-wider font-semibold transition-all ${
-                    canvasFilter === 'unmatched' ? 'bg-[#201f22] text-[#e5e1e4]' : 'text-[#86948a] hover:text-[#e5e1e4]'
-                  }`}
-                  type="button"
-                >
-                  Unmatched ({unmatchedCount})
-                </button>
-              </div>
-
-              {/* Zoom & Pan Controls */}
-              <div className="pointer-events-auto flex items-center gap-1 bg-[#0e0e10]/90 backdrop-blur-md px-2 py-1 rounded-full shadow-lg border border-[#3c4a42]/40">
-                <button
-                  onClick={() => setZoomLevel((z) => Math.max(z - 10, 80))}
-                  className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#201f22] text-[#bbcabf] hover:text-[#e5e1e4] transition-colors"
-                  title="Zoom Out"
-                  type="button"
-                >
-                  <span className="material-symbols-outlined text-[16px]">remove</span>
-                </button>
-                <span className="font-mono text-[11px] text-[#e5e1e4] px-2 select-none">{zoomLevel}%</span>
-                <button
-                  onClick={() => setZoomLevel((z) => Math.min(z + 10, 160))}
-                  className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#201f22] text-[#bbcabf] hover:text-[#e5e1e4] transition-colors"
-                  title="Zoom In"
-                  type="button"
-                >
-                  <span className="material-symbols-outlined text-[16px]">add</span>
-                </button>
-                <span className="w-px h-3.5 bg-[#3c4a42]/40 mx-0.5"></span>
-                <button
-                  onClick={() => setZoomLevel(100)}
-                  className="px-2.5 py-1 rounded-full hover:bg-[#201f22] text-[#bbcabf] hover:text-[#e5e1e4] text-[10px] uppercase font-mono tracking-wider flex items-center gap-1 transition-colors"
-                  type="button"
-                >
-                  <span className="material-symbols-outlined text-[14px]">fit_screen</span>
-                  <span>Fit</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Canvas Sub-strip: Telemetry and Vision Node Specs */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-            <div className="p-3 rounded-lg bg-[#1c1b1d] border border-[#3c4a42]/30 flex flex-col gap-1">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[#86948a]">Face Confidence Avg</span>
-              <span className="text-xl text-[#e5e1e4] font-semibold tracking-tight">96.8%</span>
-            </div>
-            <div className="p-3 rounded-lg bg-[#1c1b1d] border border-[#3c4a42]/30 flex flex-col gap-1">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[#86948a]">Optical Occlusion Rate</span>
-              <span className="text-xl text-[#e5e1e4] font-semibold tracking-tight">3.2%</span>
-            </div>
-            <div className="p-3 rounded-lg bg-[#1c1b1d] border border-[#3c4a42]/30 flex flex-col gap-1">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[#86948a]">Liveness Invariance</span>
-              <span className="text-xl text-[#4edea3] font-semibold tracking-tight">99.98%</span>
-            </div>
-            <div className="p-3 rounded-lg bg-[#1c1b1d] border border-[#3c4a42]/30 flex flex-col gap-1">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[#86948a]">Capture Frame Drift</span>
-              <span className="text-xl text-[#e5e1e4] font-semibold tracking-tight">12 ms</span>
-            </div>
           </div>
         </div>
 
-        {/* RIGHT: VERIFICATION PANEL / SLIDE-OVER DRAWER (4 cols = ~30%) */}
-        <div className="xl:col-span-4 flex flex-col gap-4">
-          <div className="bg-[#0e0e10] rounded-xl p-5 shadow-xl flex flex-col gap-4 border border-[#3c4a42]/30">
-            {/* Panel Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-[#3c4a42]/20">
-              <div className="flex flex-col">
-                <span className="text-[10px] text-[#ffb77d] uppercase tracking-widest font-mono font-semibold">Priority Audit</span>
-                <h2 className="text-sm text-[#e5e1e4] font-semibold">Biometric Inspection</h2>
-              </div>
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#2a2a2c] font-mono text-[11px] text-[#bbcabf] font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#ffb77d]"></span>
-                <span>{reviewCount} of {proposedList.length} Pending</span>
-              </div>
-            </div>
-
-            {/* Comparative Biometric Inspection Section */}
-            <div className="flex flex-col gap-3">
-              <div className="grid grid-cols-2 gap-3 items-center relative">
-                {/* Classroom Optical Crop */}
-                <div className="flex flex-col gap-1.5">
-                  <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-[#2a2a2c] border border-[#3c4a42]/40 group">
-                    <img
-                      className="w-full h-full object-cover filter contrast-[1.05]"
-                      alt="Classroom optical crop"
-                      src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80"
-                    />
-                    <div className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded bg-[#0e0e10]/80 backdrop-blur-sm font-mono text-[10px] text-[#bbcabf]">
-                      Row 4 • Seat 12
-                    </div>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs text-[#e5e1e4] font-medium">Classroom Crop</span>
-                    <span className="font-mono text-[10px] text-[#86948a]">Camera 02 • 09:14:02 AM</span>
-                  </div>
-                </div>
-
-                {/* VS Minimalist Absolute Center Divider */}
-                <div className="absolute left-1/2 top-[40%] -translate-x-1/2 -translate-y-1/2 z-10 w-7 h-7 rounded-full bg-[#353437] shadow-md flex items-center justify-center border border-[#3c4a42]/50">
-                  <span className="text-[9px] font-bold text-[#86948a] tracking-wider font-mono">VS</span>
-                </div>
-
-                {/* Official Registrar ID Portrait */}
-                <div className="flex flex-col gap-1.5">
-                  <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-[#2a2a2c] border border-[#3c4a42]/40 group">
-                    <img
-                      className="w-full h-full object-cover"
-                      alt="Verified student ID portrait"
-                      src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80"
-                    />
-                    <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 rounded bg-[#0e0e10]/80 backdrop-blur-sm font-mono text-[9px] text-[#4edea3] font-semibold uppercase">
-                      Verified ID
-                    </div>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs text-[#e5e1e4] font-medium truncate">{selectedStudent?.name || 'Dev Patel'}</span>
-                    <span className="font-mono text-[10px] text-[#86948a]">ID #{selectedStudent?.student_id || '2024-8841'} • CS</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* MATCH TELEMETRY SLIDER & CONFIDENCE GAUGE */}
-              <div className="p-3 rounded-lg bg-[#1c1b1d] border border-[#3c4a42]/30 flex flex-col gap-2 mt-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-[#86948a]">Neural Vector Match</span>
-                  <span className="font-mono text-xs text-[#ffb77d] font-bold">{selectedConfidencePct}%</span>
-                </div>
-                {/* Dual-marker custom range indicator */}
-                <div className="relative w-full h-2 bg-[#353437] rounded-full overflow-visible my-1">
-                  <div className="h-full bg-[#ffb77d] rounded-full" style={{ width: `${selectedConfidencePct}%` }}></div>
-                  <div className="absolute -top-1 bottom-0 w-0.5 h-4 bg-[#4edea3] z-10" style={{ left: '78%' }} title="Acceptance Threshold: 78%">
-                    <div className="absolute -top-4 -translate-x-1/2 font-mono text-[9px] text-[#4edea3] whitespace-nowrap">78% Goal</div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-[#86948a] font-mono text-[10px]">
-                  <span>0% Ambiguity</span>
-                  <span className="text-[#4edea3] font-medium">Auto-Accept &gt; 78%</span>
-                  <span>100% Deterministic</span>
-                </div>
-                {/* Optical Diagnostic Warning Banner */}
-                <div className="flex items-start gap-2 p-2 rounded bg-[#d97707]/10 mt-1">
-                  <span className="material-symbols-outlined text-[#ffb77d] text-[16px] mt-0.5 shrink-0">info</span>
-                  <p className="text-[11px] text-[#ffb77d] leading-snug">
-                    Sub-optimal illumination in Row 4 + partial laptop bezel occlusion (35%). Manual sign-off required.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* 1-CLICK TACTILE ACTION BUTTONS */}
-            <div className="flex flex-col gap-2 pt-1">
-              {/* Button 1: Primary Approval */}
-              <button
-                onClick={handleApproveSelected}
-                className="w-full flex items-center justify-between px-4 py-3 rounded-lg bg-[#4edea3] hover:bg-[#6ffbbe] text-[#003824] text-xs font-semibold transition-all shadow-md group"
-                type="button"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[18px]">check_circle</span>
-                  <span>Approve {selectedStudent?.name}</span>
-                </div>
-                <kbd className="px-2 py-0.5 rounded bg-[#003824]/20 font-mono text-[11px] text-[#003824] group-hover:bg-[#003824]/30">
-                  A
-                </kbd>
-              </button>
-
-              {/* Button 2: Reassign Dropdown Search Trigger */}
-              <div className="relative">
+        {/* Right Column: Student Attendance Ledger & Overrides (5 cols) */}
+        <div className="lg:col-span-5 space-y-4">
+          <div className="p-5 rounded-3xl bg-slate-900/50 border border-slate-800/80 backdrop-blur-xl shadow-xl flex flex-col h-full max-h-[750px]">
+            {/* Filter Pills */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+              <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+                Student Roster ({filteredStudents.length})
+              </span>
+              <div className="inline-flex items-center p-1 rounded-xl bg-slate-950 border border-slate-800 text-[11px]">
                 <button
-                  onClick={() => setShowReassignDropdown((prev) => !prev)}
-                  className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg bg-[#201f22] hover:bg-[#2a2a2c] text-[#e5e1e4] text-xs font-medium transition-colors border border-[#3c4a42]/30"
-                  type="button"
+                  onClick={() => setStatusFilter('all')}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'all' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400'}`}
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[18px] text-[#86948a]">swap_horiz</span>
-                    <span>Reassign to Roster...</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <kbd className="px-1.5 py-0.5 rounded bg-[#353437] font-mono text-[10px] text-[#86948a]">R</kbd>
-                  </div>
+                  All ({totalCount})
                 </button>
-
-                {showReassignDropdown && (
-                  <div className="absolute bottom-full mb-2 inset-x-0 bg-[#1c1b1d] border border-[#3c4a42]/60 rounded-xl p-2 shadow-2xl z-50 max-h-48 overflow-y-auto space-y-1">
-                    <div className="text-[10px] font-mono text-[#86948a] px-2 py-1 uppercase">Select target student:</div>
-                    {proposedList.map((s) => (
-                      <button
-                        key={s.student_db_id}
-                        onClick={() => handleReassign(s.student_db_id)}
-                        className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-[#2a2a2c] text-xs text-[#e5e1e4] flex items-center justify-between"
-                      >
-                        <span>{s.roll_number} • {s.name}</span>
-                        <span className="font-mono text-[10px] text-[#86948a]">{s.student_id}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <button
+                  onClick={() => setStatusFilter('present')}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'present' ? 'bg-emerald-500/20 text-emerald-300 font-bold' : 'text-slate-400'}`}
+                >
+                  Present ({presentCount})
+                </button>
+                <button
+                  onClick={() => setStatusFilter('review')}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'review' ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-slate-400'}`}
+                >
+                  Review ({reviewCount})
+                </button>
+                <button
+                  onClick={() => setStatusFilter('absent')}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'absent' ? 'bg-rose-500/20 text-rose-300 font-bold' : 'text-slate-400'}`}
+                >
+                  Absent ({absentCount})
+                </button>
               </div>
-
-              {/* Button 3: Absent / Reject */}
-              <button
-                onClick={handleMarkAbsent}
-                className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg bg-transparent hover:bg-[#93000a]/20 text-[#bbcabf] hover:text-[#ffb4ab] text-xs font-medium transition-colors border border-transparent hover:border-[#93000a]/30"
-                type="button"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[18px]">person_off</span>
-                  <span>Flag Unrecognized / Absent</span>
-                </div>
-                <kbd className="px-1.5 py-0.5 rounded bg-[#201f22] font-mono text-[10px] text-[#86948a]">X</kbd>
-              </button>
             </div>
 
-            {/* UPCOMING AUDIT QUEUE PREVIEW */}
-            <div className="pt-2 border-t border-[#3c4a42]/20 flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-[#86948a]">Upcoming In Queue</span>
-                <span className="font-mono text-[10px] text-[#86948a]">2 items remain</span>
-              </div>
+            {/* Scrollable Students List */}
+            <div className="flex-1 overflow-y-auto divide-y divide-slate-800/60 pr-1 mt-2 space-y-1">
+              {filteredStudents.map((stu) => {
+                const isSelected = selectedStudentId === stu.student_db_id;
+                const isPresent = stu.status === 'PRESENT';
+                const isReview = stu.verification_status === 'NEEDS_REVIEW';
 
-              {/* Queue Item 1 */}
-              <div
-                onClick={() => setSelectedStudentId(4)}
-                className="flex items-center justify-between p-2 rounded-lg bg-[#201f22] hover:bg-[#2a2a2c] transition-colors cursor-pointer group border border-[#3c4a42]/30"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full overflow-hidden bg-[#353437] shrink-0">
-                    <img
-                      className="w-full h-full object-cover"
-                      alt="Chloe Bennett"
-                      src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80"
-                    />
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs text-[#e5e1e4] font-medium group-hover:text-[#4edea3] transition-colors">Chloe Bennett</span>
-                    <span className="font-mono text-[10px] text-[#86948a]">Row 3 • Seat 04</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-full bg-[#d97707]/20 text-[#ffb77d] font-mono text-[11px] font-semibold">71%</span>
-                  <span className="material-symbols-outlined text-[#86948a] group-hover:text-[#e5e1e4] text-[16px]">chevron_right</span>
-                </div>
-              </div>
+                return (
+                  <div
+                    key={stu.student_db_id}
+                    onClick={() => setSelectedStudentId(stu.student_db_id)}
+                    className={`p-3 rounded-2xl flex items-center justify-between gap-3 cursor-pointer transition-all ${
+                      isSelected
+                        ? 'bg-slate-800/90 border border-emerald-500/40 shadow-md'
+                        : 'hover:bg-slate-800/40 border border-transparent'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
+                        isPresent
+                          ? isReview ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          : 'bg-slate-800 text-slate-500 border border-slate-700'
+                      }`}>
+                        {stu.name.substring(0, 2).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-semibold text-white truncate flex items-center gap-2">
+                          <span>{stu.name}</span>
+                          {stu.student_id === 'UDIT01' && (
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono">
+                              You
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-slate-400 font-mono flex items-center gap-2">
+                          <span>{stu.roll_number}</span>
+                          {stu.confidence > 0 && (
+                            <span className={`text-[10px] font-semibold ${stu.confidence >= 0.75 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                              {Math.round(stu.confidence * 100)}% match
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
 
-              {/* Queue Item 2 */}
-              <div
-                onClick={() => setSelectedStudentId(5)}
-                className="flex items-center justify-between p-2 rounded-lg bg-[#201f22] hover:bg-[#2a2a2c] transition-colors cursor-pointer group border border-[#3c4a42]/30"
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-full overflow-hidden bg-[#353437] shrink-0">
-                    <img
-                      className="w-full h-full object-cover"
-                      alt="Liam Chen"
-                      src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&q=80"
-                    />
+                    {/* Toggle Button */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleStatus(stu.student_db_id);
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
+                        isPresent
+                          ? isReview
+                            ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40'
+                            : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40'
+                          : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'
+                      }`}
+                    >
+                      {isPresent ? (
+                        <>
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span>{isReview ? 'Review' : 'Present'}</span>
+                        </>
+                      ) : (
+                        <span>Absent</span>
+                      )}
+                    </button>
                   </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs text-[#e5e1e4] font-medium group-hover:text-[#4edea3] transition-colors">Liam Chen</span>
-                    <span className="font-mono text-[10px] text-[#86948a]">Row 6 • Seat 09</span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-full bg-[#d97707]/20 text-[#ffb77d] font-mono text-[11px] font-semibold">68%</span>
-                  <span className="material-symbols-outlined text-[#86948a] group-hover:text-[#e5e1e4] text-[16px]">chevron_right</span>
-                </div>
-              </div>
+                );
+              })}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Interactive Toaster */}
+      {/* ── Toast Message ── */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded bg-[#2a2a2c] border border-[#3c4a42]/60 shadow-2xl text-xs font-medium text-[#e5e1e4] animate-in fade-in slide-in-from-bottom-5 duration-200">
-          <span className="material-symbols-outlined text-[#4edea3] text-[18px]">check_circle</span>
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-900/95 border border-emerald-500/40 shadow-2xl text-xs font-semibold text-emerald-300 animate-in fade-in slide-in-from-bottom-5 duration-200">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           <span>{toastMessage}</span>
         </div>
       )}

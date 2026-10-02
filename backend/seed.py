@@ -9,36 +9,20 @@ from app.core.storage import storage_service
 
 def seed_db(force: bool = False):
     print("Initializing Database tables...")
-
-    # Safety guard — never drop real user data accidentally
     Base.metadata.create_all(bind=engine)  # ensure tables exist first
-    _db = SessionLocal()
-    try:
-        real_students = _db.query(Student).filter(
-            ~Student.student_id.like('STU%')
-        ).count()
-        real_users = _db.query(User).filter(
-            ~User.email.like('%@attendx.edu')
-        ).count()
-        real_embeddings = _db.query(FaceEmbedding).filter(
-            FaceEmbedding.source != 'seed'
-        ).count() if hasattr(FaceEmbedding, 'source') else 0
-    finally:
-        _db.close()
-
-    if (real_students > 0 or real_users > 0 or real_embeddings > 0) and not force:
-        print("\n🚫 SEED ABORTED — Real user data detected in the database!")
-        print(f"   Found: {real_students} real student(s), {real_users} real user(s), {real_embeddings} real embedding(s).")
-        print("   Run with force=True only if you explicitly want to wipe everything.")
-        print("   Your registered students and face scans are SAFE.\n")
-        return
-
-    print("Dropping and recreating tables (no real data detected)...")
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
+    
+    if force:
+        print("⚠️ Force wipe requested. Dropping all tables...")
+        Base.metadata.drop_all(bind=engine)
+        Base.metadata.create_all(bind=engine)
 
     db = SessionLocal()
     try:
+        # Check if users already exist
+        teacher = db.query(User).filter(User.email == "teacher@attendx.edu").first()
+        if teacher and not force:
+            print("Database already contains initial seed data. Skipping seed to protect all registered users and face scans.")
+            return
         print("Creating Users...")
         teacher = User(
             name="Prof. Alan Turing",
