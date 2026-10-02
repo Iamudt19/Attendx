@@ -44,7 +44,7 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
       verification_status: 'AI_VERIFIED'
     },
     {
-      box: { x: 300, y: 280, width: 110, height: 110 },
+      box: { x: 300, y: 280, w: 110, h: 110, width: 110, height: 110 },
       student_id: 1,
       name: 'Dev Patel',
       confidence: 0.648,

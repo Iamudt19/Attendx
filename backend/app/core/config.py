@@ -61,7 +61,11 @@ class Settings(BaseSettings):
     CONFIDENCE_MEDIUM_THRESHOLD: float = 0.35
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(
+            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), ".env"),
+            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), ".env"),
+            ".env"
+        ),
         extra="ignore"
     )
 
