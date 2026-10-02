@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 import { 
-  History as HistoryIcon, FileSpreadsheet, Filter, 
-  Search, Eye, Calendar, CheckCircle2, XCircle, X 
+  History as HistoryIcon, FileSpreadsheet,
+  Eye, X, RefreshCw
 } from 'lucide-react';
 import { AttendanceService, ClassService, SubjectService } from '../services/api';
 import { AttendanceSessionOut, ClassItem, SubjectItem } from '../types';
 
 export const History: React.FC = () => {
+  const location = useLocation();
   const [sessions, setSessions] = useState<AttendanceSessionOut[]>([]);
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [subjects, setSubjects] = useState<SubjectItem[]>([]);
@@ -16,6 +18,7 @@ export const History: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<string>('');
 
   const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
   const [detailSession, setDetailSession] = useState<AttendanceSessionOut | null>(null);
 
   useEffect(() => {
@@ -34,8 +37,9 @@ export const History: React.FC = () => {
     initFilters();
   }, []);
 
-  const fetchSessions = async () => {
-    setLoading(true);
+  const fetchSessions = useCallback(async (isManualRefresh = false) => {
+    if (isManualRefresh) setRefreshing(true);
+    else setLoading(true);
     try {
       const data = await AttendanceService.getSessions({
         class_id: selectedClassId,
@@ -47,12 +51,14 @@ export const History: React.FC = () => {
       console.error("Error fetching sessions", err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, [selectedClassId, selectedSubjectId, selectedDate]);
 
+  // Auto-refresh when filters change OR when user navigates to this page
   useEffect(() => {
     fetchSessions();
-  }, [selectedClassId, selectedSubjectId, selectedDate]);
+  }, [fetchSessions, location.key]);
 
   const openSessionDetail = async (sessionId: number) => {
     try {
@@ -76,16 +82,28 @@ export const History: React.FC = () => {
           </p>
         </div>
 
-        {selectedClassId && (
-          <a
-            href={AttendanceService.downloadExcelUrl(selectedClassId, selectedSubjectId)}
-            download
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-lg shadow-emerald-600/20 flex items-center gap-2"
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => fetchSessions(true)}
+            disabled={refreshing}
+            className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs rounded-xl border border-slate-700 flex items-center gap-2 transition-all disabled:opacity-50"
+            title="Refresh list"
           >
-            <FileSpreadsheet className="w-4 h-4" />
-            Export Class Excel
-          </a>
-        )}
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-blue-400' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh'}
+          </button>
+
+          {selectedClassId && (
+            <a
+              href={AttendanceService.downloadExcelUrl(selectedClassId, selectedSubjectId)}
+              download
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-lg shadow-emerald-600/20 flex items-center gap-2"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              Export Class Excel
+            </a>
+          )}
+        </div>
       </div>
 
       {/* Filters Bar */}
@@ -142,15 +160,22 @@ export const History: React.FC = () => {
       {/* Sessions Table */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 overflow-hidden">
         {loading ? (
-          <div className="text-center py-12 text-slate-500 text-sm">Loading attendance history...</div>
+          <div className="text-center py-12 text-slate-500 text-sm flex flex-col items-center gap-3">
+            <RefreshCw className="w-6 h-6 animate-spin text-blue-500" />
+            Loading attendance history...
+          </div>
         ) : sessions.length === 0 ? (
-          <div className="text-center py-12 text-slate-500 text-sm">No recorded attendance sessions matching filters.</div>
+          <div className="text-center py-12 text-slate-500 text-sm space-y-2">
+            <HistoryIcon className="w-8 h-8 mx-auto text-slate-700" />
+            <p>No recorded attendance sessions matching filters.</p>
+            <p className="text-xs text-slate-600">Take attendance and save a session to see it here.</p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800">
                 <tr>
-                  <th className="py-3 px-4">Date & Time</th>
+                  <th className="py-3 px-4">Date &amp; Time</th>
                   <th className="py-3 px-4">Class</th>
                   <th className="py-3 px-4">Subject</th>
                   <th className="py-3 px-4">Teacher</th>
@@ -160,7 +185,14 @@ export const History: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-slate-800/60 font-medium">
                 {sessions.map((sess) => {
-                  const pct = sess.total_enrolled > 0 ? Math.round((sess.present_count / sess.total_enrolled) * 100) : 0;
+                  const pct = sess.total_enrolled > 0
+                    ? Math.round((sess.present_count / sess.total_enrolled) * 100)
+                    : 0;
+                  const pctColor = pct >= 75
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                    : pct >= 50
+                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                    : 'bg-rose-500/10 text-rose-400 border-rose-500/20';
                   return (
                     <tr key={sess.id} className="hover:bg-slate-800/40 transition-colors">
                       <td className="py-3.5 px-4 font-semibold text-white">
@@ -170,7 +202,7 @@ export const History: React.FC = () => {
                       <td className="py-3.5 px-4 text-slate-300 font-semibold">{sess.subject_name}</td>
                       <td className="py-3.5 px-4 text-slate-400">{sess.teacher_name}</td>
                       <td className="py-3.5 px-4 text-center">
-                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${pctColor}`}>
                           {sess.present_count} / {sess.total_enrolled} ({pct}%)
                         </span>
                       </td>
@@ -208,7 +240,11 @@ export const History: React.FC = () => {
               <div>
                 <h3 className="text-lg font-bold text-white">{detailSession.subject_name}</h3>
                 <p className="text-xs text-slate-400">
-                  {detailSession.class_name} • Date: {detailSession.date} ({detailSession.start_time})
+                  {detailSession.class_name} &bull; {detailSession.date} ({detailSession.start_time})
+                  &nbsp;&bull;&nbsp;
+                  <span className="text-emerald-400 font-semibold">
+                    {detailSession.present_count} Present / {detailSession.total_enrolled} Total
+                  </span>
                 </p>
               </div>
               <button

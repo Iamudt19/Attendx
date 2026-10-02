@@ -210,6 +210,7 @@ class SaveAttendanceSessionRequest(BaseModel):
     date: str # YYYY-MM-DD
     start_time: str # HH:MM
     image_path: Optional[str] = None
+    image_urls: Optional[List[str]] = []  # All uploaded classroom photo paths (multi-photo)
     records: List[AttendanceRecordCreate]
     recognized_faces: Optional[List[RecognizedFace]] = []
 

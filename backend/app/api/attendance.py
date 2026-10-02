@@ -122,7 +122,7 @@ def save_attendance_session(
 ):
     teacher_id = int(token.get("sub"))
 
-    # Check for duplicate session on same date, class, subject
+    # Check for existing session on same date, class, subject — UPSERT logic
     existing = db.query(AttendanceSession).filter(
         AttendanceSession.class_id == req.class_id,
         AttendanceSession.subject_id == req.subject_id,
@@ -130,23 +130,30 @@ def save_attendance_session(
     ).first()
 
     if existing:
-        raise HTTPException(
-            status_code=409,
-            detail=f"Attendance for this class and subject has already been recorded for date {req.date}."
-        )
+        # Delete old records so we can replace with new ones
+        db.query(AttendanceRecord).filter(AttendanceRecord.session_id == existing.id).delete()
+        db.query(AttendanceAuditLog).filter(AttendanceAuditLog.session_id == existing.id).delete()
+        # Update session metadata
+        existing.teacher_id = teacher_id
+        existing.start_time = req.start_time
+        if req.image_path:
+            existing.image_path = req.image_path
+        db.commit()
+        session = existing
+    else:
 
-    # Create session
-    session = AttendanceSession(
-        class_id=req.class_id,
-        subject_id=req.subject_id,
-        teacher_id=teacher_id,
-        date=req.date,
-        start_time=req.start_time,
-        image_path=req.image_path
-    )
-    db.add(session)
-    db.commit()
-    db.refresh(session)
+        # Create new session
+        session = AttendanceSession(
+            class_id=req.class_id,
+            subject_id=req.subject_id,
+            teacher_id=teacher_id,
+            date=req.date,
+            start_time=req.start_time,
+            image_path=req.image_path
+        )
+        db.add(session)
+        db.commit()
+        db.refresh(session)
 
     # Save attendance records
     present_cnt = 0
@@ -180,57 +187,81 @@ def save_attendance_session(
             db.add(audit)
 
     db.commit()
+    db.refresh(session)
 
     # ── Online Active Learning: Learn from teacher-verified / corrected faces ──
     try:
-        if req.image_path and req.recognized_faces:
-            clean_rel_path = req.image_path.replace("/storage/", "").lstrip("/")
-            full_img_path = os.path.join(settings.STORAGE_DIR, clean_rel_path)
-            if os.path.exists(full_img_path):
-                img = cv2.imread(full_img_path)
-                if img is not None:
-                    h_img, w_img = img.shape[:2]
-                    student_status_map = {r.student_id: r.status for r in req.records}
-                    
-                    for face in req.recognized_faces:
-                        if face.student_id and student_status_map.get(face.student_id) == "PRESENT":
-                            bx = max(0, min(w_img - 1, face.box.x))
-                            by = max(0, min(h_img - 1, face.box.y))
-                            bw = max(10, min(w_img - bx, face.box.w))
-                            bh = max(10, min(h_img - by, face.box.h))
-                            cropped = img[by:by+bh, bx:bx+bw]
-                            
-                            if cropped.size > 0:
-                                new_emb = face_embedder.compute_embedding(cropped)
-                                if new_emb and any(v != 0.0 for v in new_emb):
-                                    existing_embs = db.query(FaceEmbedding).filter(FaceEmbedding.student_id == face.student_id).all()
-                                    should_add = True
-                                    for ex in existing_embs:
-                                        if ex.embedding:
-                                            sim = float(np.dot(np.array(new_emb), np.array(ex.embedding)))
-                                            if sim > 0.93:
-                                                should_add = False
-                                                break
-                                    
-                                    if should_add:
-                                        new_rec = FaceEmbedding(
-                                            student_id=face.student_id,
-                                            embedding=new_emb,
-                                            source_image=clean_rel_path,
-                                            angle_label="classroom_verified",
-                                            source="teacher_verified"
-                                        )
-                                        db.add(new_rec)
-                                        
-                                        if len(existing_embs) >= 12:
-                                            oldest_tv = db.query(FaceEmbedding).filter(
-                                                FaceEmbedding.student_id == face.student_id,
-                                                FaceEmbedding.source == "teacher_verified"
-                                            ).order_by(FaceEmbedding.created_at.asc()).first()
-                                            if oldest_tv:
-                                                db.delete(oldest_tv)
-                                                
-                    db.commit()
+        if req.recognized_faces:
+            student_status_map = {r.student_id: r.status for r in req.records}
+
+            # Collect all image paths (support multi-photo)
+            image_paths_to_try = []
+            if hasattr(req, 'image_urls') and req.image_urls:
+                image_paths_to_try = req.image_urls
+            elif req.image_path:
+                image_paths_to_try = [req.image_path]
+
+            # Build a map of image_index -> loaded cv2 image
+            loaded_images: dict = {}
+            for idx, img_url in enumerate(image_paths_to_try):
+                clean_rel_path = img_url.replace("/storage/", "").lstrip("/")
+                full_img_path = os.path.join(settings.STORAGE_DIR, clean_rel_path)
+                if os.path.exists(full_img_path):
+                    img_cv = cv2.imread(full_img_path)
+                    if img_cv is not None:
+                        loaded_images[idx] = (img_cv, clean_rel_path)
+
+            for face in req.recognized_faces:
+                if not face.student_id or student_status_map.get(face.student_id) != "PRESENT":
+                    continue
+
+                # Determine which image this face belongs to
+                img_index = getattr(face, 'image_index', None) or 0
+                if img_index not in loaded_images and 0 in loaded_images:
+                    img_index = 0
+                if img_index not in loaded_images:
+                    continue
+
+                img, clean_rel_path = loaded_images[img_index]
+                h_img, w_img = img.shape[:2]
+
+                bx = max(0, min(w_img - 1, face.box.x))
+                by = max(0, min(h_img - 1, face.box.y))
+                bw = max(10, min(w_img - bx, face.box.w))
+                bh = max(10, min(h_img - by, face.box.h))
+                cropped = img[by:by+bh, bx:bx+bw]
+
+                if cropped.size > 0:
+                    new_emb = face_embedder.compute_embedding(cropped)
+                    if new_emb and any(v != 0.0 for v in new_emb):
+                        existing_embs = db.query(FaceEmbedding).filter(FaceEmbedding.student_id == face.student_id).all()
+                        should_add = True
+                        for ex in existing_embs:
+                            if ex.embedding:
+                                sim = float(np.dot(np.array(new_emb), np.array(ex.embedding)))
+                                if sim > 0.93:
+                                    should_add = False
+                                    break
+
+                        if should_add:
+                            new_rec = FaceEmbedding(
+                                student_id=face.student_id,
+                                embedding=new_emb,
+                                source_image=clean_rel_path,
+                                angle_label="classroom_verified",
+                                source="teacher_verified"
+                            )
+                            db.add(new_rec)
+
+                            if len(existing_embs) >= 12:
+                                oldest_tv = db.query(FaceEmbedding).filter(
+                                    FaceEmbedding.student_id == face.student_id,
+                                    FaceEmbedding.source == "teacher_verified"
+                                ).order_by(FaceEmbedding.created_at.asc()).first()
+                                if oldest_tv:
+                                    db.delete(oldest_tv)
+
+            db.commit()
     except Exception as e:
         print(f"Warning: Teacher active learning feedback loop error: {e}")
 
@@ -295,7 +326,11 @@ def get_attendance_sessions(
     for s in sessions:
         present_cnt = db.query(AttendanceRecord).filter(AttendanceRecord.session_id == s.id, AttendanceRecord.status == "PRESENT").count()
         absent_cnt = db.query(AttendanceRecord).filter(AttendanceRecord.session_id == s.id, AttendanceRecord.status == "ABSENT").count()
+        # total_enrolled = actual records saved (present + absent)
         total_cnt = present_cnt + absent_cnt
+        # Fallback: count active students in this class for display accuracy
+        if total_cnt == 0:
+            total_cnt = db.query(Student).filter(Student.class_id == s.class_id, Student.active == True).count()
 
         cls = db.query(Class).filter(Class.id == s.class_id).first()
         sub = db.query(Subject).filter(Subject.id == s.subject_id).first()

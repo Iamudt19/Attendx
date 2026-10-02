@@ -172,6 +172,9 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
         date: sessionContext.date,
         start_time: sessionContext.startTime,
         image_path: analysisResult.image_url,
+        image_urls: analysisResult.image_urls && analysisResult.image_urls.length > 0
+          ? analysisResult.image_urls
+          : [analysisResult.image_url],
         records,
         recognized_faces: faces
       } as any);
