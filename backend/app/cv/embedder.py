@@ -93,65 +93,34 @@ class FaceEmbedder:
         raw_face: Optional[Any] = None
     ) -> List[float]:
         """
-        Compute a normalized face embedding using deep neural network.
-        Uses 5-point landmark alignment if available, then runs high-speed inference.
+        Compute a normalized face embedding using OpenCV FaceRecognizerSF.
+        Always uses the same alignment + feature extraction path to guarantee
+        consistent embeddings between registration and classroom attendance.
         """
         if face_image_bgr is None or face_image_bgr.size == 0:
             return [0.0] * self.embedding_dim
 
-        if self.ort_session is None and self.sface_recognizer is None:
+        if self.sface_recognizer is None:
             self._init_models()
+            if self.sface_recognizer is None:
+                return [0.0] * self.embedding_dim
 
         try:
-            # 1. Landmark alignment
-            if full_image_bgr is not None and raw_face is not None and self.sface_recognizer is not None:
+            # 1. Landmark-based alignment (preferred — consistent with registration)
+            if full_image_bgr is not None and raw_face is not None:
                 aligned_face = self.sface_recognizer.alignCrop(full_image_bgr, raw_face)
             else:
+                # Fallback: resize the cropped face to 112x112
                 aligned_face = cv2.resize(face_image_bgr, (112, 112))
 
-            # 2. ONNX Runtime Inference
-            if self.ort_session is not None:
-                # SFace expects (1, 112, 112, 3) or (1, 3, 112, 112) float32
-                # In standard OpenCV SFace ONNX: input shape is (1, 112, 112, 3) or (1, 3, 112, 112)
-                input_shape = self.ort_session.get_inputs()[0].shape
-                if len(input_shape) == 4 and input_shape[1] == 3:
-                    # NCHW
-                    blob = cv2.dnn.blobFromImage(aligned_face, 1.0, (112, 112), (0, 0, 0), swapRB=True)
-                else:
-                    # NHWC or float32 image
-                    blob = np.expand_dims(aligned_face.astype(np.float32), axis=0)
-
-                outputs = self.ort_session.run([self.output_name], {self.input_name: blob})
-                vec = outputs[0].flatten().astype(np.float32)
-                norm = np.linalg.norm(vec)
-                if norm > 0:
-                    vec = vec / norm
-                return vec.tolist()
-
-            # 3. OpenCV FaceRecognizerSF Fallback
-            if self.sface_recognizer is not None:
-                feature = self.sface_recognizer.feature(aligned_face)
-                vec = feature[0].astype(np.float32)
-                norm = np.linalg.norm(vec)
-                if norm > 0:
-                    vec = vec / norm
-                return vec.tolist()
+            # 2. Extract 128-d embedding via OpenCV SFace (handles normalization internally)
+            feature = self.sface_recognizer.feature(aligned_face)
+            vec = feature[0].astype(np.float32)
+            norm = np.linalg.norm(vec)
+            if norm > 0:
+                vec = vec / norm
+            return vec.tolist()
         except Exception as e:
-            # If ONNX format differs, fallback to OpenCV recognizer
-            if self.sface_recognizer is not None:
-                try:
-                    if full_image_bgr is not None and raw_face is not None:
-                        aligned_face = self.sface_recognizer.alignCrop(full_image_bgr, raw_face)
-                    else:
-                        aligned_face = cv2.resize(face_image_bgr, (112, 112))
-                    feature = self.sface_recognizer.feature(aligned_face)
-                    vec = feature[0].astype(np.float32)
-                    norm = np.linalg.norm(vec)
-                    if norm > 0:
-                        vec = vec / norm
-                    return vec.tolist()
-                except Exception as fallback_err:
-                    print(f"Fallback feature extraction error: {fallback_err}")
             print(f"Face feature extraction error: {e}")
 
         return [0.0] * self.embedding_dim

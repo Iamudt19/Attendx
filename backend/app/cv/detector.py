@@ -84,7 +84,7 @@ class FaceDetector:
         for face in faces:
             x, y, w, h = int(face[0]), int(face[1]), int(face[2]), int(face[3])
             score = float(face[14])
-            if score < 0.4 or w < 16 or h < 16:
+            if score < 0.25 or w < 16 or h < 16:
                 continue
 
             # Bounding box clamp
@@ -106,7 +106,7 @@ class FaceDetector:
         return results
 
     def _detect_haar(self, image_bgr: np.ndarray) -> List[Dict[str, Any]]:
-        """Haar Cascade fallback."""
+        """Haar Cascade fallback with YuNet landmark re-extraction on crops."""
         gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
         gray = clahe.apply(gray)
@@ -128,10 +128,38 @@ class FaceDetector:
             cropped = image_bgr[y1:y2, x1:x2]
             if cropped.size == 0:
                 continue
+
+            raw_face = None
+            # Re-run YuNet on a padded crop to extract 5-point landmarks for alignment
+            if self.yunet_detector is not None:
+                try:
+                    pad = int(max(w, h) * 0.4)
+                    px1 = max(0, x1 - pad)
+                    py1 = max(0, y1 - pad)
+                    px2 = min(w_img, x2 + pad)
+                    py2 = min(h_img, y2 + pad)
+                    padded_crop = image_bgr[py1:py2, px1:px2]
+                    ph, pw = padded_crop.shape[:2]
+                    if ph >= 32 and pw >= 32:
+                        self.yunet_detector.setInputSize((pw, ph))
+                        _, yunet_faces = self.yunet_detector.detect(padded_crop)
+                        if yunet_faces is not None and len(yunet_faces) > 0:
+                            # Offset landmarks back to full-image coordinates
+                            best = yunet_faces[0].copy()
+                            best[0] += px1  # x
+                            best[1] += py1  # y
+                            # Offset 5 landmark points (indices 4-13)
+                            for li in range(4, 14, 2):
+                                best[li] += px1   # x coords
+                                best[li+1] += py1  # y coords
+                            raw_face = best
+                except Exception:
+                    pass
+
             results.append({
                 "box": {"x": x1, "y": y1, "w": x2 - x1, "h": y2 - y1},
                 "cropped_face": cropped,
-                "raw_face": None,
+                "raw_face": raw_face,
                 "score": 0.8
             })
         return results

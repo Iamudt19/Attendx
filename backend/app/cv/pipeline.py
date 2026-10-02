@@ -33,6 +33,65 @@ class RecognitionPipeline:
         self.matcher = face_matcher
         self.aligner = face_aligner
 
+    @staticmethod
+    def _fix_exif_orientation(image_bytes: bytes, img: np.ndarray) -> np.ndarray:
+        """Apply EXIF orientation rotation so faces are always upright for detection."""
+        try:
+            # Quick EXIF orientation extraction without PIL dependency
+            # Look for EXIF orientation tag (0x0112) in JPEG bytes
+            if len(image_bytes) < 12 or image_bytes[0:2] != b'\xff\xd8':
+                return img  # Not JPEG
+
+            offset = 2
+            while offset < min(len(image_bytes), 65536):
+                if image_bytes[offset] != 0xFF:
+                    break
+                marker = image_bytes[offset + 1]
+                if marker == 0xE1:  # APP1 (EXIF)
+                    # Parse EXIF to find orientation
+                    exif_data = image_bytes[offset + 4:]
+                    if exif_data[:4] == b'Exif':
+                        tiff_start = 6
+                        byte_order = exif_data[tiff_start:tiff_start + 2]
+                        if byte_order == b'MM':
+                            big_endian = True
+                        elif byte_order == b'II':
+                            big_endian = False
+                        else:
+                            return img
+
+                        def read_u16(data, off):
+                            if big_endian:
+                                return (data[off] << 8) | data[off + 1]
+                            return data[off] | (data[off + 1] << 8)
+
+                        ifd_offset = tiff_start + 4
+                        if big_endian:
+                            first_ifd = int.from_bytes(exif_data[ifd_offset:ifd_offset + 4], 'big')
+                        else:
+                            first_ifd = int.from_bytes(exif_data[ifd_offset:ifd_offset + 4], 'little')
+
+                        num_entries = read_u16(exif_data, tiff_start + first_ifd)
+                        for i in range(num_entries):
+                            entry_off = tiff_start + first_ifd + 2 + (i * 12)
+                            tag = read_u16(exif_data, entry_off)
+                            if tag == 0x0112:  # Orientation tag
+                                orientation = read_u16(exif_data, entry_off + 8)
+                                if orientation == 3:
+                                    return cv2.rotate(img, cv2.ROTATE_180)
+                                elif orientation == 6:
+                                    return cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+                                elif orientation == 8:
+                                    return cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
+                                return img
+                    return img
+                else:
+                    seg_len = (image_bytes[offset + 2] << 8) | image_bytes[offset + 3]
+                    offset += 2 + seg_len
+        except Exception:
+            pass
+        return img
+
     def process_classroom_image(
         self, 
         image_bytes: bytes, 
@@ -47,6 +106,9 @@ class RecognitionPipeline:
 
         if img is None:
             raise ValueError("Invalid or corrupted classroom image format.")
+
+        # 1b. Handle EXIF orientation (mobile photos may be rotated)
+        img = self._fix_exif_orientation(image_bytes, img)
 
         # 2. Detect faces
         detected = self.detector.detect_faces(img)
