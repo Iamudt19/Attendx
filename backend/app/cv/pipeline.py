@@ -320,7 +320,7 @@ class RecognitionPipeline:
 
         duration = time.time() - start_time
         logger.info(
-            f"Parallel multi-photo analysis complete ({len(images_bytes_list)} photos, {max_workers} threads) in {duration:.2f}s | "
+            f"Multi-photo analysis complete ({len(images_bytes_list)} photos) in {duration:.2f}s | "
             f"Total Faces: {total_detected_overall}, Unique Present: {present_count}, Review: {needs_review_count}, Absent: {absent_count}"
         )
 

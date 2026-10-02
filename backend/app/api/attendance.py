@@ -41,9 +41,9 @@ async def analyze_classroom_photo(
         for f in files:
             if hasattr(f, "filename") and f.filename:
                 uploaded_files.append(f)
-    if file and hasattr(file, "filename") and file.filename:
-        if file not in uploaded_files:
-            uploaded_files.append(file)
+    # Only use 'file' as fallback if no files were provided via 'files' param
+    if not uploaded_files and file and hasattr(file, "filename") and file.filename:
+        uploaded_files.append(file)
 
     if not uploaded_files:
         raise HTTPException(status_code=400, detail="No classroom photo uploaded. Please stage at least one photo.")
@@ -98,6 +98,10 @@ async def analyze_classroom_photo(
             )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Recognition pipeline error: {str(e)}")
 
     return AttendanceAnalysisResponse(
         image_url=image_urls[0],

@@ -123,11 +123,6 @@ export const AttendanceService = {
     
     // Append each file to 'files'
     files.forEach((file) => formData.append('files', file));
-    
-    // Also append the first file as 'file' for backwards compatibility
-    if (files.length > 0) {
-      formData.append('file', files[0]);
-    }
 
     const res = await api.post('/attendance/analyze', formData);
     return res.data;
