@@ -99,7 +99,7 @@ export const Students: React.FC = () => {
         setNewEmail('');
         setFaceFiles([]);
         setModalSuccess(null);
-      }, 1500);
+      }, 1200);
     } catch (err: any) {
       setModalError(extractErrorMessage(err, "Failed to create student."));
     } finally {
@@ -119,27 +119,22 @@ export const Students: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto py-2">
       {/* Title & Actions */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <div className="flex items-center gap-2 text-[11px] font-mono tracking-wider uppercase text-blue-400 mb-1">
-            <span>STUDENT DIRECTORY</span>
-            <span className="text-slate-600">/</span>
-            <span className="text-slate-400">BIOMETRIC EMBEDDING REGISTRY</span>
-          </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <Users className="w-5 h-5 text-blue-400" />
-            Student Cohorts & Face Embeddings
+          <h1 className="font-serif text-3xl text-slate-900 font-normal tracking-tight flex items-center gap-2">
+            <Users className="w-6 h-6 text-blue-600" />
+            Student Directory & Biometric Profiles
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Register students, enroll multi-angle face reference photographs, and audit biometric compliance.
+          <p className="text-xs text-slate-500 mt-0.5">
+            Register students, manage reference face photos, and track attendance thresholds.
           </p>
         </div>
 
         <button
           onClick={() => setShowAddModal(true)}
-          className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2"
+          className="px-4 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs rounded-xl shadow-sm flex items-center gap-2"
         >
           <UserPlus className="w-4 h-4" />
           <span>Register Student</span>
@@ -147,13 +142,13 @@ export const Students: React.FC = () => {
       </div>
 
       {/* Class Filter Bar */}
-      <div className="surface-card rounded-xl p-4 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <label className="text-[11px] font-mono font-bold text-slate-400 uppercase tracking-wider">Cohort Filter:</label>
+          <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Cohort Filter:</label>
           <select
             value={selectedClassId || ''}
             onChange={(e) => setSelectedClassId(e.target.value ? Number(e.target.value) : undefined)}
-            className="bg-[#080C14] border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 font-mono"
+            className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-medium focus:outline-none focus:border-blue-500"
           >
             <option value="">All Cohorts ({students.length} Total)</option>
             {classes.map((c) => (
@@ -163,21 +158,21 @@ export const Students: React.FC = () => {
             ))}
           </select>
         </div>
-        <div className="text-xs font-mono text-slate-400">
-          Enrolled in view: <span className="text-white font-bold">{students.length}</span>
+        <div className="text-xs text-slate-500">
+          Enrolled in view: <span className="text-slate-900 font-bold">{students.length}</span>
         </div>
       </div>
 
       {/* Student List Table */}
-      <div className="surface-card rounded-xl border border-white/10 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-sm">
         {loading ? (
-          <div className="text-center py-12 text-slate-500 text-xs font-mono">LOADING ROSTER...</div>
+          <div className="text-center py-12 text-slate-400 text-sm">Loading student directory...</div>
         ) : students.length === 0 ? (
-          <div className="text-center py-12 text-slate-500 text-xs font-mono">No students registered in this cohort.</div>
+          <div className="text-center py-12 text-slate-500 text-sm">No students registered in this cohort.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#080C14] text-slate-400 uppercase tracking-wider font-mono text-[10px] border-b border-white/[0.08]">
+              <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-200">
                 <tr>
                   <th className="py-3.5 px-4 font-bold">Student ID</th>
                   <th className="py-3.5 px-4 font-bold">Roll No</th>
@@ -188,44 +183,62 @@ export const Students: React.FC = () => {
                   <th className="py-3.5 px-4 font-bold text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.05] font-medium">
+              <tbody className="divide-y divide-slate-100 font-medium">
                 {students.map((st) => (
-                  <tr key={st.id} className="hover:bg-white/[0.02] transition-colors">
-                    <td className="py-3 px-4 text-slate-300 font-mono text-xs">{st.student_id}</td>
-                    <td className="py-3 px-4 text-slate-400 font-mono text-xs">{st.roll_number}</td>
-                    <td className="py-3 px-4 font-bold text-white">{st.name}</td>
-                    <td className="py-3 px-4 text-slate-400 font-mono text-[11px]">{st.email || '—'}</td>
+                  <tr key={st.id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="py-3 px-4 text-slate-700 font-mono text-xs">{st.student_id}</td>
+                    <td className="py-3 px-4 text-slate-500 font-mono text-xs">{st.roll_number}</td>
+                    <td className="py-3 px-4 font-bold text-slate-900">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 border border-blue-100 flex items-center justify-center font-bold text-xs">
+                          {st.name.charAt(0)}
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-slate-900">{st.name}</div>
+                          {st.face_images && st.face_images.length > 0 && (
+                            <div className="flex items-center gap-1 mt-0.5">
+                              {st.face_images.slice(0, 4).map((img, i) => (
+                                <img key={i} src={img} alt="face" className="w-3.5 h-3.5 rounded object-cover border border-slate-200" />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-slate-500 text-xs">{st.email || '—'}</td>
                     <td className="py-3 px-4 text-center">
                       <span
-                        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold ${
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
                           (st.face_count || 0) > 0
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                            : 'bg-rose-50 text-rose-700 border border-rose-100'
                         }`}
                       >
-                        <span className={`w-1.5 h-1.5 rounded-full ${ (st.face_count || 0) > 0 ? 'bg-emerald-400' : 'bg-rose-400'}`}></span>
-                        {st.face_count || 0} Ref Vectors
+                        <span className={`w-1.5 h-1.5 rounded-full ${ (st.face_count || 0) > 0 ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                        {st.face_count || 0} Vectors
                       </span>
                     </td>
                     <td className="py-3 px-4 text-center">
-                      <span className="font-bold font-mono text-emerald-400">
+                      <span className="font-bold text-slate-900">
                         {st.attendance_percentage}%
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right space-x-2">
                       <button
                         onClick={() => navigate(`/students/${st.id}`)}
-                        className="px-2.5 py-1 bg-[#121927] hover:bg-slate-800 text-slate-200 rounded text-[11px] font-mono font-semibold border border-white/10 inline-flex items-center gap-1"
+                        className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-semibold inline-flex items-center gap-1 transition-colors"
                       >
-                        <Eye className="w-3 h-3 text-blue-400" /> Log
+                        <Eye className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Log</span>
                       </button>
                       {(st.face_count || 0) > 0 && (
                         <button
                           onClick={() => handleDeleteFaceData(st.id, st.name)}
-                          className="px-2 py-1 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded text-[11px] font-mono font-semibold border border-rose-500/20 inline-flex items-center gap-1"
-                          title="Privacy compliance: Delete biometric face data"
+                          className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-semibold border border-rose-200 inline-flex items-center gap-1 transition-colors"
+                          title="Delete face vectors"
                         >
-                          <Trash2 className="w-3 h-3" /> Wipe Face
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Wipe</span>
                         </button>
                       )}
                     </td>
@@ -239,26 +252,26 @@ export const Students: React.FC = () => {
 
       {/* Add Student Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="surface-card border border-white/10 rounded-xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/[0.08] pb-3">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <UserPlus className="w-4 h-4 text-blue-400" />
-                Register Student & Face Photos
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-7 space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-serif text-2xl text-slate-900 font-normal flex items-center gap-2">
+                <UserPlus className="w-5 h-5 text-blue-600" />
+                Register Student
               </h3>
-              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-white">
+              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-700">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {modalError && (
-              <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium">
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
                 {modalError}
               </div>
             )}
 
             {modalSuccess && (
-              <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">
                 {modalSuccess}
               </div>
             )}
@@ -266,48 +279,48 @@ export const Students: React.FC = () => {
             <form onSubmit={handleCreateStudent} className="space-y-4 text-xs">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">Student ID *</label>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Student ID *</label>
                   <input
                     type="text"
                     required
                     value={newStudentId}
                     onChange={(e) => setNewStudentId(e.target.value)}
                     placeholder="STU099"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">Roll Number *</label>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Roll Number *</label>
                   <input
                     type="text"
                     required
                     value={newRollNumber}
                     onChange={(e) => setNewRollNumber(e.target.value)}
                     placeholder="2026CSE99"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-slate-300 mb-1">Student Full Name *</label>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Student Full Name *</label>
                 <input
                   type="text"
                   required
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="Rahul Verma"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">Class *</label>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Class *</label>
                   <select
                     value={newClassId}
                     onChange={(e) => setNewClassId(Number(e.target.value))}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500"
                   >
                     {classes.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -317,21 +330,20 @@ export const Students: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">Email</label>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Email</label>
                   <input
                     type="email"
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
                     placeholder="rahul@student.edu"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
 
-              {/* Upload 3-5 reference photos */}
-              <div className="border-t border-slate-800 pt-3 space-y-2">
-                <label className="block text-[11px] font-semibold text-slate-300">
-                  Upload Reference Face Photos (3–5 Photos recommended)
+              <div className="border-t border-slate-100 pt-3 space-y-2">
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
+                  Upload Reference Photos (Optional)
                 </label>
                 <input
                   type="file"
@@ -342,25 +354,22 @@ export const Students: React.FC = () => {
                       setFaceFiles(Array.from(e.target.files));
                     }
                   }}
-                  className="w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-blue-400 hover:file:bg-slate-700"
+                  className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                 />
-                <p className="text-[10px] text-slate-500">
-                  Requirements: Single front-facing clear photograph per file. System validates usable faces automatically.
-                </p>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 bg-slate-800 text-slate-300 font-semibold text-xs rounded-xl"
+                  className="px-4 py-2 bg-slate-100 text-slate-700 font-semibold text-xs rounded-xl"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/20 disabled:opacity-50"
+                  className="px-5 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs rounded-xl shadow-sm disabled:opacity-50"
                 >
                   {submitting ? 'Registering...' : 'Save & Register Student'}
                 </button>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import { Login } from './pages/Login';
@@ -16,16 +16,17 @@ import { AuthService } from './services/api';
 import { User, AttendanceAnalysisResponse } from './types';
 import { Analytics } from '@vercel/analytics/react';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { HeroLanding } from './pages/HeroLanding';
+import { ThemeProvider } from './context/ThemeContext';
 
 // ── Admin Portal Root ─────────────────────────────────────────────────────────
 const AdminPortalRoot: React.FC = () => <AdminPortal />;
 
-// ── Student Portal (completely separate) ──────────────────────────────────────
-// If the URL starts with /student, render the StudentPortal only
+// ── Student Portal Root ───────────────────────────────────────────────────────
 const StudentPortalRoot: React.FC = () => <StudentPortal />;
 
-// ── Teacher / Admin Portal ────────────────────────────────────────────────────
-const TeacherPortal: React.FC = () => {
+// ── Teacher / Admin Protected App ─────────────────────────────────────────────
+const TeacherPortalApp: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -63,8 +64,8 @@ const TeacherPortal: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400 text-sm">
-        Initializing AttendX...
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400 text-sm font-mono animate-pulse">
+        Initializing AttendX Engine...
       </div>
     );
   }
@@ -74,7 +75,7 @@ const TeacherPortal: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
       <Navbar user={user} onLogout={handleLogout} />
       <div className="flex flex-1">
         <Sidebar user={user} />
@@ -114,19 +115,36 @@ const TeacherPortal: React.FC = () => {
   );
 };
 
-// ── App Root: Route split ─────────────────────────────────────────────────────
+// ── App Root: Top Level Routes ────────────────────────────────────────────────
 export const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <BrowserRouter>
         <Analytics />
         <Routes>
-          {/* /admin/* routes go directly to the Admin Portal */}
+          {/* Landing / Hero Page */}
+          <Route path="/" element={<HeroLanding />} />
+          <Route path="/landing" element={<HeroLanding />} />
+          
+          {/* Direct Login Route */}
+          <Route path="/login" element={<TeacherPortalApp />} />
+
+          {/* Admin Portal Routes */}
           <Route path="/admin/*" element={<AdminPortalRoot />} />
-          {/* All /student/* routes go to the student portal */}
+
+          {/* Student Portal Routes */}
           <Route path="/student/*" element={<StudentPortalRoot />} />
-          {/* Everything else goes to the teacher portal */}
-          <Route path="/*" element={<TeacherPortal />} />
+
+          {/* Teacher / Admin Authenticated Routes */}
+          <Route path="/dashboard/*" element={<TeacherPortalApp />} />
+          <Route path="/take-attendance/*" element={<TeacherPortalApp />} />
+          <Route path="/review-attendance/*" element={<TeacherPortalApp />} />
+          <Route path="/history/*" element={<TeacherPortalApp />} />
+          <Route path="/students/*" element={<TeacherPortalApp />} />
+          <Route path="/classes/*" element={<TeacherPortalApp />} />
+
+          {/* Fallback */}
+          <Route path="*" element={<HeroLanding />} />
         </Routes>
       </BrowserRouter>
     </ErrorBoundary>

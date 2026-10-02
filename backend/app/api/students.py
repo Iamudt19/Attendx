@@ -13,6 +13,18 @@ from app.cv.embedder import face_embedder
 
 router = APIRouter(prefix="/students", tags=["Students"])
 
+def normalize_image_url(path_str: Optional[str]) -> Optional[str]:
+    if not path_str:
+        return None
+    p = path_str.replace("\\", "/")
+    if p.startswith("http://") or p.startswith("https://"):
+        return p
+    if p.startswith("storage/"):
+        return "/" + p
+    if p.startswith("/storage/"):
+        return p
+    return "/storage/" + p.lstrip("/")
+
 @router.get("", response_model=List[StudentOut])
 def list_students(class_id: Optional[int] = None, db: Session = Depends(get_db), token: dict = Depends(get_current_user_token)):
     query = db.query(Student).filter(Student.active == True)
@@ -25,6 +37,10 @@ def list_students(class_id: Optional[int] = None, db: Session = Depends(get_db),
         s_out = StudentOut.model_validate(s)
         s_out.face_count = len(s.embeddings)
         
+        imgs = [normalize_image_url(emb.source_image) for emb in s.embeddings if emb.source_image]
+        s_out.face_images = [img for img in imgs if img]
+        s_out.avatar_url = s_out.face_images[0] if len(s_out.face_images) > 0 else None
+
         # Calculate overall attendance %
         total = db.query(AttendanceRecord).filter(AttendanceRecord.student_id == s.id).count()
         if total > 0:
@@ -49,7 +65,6 @@ def create_student(req: StudentCreate, db: Session = Depends(get_db), token: dic
         roll_number=req.roll_number,
         class_id=req.class_id,
         email=req.email,
-        # Default portal password = student_id (student must change on first login ideally)
         password_hash=get_password_hash(req.student_id)
     )
     db.add(student)
@@ -59,6 +74,8 @@ def create_student(req: StudentCreate, db: Session = Depends(get_db), token: dic
     s_out = StudentOut.model_validate(student)
     s_out.face_count = 0
     s_out.attendance_percentage = 100.0
+    s_out.avatar_url = None
+    s_out.face_images = []
     return s_out
 
 @router.get("/{student_id}", response_model=StudentOut)
@@ -70,6 +87,10 @@ def get_student_detail(student_id: int, db: Session = Depends(get_db), token: di
     s_out = StudentOut.model_validate(student)
     s_out.face_count = len(student.embeddings)
 
+    imgs = [normalize_image_url(emb.source_image) for emb in student.embeddings if emb.source_image]
+    s_out.face_images = [img for img in imgs if img]
+    s_out.avatar_url = s_out.face_images[0] if len(s_out.face_images) > 0 else None
+
     total = db.query(AttendanceRecord).filter(AttendanceRecord.student_id == student.id).count()
     if total > 0:
         present = db.query(AttendanceRecord).filter(AttendanceRecord.student_id == student.id, AttendanceRecord.status == "PRESENT").count()
@@ -78,6 +99,7 @@ def get_student_detail(student_id: int, db: Session = Depends(get_db), token: di
         s_out.attendance_percentage = 100.0
 
     return s_out
+
 
 @router.post("/{student_id}/face-images", response_model=FaceRegistrationResult)
 def upload_student_face_images(

@@ -7,8 +7,33 @@ from app.core.security import get_password_hash
 from app.cv.embedder import face_embedder
 from app.core.storage import storage_service
 
-def seed_db():
+def seed_db(force: bool = False):
     print("Initializing Database tables...")
+
+    # Safety guard — never drop real user data accidentally
+    Base.metadata.create_all(bind=engine)  # ensure tables exist first
+    _db = SessionLocal()
+    try:
+        real_students = _db.query(Student).filter(
+            ~Student.student_id.like('STU%')
+        ).count()
+        real_users = _db.query(User).filter(
+            ~User.email.like('%@attendx.edu')
+        ).count()
+        real_embeddings = _db.query(FaceEmbedding).filter(
+            FaceEmbedding.source != 'seed'
+        ).count() if hasattr(FaceEmbedding, 'source') else 0
+    finally:
+        _db.close()
+
+    if (real_students > 0 or real_users > 0 or real_embeddings > 0) and not force:
+        print("\n🚫 SEED ABORTED — Real user data detected in the database!")
+        print(f"   Found: {real_students} real student(s), {real_users} real user(s), {real_embeddings} real embedding(s).")
+        print("   Run with force=True only if you explicitly want to wipe everything.")
+        print("   Your registered students and face scans are SAFE.\n")
+        return
+
+    print("Dropping and recreating tables (no real data detected)...")
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
@@ -118,4 +143,13 @@ def seed_db():
         db.close()
 
 if __name__ == "__main__":
-    seed_db()
+    import sys
+    # Pass --force flag to allow dropping real data (use with extreme caution!)
+    force_flag = '--force' in sys.argv
+    if force_flag:
+        print("⚠️  --force flag detected. This will WIPE ALL DATA including real students!")
+        confirm = input("Type 'yes' to confirm: ").strip().lower()
+        if confirm != 'yes':
+            print("Aborted.")
+            sys.exit(0)
+    seed_db(force=force_flag)

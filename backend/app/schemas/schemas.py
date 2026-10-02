@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import List, Optional
 from datetime import datetime
 
@@ -22,14 +22,13 @@ class UserCreate(BaseModel):
     role: str = "TEACHER"
 
 class UserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     email: str
     role: str
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 # Class Schemas
 class ClassCreate(BaseModel):
@@ -38,14 +37,13 @@ class ClassCreate(BaseModel):
     academic_year: str
 
 class ClassOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     section: str
     academic_year: str
     student_count: Optional[int] = 0
-
-    class Config:
-        from_attributes = True
 
 # Subject Schemas
 class SubjectCreate(BaseModel):
@@ -54,13 +52,12 @@ class SubjectCreate(BaseModel):
     class_id: int
 
 class SubjectOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     code: str
     class_id: int
-
-    class Config:
-        from_attributes = True
 
 # Student Schemas
 class StudentCreate(BaseModel):
@@ -71,6 +68,8 @@ class StudentCreate(BaseModel):
     email: Optional[str] = None
 
 class StudentOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     student_id: str
     name: str
@@ -81,9 +80,9 @@ class StudentOut(BaseModel):
     face_count: Optional[int] = 0
     attendance_percentage: Optional[float] = 100.0
     face_registration_complete: Optional[bool] = False
+    avatar_url: Optional[str] = None
+    face_images: Optional[List[str]] = []
 
-    class Config:
-        from_attributes = True
 
 # Face Image Upload Schema Response
 class FaceRegistrationResult(BaseModel):
@@ -96,13 +95,12 @@ class FaceRegistrationResult(BaseModel):
 
 class StudentPublicClassOut(BaseModel):
     """Minimal class info returned to unauthenticated student registration page."""
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     section: str
     academic_year: str
-
-    class Config:
-        from_attributes = True
 
 class StudentSelfRegisterRequest(BaseModel):
     """Student self-registration — fills their own details and picks their class."""
@@ -215,6 +213,8 @@ class SaveAttendanceSessionRequest(BaseModel):
     recognized_faces: Optional[List[RecognizedFace]] = []
 
 class AttendanceRecordOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     student_id: int
     student_name: Optional[str] = None
@@ -224,10 +224,9 @@ class AttendanceRecordOut(BaseModel):
     confidence: float
     verification_status: str
 
-    class Config:
-        from_attributes = True
-
 class AttendanceSessionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     class_id: int
     class_name: Optional[str] = None
@@ -242,8 +241,5 @@ class AttendanceSessionOut(BaseModel):
     absent_count: int = 0
     total_enrolled: int = 0
     records: List[AttendanceRecordOut] = []
-
-    class Config:
-        from_attributes = True
 
 TokenResponse.model_rebuild()

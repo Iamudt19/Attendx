@@ -3,42 +3,116 @@
 @tailwind utilities;
 
 @layer base {
+  /* Default Dark Mode */
+  :root {
+    --bg-main: #09090b;
+    --bg-surface: #121215;
+    --bg-inset: #18181c;
+    --border-color: rgba(255, 255, 255, 0.08);
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --accent-emerald: #10b981;
+    --accent-indigo: #6366f1;
+  }
+
+  /* Stark Pristine Light Mode */
+  html.light {
+    --bg-main: #ffffff;
+    --bg-surface: #f8fafc;
+    --bg-inset: #f1f5f9;
+    --border-color: rgba(0, 0, 0, 0.08);
+    --text-primary: #0f172a;
+    --text-secondary: #64748b;
+    --accent-emerald: #059669;
+    --accent-indigo: #4f46e5;
+  }
+
   body {
-    @apply bg-[#070A0F] text-slate-100 antialiased font-sans min-h-screen selection:bg-blue-600 selection:text-white;
-    background-color: #070A0F;
-    letter-spacing: -0.01em;
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    letter-spacing: -0.015em;
+    transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    min-height: 100vh;
   }
 }
 
-/* Distinctive architectural surface styles */
+/* Classy Architectural Surfaces */
 .surface-card {
-  background-color: #0D121C;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.surface-card:hover {
+  border-color: rgba(99, 102, 241, 0.3);
 }
 
 .surface-elevated {
-  background-color: #121927;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background-color: var(--bg-inset);
+  border: 1px solid var(--border-color);
 }
 
-.surface-inset {
-  background-color: #080C14;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+/* Custom Sleek Keyframe Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* Custom sleek scrollbars */
+@keyframes logoFlip {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(180deg) scale(0.92);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}
+
+@keyframes pulseScan {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(0.98);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-logo-flip {
+  animation: logoFlip 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.animate-pulse-scan {
+  animation: pulseScan 3s ease-in-out infinite;
+}
+
+/* Micro Scrollbars */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #070A0F;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1E293B;
-  border-radius: 2px;
+  background: var(--text-secondary);
+  opacity: 0.2;
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: var(--accent-indigo);
 }
-

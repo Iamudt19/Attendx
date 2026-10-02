@@ -3,8 +3,9 @@ import {
   Camera, CheckCircle2, XCircle, RefreshCw, ScanFace,
   ChevronRight, RotateCcw, PartyPopper, AlertCircle,
   Check, School, GraduationCap, Zap, Sparkles, ShieldCheck,
-  Layers, Sliders, History, ArrowRight, Video, VideoOff
+  Layers, Sliders, History, ArrowRight, Video, VideoOff, ChevronLeft
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { StudentPortalService } from '../services/api';
 import { StudentUser, ScanAngle, SCAN_ANGLES, ANGLE_LABELS, ANGLE_ICONS, FaceFrameUploadResult, StudentPublicClass } from '../types';
 import { NeuralFaceMeshOverlay } from '../components/NeuralFaceMeshOverlay';
@@ -42,7 +43,7 @@ const TRAINING_PRESETS = [
 // Silhouette directions
 const ANGLE_SVG: Record<ScanAngle, React.ReactNode> = {
   front: (
-    <svg viewBox="0 0 80 80" className="w-16 h-16 text-violet-400" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg viewBox="0 0 80 80" className="w-16 h-16 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2">
       <ellipse cx="40" cy="28" rx="18" ry="22" />
       <path d="M14 72 C14 52 66 52 66 72" />
       <circle cx="32" cy="26" r="3" fill="currentColor" stroke="none" />
@@ -51,7 +52,7 @@ const ANGLE_SVG: Record<ScanAngle, React.ReactNode> = {
     </svg>
   ),
   left: (
-    <svg viewBox="0 0 80 80" className="w-16 h-16 text-violet-400" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg viewBox="0 0 80 80" className="w-16 h-16 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2">
       <ellipse cx="44" cy="28" rx="16" ry="22" transform="rotate(-15 44 28)" />
       <path d="M18 72 C18 52 68 52 68 72" />
       <circle cx="36" cy="25" r="3" fill="currentColor" stroke="none" />
@@ -61,7 +62,7 @@ const ANGLE_SVG: Record<ScanAngle, React.ReactNode> = {
     </svg>
   ),
   right: (
-    <svg viewBox="0 0 80 80" className="w-16 h-16 text-violet-400" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg viewBox="0 0 80 80" className="w-16 h-16 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2">
       <ellipse cx="36" cy="28" rx="16" ry="22" transform="rotate(15 36 28)" />
       <path d="M12 72 C12 52 62 52 62 72" />
       <circle cx="29" cy="22" r="3" fill="currentColor" stroke="none" />
@@ -71,7 +72,7 @@ const ANGLE_SVG: Record<ScanAngle, React.ReactNode> = {
     </svg>
   ),
   chin_down: (
-    <svg viewBox="0 0 80 80" className="w-16 h-16 text-violet-400" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg viewBox="0 0 80 80" className="w-16 h-16 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2">
       <ellipse cx="40" cy="32" rx="18" ry="22" transform="rotate(10 40 32)" />
       <path d="M14 74 C14 54 66 54 66 74" />
       <circle cx="32" cy="30" r="3" fill="currentColor" stroke="none" />
@@ -81,7 +82,7 @@ const ANGLE_SVG: Record<ScanAngle, React.ReactNode> = {
     </svg>
   ),
   smile: (
-    <svg viewBox="0 0 80 80" className="w-16 h-16 text-violet-400" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg viewBox="0 0 80 80" className="w-16 h-16 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2">
       <ellipse cx="40" cy="28" rx="18" ry="22" />
       <path d="M14 72 C14 52 66 52 66 72" />
       <circle cx="32" cy="25" r="3" fill="currentColor" stroke="none" />
@@ -92,6 +93,7 @@ const ANGLE_SVG: Record<ScanAngle, React.ReactNode> = {
 };
 
 export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ student, onComplete, onLogout }) => {
+  const navigate = useNavigate();
   const [phase, setPhase] = useState<WizardPhase>(student.face_registration_complete ? 'complete' : 'intro');
   const [currentAngleIdx, setCurrentAngleIdx] = useState(0);
   const [completedAngles, setCompletedAngles] = useState<ScanAngle[]>([]);
@@ -220,7 +222,6 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
     }
   }, [isWebcamActive]);
 
-  // Stop webcam when component unmounts
   useEffect(() => {
     return () => {
       stopWebcam();
@@ -272,7 +273,6 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
               setLastResult(null);
             }, 1200);
           } else {
-            // Move to next angle
             setTimeout(() => {
               const nextIdx = SCAN_ANGLES.findIndex(a => !result.completed_angles.includes(a as ScanAngle));
               if (nextIdx !== -1) setCurrentAngleIdx(nextIdx);
@@ -281,7 +281,6 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
             }, 1500);
           }
         } else {
-          // Continuous training mode: reset status quickly so student can scan again immediately!
           setTimeout(() => {
             setFrameStatus('idle');
             setLastResult(null);
@@ -332,60 +331,79 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
   // ── Render: Intro ───────────────────────────────────────────────────────────
   if (phase === 'intro') {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden">
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-violet-600/8 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="max-w-lg w-full space-y-6 relative z-10">
-          {/* Header */}
-          <div className="text-center">
-            <div className="inline-flex p-4 rounded-2xl bg-violet-600/20 border border-violet-500/30 mb-4 shadow-lg shadow-violet-500/10">
-              <ScanFace className="w-10 h-10 text-violet-400" />
+      <div className="min-h-screen bg-[#FBFBFB] text-[#111827] flex flex-col justify-between selection:bg-blue-600 selection:text-white font-sans">
+        <header className="w-full max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          <div onClick={() => navigate('/')} className="flex items-center gap-2.5 cursor-pointer group">
+            <div className="w-9 h-9 rounded-xl bg-black text-white flex items-center justify-center font-bold shadow-sm transition-transform group-hover:scale-105">
+              <Camera className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-2xl font-extrabold text-white">Welcome, {student.name}!</h1>
-            <p className="text-slate-400 text-sm mt-1">Enroll your face scan and train the AI model for high accuracy.</p>
-            {assignedClassName && (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-violet-500/15 border border-violet-500/30 rounded-full text-violet-300 text-xs font-semibold mt-3">
-                <School className="w-3.5 h-3.5" />
-                <span>Assigned: {assignedClassName}</span>
-              </div>
-            )}
+            <div className="flex items-center">
+              <span className="font-extrabold text-2xl tracking-tight text-slate-900">Attend</span>
+              <span className="font-extrabold text-2xl tracking-tight text-blue-600">X</span>
+            </div>
           </div>
 
-          {/* Steps preview */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
-            <p className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3">5 Guided Baseline Steps</p>
-            {SCAN_ANGLES.map((angle, i) => (
-              <div key={angle} className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-full bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-xs font-bold text-violet-400 shrink-0">
-                  {i + 1}
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-white">
-                    {ANGLE_ICONS[angle as ScanAngle]} {ANGLE_LABELS[angle as ScanAngle]}
-                  </p>
-                  <p className="text-[11px] text-slate-500">{ANGLE_INSTRUCTIONS[angle as ScanAngle]}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <button onClick={onLogout} className="text-xs font-semibold text-slate-500 hover:text-slate-900">
+            Sign Out
+          </button>
+        </header>
 
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={onLogout}
-              className="py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-sm rounded-xl transition-colors"
-            >
-              Sign Out
-            </button>
-            <button
-              id="start-scan-btn"
-              onClick={() => { setPhase('scanning'); startWebcam(); }}
-              className="py-3 px-4 bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-violet-600/25 flex items-center justify-center gap-2 transition-all"
-            >
-              Start Face Scan
-              <ChevronRight className="w-4 h-4" />
-            </button>
+        <main className="flex-1 flex items-center justify-center px-4 py-12">
+          <div className="max-w-lg w-full space-y-6">
+            <div className="text-center space-y-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-100 mb-1">
+                <ScanFace className="w-3.5 h-3.5 text-blue-600" /> Biometric Face Onboarding
+              </div>
+              <h1 className="font-serif text-4xl text-slate-900 font-normal tracking-tight">Welcome, {student.name}!</h1>
+              <p className="text-sm text-slate-600">Enroll your facial baseline scan for instant classroom recognition.</p>
+              {assignedClassName && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 border border-blue-100 rounded-full text-blue-700 text-xs font-semibold mt-2">
+                  <School className="w-3.5 h-3.5" />
+                  <span>Enrolled Cohort: {assignedClassName}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Steps preview */}
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-3">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">5 Guided Baseline Angles</p>
+              {SCAN_ANGLES.map((angle, i) => (
+                <div key={angle} className="flex items-center gap-3 py-1.5">
+                  <div className="w-7 h-7 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-xs font-bold text-blue-600 shrink-0">
+                    {i + 1}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-900">
+                      {ANGLE_ICONS[angle as ScanAngle]} {ANGLE_LABELS[angle as ScanAngle]}
+                    </p>
+                    <p className="text-xs text-slate-500">{ANGLE_INSTRUCTIONS[angle as ScanAngle]}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={onLogout}
+                className="py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors"
+              >
+                Sign Out
+              </button>
+              <button
+                id="start-scan-btn"
+                onClick={() => { setPhase('scanning'); startWebcam(); }}
+                className="py-3 px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs rounded-xl shadow-sm flex items-center justify-center gap-2 transition-all"
+              >
+                <span>Start Face Scan</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-        </div>
+        </main>
+
+        <footer className="py-6 border-t border-slate-200/80 bg-white text-center text-xs text-slate-500">
+          AttendX Guided Facial Biometrics · Privacy Protected
+        </footer>
       </div>
     );
   }
@@ -393,220 +411,175 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
   // ── Render: Complete & Continuous AI Face Training Studio ───────────────────
   if (phase === 'complete') {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 py-8 relative overflow-hidden">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-violet-600/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="max-w-4xl w-full space-y-6 relative z-10">
-          {/* Top Bar */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-900/80 border border-slate-800 rounded-2xl p-4 backdrop-blur-xl">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center text-violet-400">
-                <ScanFace className="w-6 h-6" />
+      <div className="min-h-screen bg-[#FBFBFB] text-[#111827] flex flex-col font-sans selection:bg-blue-600 selection:text-white">
+        {/* Top Header */}
+        <header className="bg-white border-b border-slate-200/90 sticky top-0 z-40">
+          <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
+              <div className="w-8 h-8 rounded-xl bg-black text-white flex items-center justify-center font-bold shadow-sm">
+                <Camera className="w-4 h-4 text-white" />
               </div>
-              <div>
-                <h1 className="text-lg font-bold text-white flex items-center gap-2">
-                  {student.name}
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold">
-                    Face Registered
-                  </span>
-                </h1>
-                <p className="text-xs text-slate-400">Student ID: {student.student_id} {assignedClassName ? `• ${assignedClassName}` : ''}</p>
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-lg text-slate-900">AttendX</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                  STUDENT PORTAL
+                </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto">
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-slate-600 hidden sm:inline">
+                <strong>{student.name}</strong> ({student.student_id})
+              </span>
               <button
                 onClick={onLogout}
-                className="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition-all"
+                className="py-1.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors"
               >
                 Sign Out
               </button>
             </div>
           </div>
+        </header>
+
+        <main className="flex-1 max-w-6xl w-full mx-auto p-6 space-y-6">
+          {/* Top Status Banner */}
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h1 className="font-serif text-2xl text-slate-900 font-normal flex items-center gap-2">
+                  {student.name}
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 font-semibold">
+                    Face Registered
+                  </span>
+                </h1>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Student ID: {student.student_id} {assignedClassName ? `• Enrolled in ${assignedClassName}` : ''}
+                </p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleReset}
+              disabled={resetting}
+              className="text-xs text-slate-500 hover:text-rose-600 flex items-center gap-1 transition-colors"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>{resetting ? 'Resetting...' : 'Re-scan Baseline'}</span>
+            </button>
+          </div>
 
           {/* AI Training Telemetry Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center gap-3 shadow-lg">
-              <div className="w-10 h-10 rounded-xl bg-violet-500/20 text-violet-400 flex items-center justify-center shrink-0">
-                <Layers className="w-5 h-5" />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-1">
+              <div className="flex items-center justify-between text-slate-500">
+                <span className="text-xs font-semibold uppercase tracking-wider">Trained Vectors</span>
+                <Layers className="w-4 h-4 text-blue-600" />
               </div>
-              <div>
-                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Trained Vectors</p>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-2xl font-black text-white">{totalEmbeddings}</span>
-                  <span className="text-xs text-violet-400 font-medium">Embeddings</span>
-                </div>
-              </div>
+              <div className="text-3xl font-extrabold text-slate-900 tracking-tight">{totalEmbeddings}</div>
+              <div className="text-xs text-slate-500">128-D facial reference embeddings</div>
             </div>
 
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center gap-3 shadow-lg">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-                <ShieldCheck className="w-5 h-5" />
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-1">
+              <div className="flex items-center justify-between text-slate-500">
+                <span className="text-xs font-semibold uppercase tracking-wider">Precision Tier</span>
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
               </div>
-              <div>
-                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Precision Tier</p>
-                <p className="text-sm font-bold text-emerald-400 truncate">{trainingLevel}</p>
-              </div>
+              <div className="text-2xl font-bold text-emerald-600 tracking-tight truncate">{trainingLevel}</div>
+              <div className="text-xs text-slate-500">Multi-pose biometric model ready</div>
             </div>
 
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center gap-3 shadow-lg">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
-                <Sparkles className="w-5 h-5" />
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-1">
+              <div className="flex items-center justify-between text-slate-500">
+                <span className="text-xs font-semibold uppercase tracking-wider">Readiness Score</span>
+                <Sparkles className="w-4 h-4 text-blue-600" />
               </div>
-              <div>
-                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Readiness Score</p>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-2xl font-black text-blue-400">{readinessScore}%</span>
-                  <span className="text-[10px] text-slate-400">Match Confidence</span>
-                </div>
-              </div>
+              <div className="text-3xl font-extrabold text-blue-600 tracking-tight">{readinessScore}%</div>
+              <div className="text-xs text-slate-500">Match probability in lecture hall</div>
             </div>
           </div>
 
           {/* Continuous AI Face Training Studio Main Section */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
-            <div className="p-4 sm:p-6 border-b border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="bg-white border border-slate-200/90 rounded-3xl overflow-hidden shadow-sm">
+            <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 bg-violet-600/20 text-violet-300 border border-violet-500/30 rounded text-[11px] font-bold uppercase tracking-wider flex items-center gap-1">
-                    <Zap className="w-3 h-3 text-violet-400" />
-                    Continuous Training Studio
-                  </span>
-                  <span className="text-xs text-slate-400">Scan unlimited times to boost accuracy</span>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-100 mb-1">
+                  <Zap className="w-3.5 h-3.5 text-blue-600" /> Continuous Model Calibration
                 </div>
-                <h2 className="text-lg font-extrabold text-white mt-1">
+                <h2 className="font-serif text-2xl text-slate-900 font-normal">
                   Train AI Face Recognizer with More Scans
                 </h2>
-                <p className="text-xs text-slate-400">
-                  Every extra scan under different lighting, head angles, glasses, and distances adds new 128-d reference vectors directly into the live classroom attendance matcher.
+                <p className="text-xs text-slate-500 mt-1 max-w-xl">
+                  Extra scans under varied lighting, glasses, and head angles add new reference vectors directly into the classroom matcher.
                 </p>
               </div>
 
               {!isWebcamActive ? (
                 <button
                   onClick={startWebcam}
-                  className="py-2.5 px-4 bg-violet-600 hover:bg-violet-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-violet-600/20 flex items-center gap-2 transition-all shrink-0"
+                  className="py-2.5 px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs rounded-xl shadow-sm flex items-center gap-2 transition-all shrink-0"
                 >
                   <Video className="w-4 h-4" />
-                  Activate Training Camera
+                  <span>Start Camera</span>
                 </button>
               ) : (
                 <button
                   onClick={stopWebcam}
-                  className="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs rounded-xl flex items-center gap-1.5 transition-all shrink-0"
+                  className="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl flex items-center gap-1.5 transition-all shrink-0"
                 >
                   <VideoOff className="w-3.5 h-3.5" />
-                  Turn Off Camera
+                  <span>Stop Camera</span>
                 </button>
               )}
             </div>
 
-            {/* Studio Workspace: Camera + Training Presets */}
+            {/* Studio Workspace */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
               {/* Camera Preview Area (7 Cols) */}
-              <div className="lg:col-span-7 bg-black relative flex flex-col items-center justify-center min-h-[320px]">
+              <div className="lg:col-span-7 bg-slate-950 relative flex flex-col items-center justify-center min-h-[340px]">
                 {isWebcamActive ? (
                   <>
-                    <video
-                      ref={videoRef}
-                      autoPlay playsInline muted
-                      className="w-full h-full object-cover max-h-[420px]"
-                    />
-
-                    {/* 3D Neural Face Mesh Overlay */}
-                    <NeuralFaceMeshOverlay
-                      videoRef={videoRef}
-                      isActive={isWebcamActive}
-                      targetAngle={selectedTrainingPreset}
-                    />
-
-                    {/* AI Target Overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div
-                        className={`w-44 h-56 rounded-full border-2 transition-all duration-300 ${
-                          frameStatus === 'accepted' ? 'border-emerald-400 shadow-[0_0_30px_rgba(52,211,153,0.5)] scale-105' :
-                          frameStatus === 'rejected' ? 'border-rose-400 shadow-[0_0_30px_rgba(248,113,113,0.5)]' :
-                          frameStatus === 'uploading' ? 'border-violet-300 animate-pulse' :
-                          'border-violet-400/70 border-dashed shadow-[0_0_20px_rgba(139,92,246,0.3)]'
-                        }`}
-                      >
-                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-slate-900/90 border border-violet-500/40 text-[10px] text-violet-300 px-2 py-0.5 rounded-full font-mono font-bold tracking-wider">
-                          AI SCANNER
-                        </div>
-                      </div>
-                    </div>
+                    <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover max-h-[420px]" />
+                    <NeuralFaceMeshOverlay videoRef={videoRef} isActive={isWebcamActive} targetAngle={selectedTrainingPreset} />
 
                     {/* Result Overlay */}
                     {(frameStatus === 'accepted' || frameStatus === 'rejected') && lastResult && (
                       <div className={`absolute inset-0 flex items-center justify-center backdrop-blur-sm ${
                         frameStatus === 'accepted' ? 'bg-emerald-950/70' : 'bg-rose-950/70'
                       }`}>
-                        <div className="text-center px-6 py-4 rounded-2xl bg-slate-900/90 border border-slate-700 shadow-2xl">
+                        <div className="text-center px-6 py-4 rounded-2xl bg-white border border-slate-200 shadow-2xl">
                           {frameStatus === 'accepted' ? (
-                            <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-2 animate-bounce" />
+                            <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto mb-2 animate-bounce" />
                           ) : (
-                            <XCircle className="w-12 h-12 text-rose-400 mx-auto mb-2" />
+                            <XCircle className="w-10 h-10 text-rose-600 mx-auto mb-2" />
                           )}
-                          <p className={`text-sm font-bold ${frameStatus === 'accepted' ? 'text-emerald-300' : 'text-rose-300'}`}>
+                          <p className={`text-sm font-bold ${frameStatus === 'accepted' ? 'text-emerald-700' : 'text-rose-700'}`}>
                             {lastResult.reason}
                           </p>
-                          {frameStatus === 'accepted' && (
-                            <p className="text-xs text-slate-400 mt-1">Ready for next scan!</p>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {frameStatus === 'uploading' && (
-                      <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center">
-                        <div className="text-center">
-                          <RefreshCw className="w-10 h-10 text-violet-400 animate-spin mx-auto mb-2" />
-                          <p className="text-sm text-violet-300 font-bold">Encoding 128-D Face Vector...</p>
                         </div>
                       </div>
                     )}
                   </>
                 ) : (
-                  <div className="text-center p-8">
-                    {webcamError ? (
-                      <>
-                        <AlertCircle className="w-10 h-10 text-rose-400 mx-auto mb-3" />
-                        <p className="text-sm text-rose-400 font-medium mb-3">{webcamError}</p>
-                        <button
-                          onClick={startWebcam}
-                          className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs rounded-lg font-semibold"
-                        >
-                          Try Again
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-16 h-16 rounded-2xl bg-violet-600/10 border border-violet-500/20 text-violet-400 flex items-center justify-center mx-auto mb-3">
-                          <Camera className="w-8 h-8" />
-                        </div>
-                        <h3 className="text-sm font-bold text-white">Camera Standby</h3>
-                        <p className="text-slate-400 text-xs mt-1 max-w-xs mx-auto mb-4">
-                          Click below to start your webcam and capture extra training scans.
-                        </p>
-                        <button
-                          onClick={startWebcam}
-                          className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-violet-600/25 transition-all"
-                        >
-                          Start Training Camera
-                        </button>
-                      </>
-                    )}
+                  <div className="text-center p-8 text-white">
+                    <Camera className="w-10 h-10 text-slate-400 mx-auto mb-2" />
+                    <h3 className="text-sm font-bold">Camera Ready</h3>
+                    <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto mb-4">
+                      Click start camera above to capture extra training poses.
+                    </p>
                   </div>
                 )}
               </div>
 
               {/* Training Controls Area (5 Cols) */}
-              <div className="lg:col-span-5 p-5 bg-slate-900 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-slate-800">
+              <div className="lg:col-span-5 p-6 bg-white flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-slate-100">
                 <div className="space-y-4">
                   <div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 mb-2">
-                      <Sliders className="w-3.5 h-3.5 text-violet-400" />
-                      Select Training Condition / Pose
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5 mb-2.5">
+                      <Sliders className="w-3.5 h-3.5 text-blue-600" />
+                      Select Training Pose
                     </span>
                     <div className="grid grid-cols-2 gap-2">
                       {TRAINING_PRESETS.map((preset) => (
@@ -616,8 +589,8 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
                           onClick={() => setSelectedTrainingPreset(preset.id)}
                           className={`p-2.5 rounded-xl border text-left transition-all ${
                             selectedTrainingPreset === preset.id
-                              ? 'bg-violet-600/20 border-violet-500 text-white ring-1 ring-violet-500/50 shadow-md shadow-violet-500/10'
-                              : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                              ? 'bg-blue-50 border-blue-500 text-blue-900 shadow-sm'
+                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                           }`}
                         >
                           <div className="flex items-center gap-2">
@@ -633,19 +606,19 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
                   </div>
 
                   {trainingSuccessFlash && (
-                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-300 text-xs font-semibold flex items-center gap-2 animate-pulse">
-                      <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-semibold flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
                       <span>{trainingSuccessFlash}</span>
                     </div>
                   )}
                 </div>
 
-                <div className="pt-4 border-t border-slate-800 space-y-2">
+                <div className="pt-4 border-t border-slate-100 space-y-2">
                   <button
                     id="capture-training-btn"
                     onClick={() => captureAndSubmit()}
                     disabled={!isWebcamActive || frameStatus !== 'idle'}
-                    className="w-full py-3.5 px-4 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-extrabold text-sm rounded-xl shadow-lg shadow-violet-600/25 flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="w-full py-3.5 px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs rounded-xl shadow-sm flex items-center justify-center gap-2 transition-all disabled:opacity-40"
                   >
                     {frameStatus === 'capturing' || frameStatus === 'uploading' ? (
                       <>
@@ -655,43 +628,40 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
                     ) : (
                       <>
                         <Zap className="w-4 h-4 text-amber-300" />
-                        <span>📸 Capture & Train Face Model</span>
+                        <span>Capture & Add Face Vector</span>
                       </>
                     )}
                   </button>
-                  <p className="text-center text-[10px] text-slate-500">
-                    Feel free to scan 5, 10, 20+ times with different poses & lighting for best classroom accuracy.
-                  </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Post-Scan Class Selection & Confirmation Card */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 text-left space-y-3 shadow-xl">
+          {/* Post-Scan Class Selection Card */}
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-6 space-y-3 shadow-sm">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-violet-400 flex items-center gap-1.5">
-                <GraduationCap className="w-4 h-4" />
-                Class Registration
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                <GraduationCap className="w-4 h-4 text-blue-600" />
+                Classroom Assignment
               </span>
               {assignedClassName && (
-                <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-semibold border border-emerald-500/30">
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold border border-emerald-100">
                   Enrolled in {assignedClassName}
                 </span>
               )}
             </div>
 
-            <p className="text-xs text-slate-300">
-              Select or change which class and section you are registering for:
+            <p className="text-xs text-slate-500">
+              Confirm or switch which class and section you belong to:
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
               <select
                 value={selectedClassId}
                 onChange={(e) => setSelectedClassId(Number(e.target.value))}
-                className="sm:col-span-3 bg-slate-950 border border-slate-700 text-white rounded-xl text-xs p-3 focus:ring-1 focus:ring-violet-500 focus:outline-none"
+                className="sm:col-span-3 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl text-xs p-3 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 focus:outline-none font-medium"
               >
-                <option value={0} disabled>Choose a class...</option>
+                <option value={0} disabled>Choose a classroom...</option>
                 {classes.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name} - {c.section} ({c.academic_year})
@@ -702,44 +672,20 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
               <button
                 onClick={handleUpdateClass}
                 disabled={savingClass || !selectedClassId}
-                className="py-2.5 px-4 bg-violet-600 hover:bg-violet-500 text-white font-semibold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                className="py-2.5 px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                {savingClass ? (
-                  <>
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Updating...</span>
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Confirm Class</span>
-                  </>
-                )}
+                {savingClass ? <span>Saving...</span> : <span>Confirm Class</span>}
               </button>
             </div>
 
             {classMessage && (
-              <p className="text-[11px] font-medium text-emerald-400 pt-1">
+              <p className="text-xs font-semibold text-emerald-600 pt-1">
                 {classMessage}
               </p>
             )}
           </div>
+        </main>
 
-          {/* Danger zone / Reset */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 text-xs text-slate-500">
-            <button
-              onClick={handleReset}
-              disabled={resetting}
-              className="py-2 px-3 text-slate-400 hover:text-rose-400 font-medium flex items-center gap-1.5 transition-colors"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              {resetting ? 'Resetting...' : 'Redo All Face Scans From Scratch'}
-            </button>
-            <p>AttendX AI Biometrics • Real-time OpenCV SFace Model</p>
-          </div>
-        </div>
-
-        {/* Hidden canvas for capturing frames */}
         <canvas ref={canvasRef} className="hidden" />
       </div>
     );
@@ -749,205 +695,136 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
   const progressPct = (completedAngles.length / 5) * 100;
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(124,58,237,0.06)_0%,_transparent_60%)] pointer-events-none" />
-
-      <div className="max-w-2xl w-full space-y-5 relative z-10">
-        {/* Header with progress */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-bold text-white flex items-center gap-2">
-              <ScanFace className="w-5 h-5 text-violet-400" />
-              Guided Face Scan — Step {completedAngles.length + 1} of 5
-            </h1>
-            <p className="text-xs text-slate-400 mt-0.5">{student.name} · {student.student_id}</p>
+    <div className="min-h-screen bg-[#FBFBFB] text-[#111827] flex flex-col justify-between selection:bg-blue-600 selection:text-white font-sans">
+      <header className="w-full max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
+        <div onClick={() => navigate('/')} className="flex items-center gap-2.5 cursor-pointer">
+          <div className="w-9 h-9 rounded-xl bg-black text-white flex items-center justify-center font-bold shadow-sm">
+            <Camera className="w-5 h-5 text-white" />
           </div>
-          <button onClick={onLogout} className="text-xs text-slate-500 hover:text-slate-300 transition-colors">
-            Sign Out
-          </button>
+          <div className="flex items-center">
+            <span className="font-extrabold text-2xl tracking-tight text-slate-900">Attend</span>
+            <span className="font-extrabold text-2xl tracking-tight text-blue-600">X</span>
+          </div>
+        </div>
+
+        <button onClick={onLogout} className="text-xs font-semibold text-slate-500 hover:text-slate-900">
+          Sign Out
+        </button>
+      </header>
+
+      <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-8 space-y-6">
+        {/* Header with progress */}
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-100">
+            <ScanFace className="w-3.5 h-3.5 text-blue-600" /> Step {completedAngles.length + 1} of 5
+          </div>
+          <h1 className="font-serif text-3xl text-slate-900 font-normal">Guided Face Scan</h1>
+          <p className="text-xs text-slate-500">{student.name} · {student.student_id}</p>
         </div>
 
         {/* Progress bar */}
-        <div className="bg-slate-800 rounded-full h-2 overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-violet-500 to-violet-400 rounded-full transition-all duration-700"
-            style={{ width: `${progressPct}%` }}
-          />
+        <div className="bg-slate-200 rounded-full h-2 overflow-hidden">
+          <div className="h-full bg-blue-600 rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }} />
         </div>
 
         {/* Angle progress pills */}
-        <div className="flex gap-2 justify-center">
+        <div className="flex gap-2 justify-center flex-wrap">
           {SCAN_ANGLES.map((angle, i) => {
             const done = completedAngles.includes(angle as ScanAngle);
             const current = angle === currentAngle && !done;
             return (
               <div
                 key={angle}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
                   done
-                    ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
                     : current
-                    ? 'bg-violet-600/30 border-violet-500/50 text-violet-300 ring-1 ring-violet-500/30'
-                    : 'bg-slate-800/50 border-slate-700 text-slate-500'
+                    ? 'bg-blue-50 border-blue-300 text-blue-700 ring-2 ring-blue-100'
+                    : 'bg-white border-slate-200 text-slate-400'
                 }`}
               >
-                {done ? <CheckCircle2 className="w-3 h-3" /> : <span>{i + 1}</span>}
-                {ANGLE_LABELS[angle as ScanAngle].split(' ').slice(-1)[0]}
+                {done ? <CheckCircle2 className="w-3.5 h-3.5" /> : <span>{i + 1}</span>}
+                <span>{ANGLE_LABELS[angle as ScanAngle].split(' ').slice(-1)[0]}</span>
               </div>
             );
           })}
         </div>
 
-        {/* Main scanning area */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-          <div className="grid md:grid-cols-2 gap-0">
-
-            {/* Left: Instruction panel */}
-            <div className="p-6 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col items-center justify-center gap-4">
-              <div className="text-center">
-                <div className="text-4xl mb-2">{ANGLE_ICONS[currentAngle]}</div>
-                <h2 className="text-base font-bold text-white">{ANGLE_LABELS[currentAngle]}</h2>
-                <p className="text-xs text-slate-400 mt-2 leading-relaxed max-w-[220px]">
-                  {ANGLE_INSTRUCTIONS[currentAngle]}
-                </p>
-              </div>
-
-              {/* Silhouette illustration */}
-              <div className="p-4 rounded-2xl bg-violet-600/10 border border-violet-500/20">
-                {ANGLE_SVG[currentAngle]}
-              </div>
-
-              {/* Completed angles */}
-              {completedAngles.length > 0 && (
-                <div className="text-center">
-                  <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1.5">Completed</p>
-                  <div className="flex gap-1.5 flex-wrap justify-center">
-                    {completedAngles.map(a => (
-                      <span key={a} className="px-2 py-0.5 bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-[10px] rounded-full font-semibold">
-                        ✓ {ANGLE_LABELS[a].split(' ').slice(-1)[0]}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
+        {/* Main scanning card */}
+        <div className="bg-white border border-slate-200/90 rounded-3xl overflow-hidden shadow-sm">
+          {/* Instruction row — compact, horizontal */}
+          <div className="flex items-center gap-4 px-6 py-4 border-b border-slate-100">
+            <div className="text-3xl shrink-0">{ANGLE_ICONS[currentAngle]}</div>
+            <div className="flex-1 min-w-0">
+              <h2 className="font-semibold text-base text-slate-900 leading-tight">{ANGLE_LABELS[currentAngle]}</h2>
+              <p className="text-xs text-slate-500 leading-relaxed mt-0.5">{ANGLE_INSTRUCTIONS[currentAngle]}</p>
             </div>
-
-            {/* Right: Webcam feed */}
-            <div className="flex flex-col">
-              {/* Video area */}
-              <div className="relative bg-black aspect-video flex items-center justify-center">
-                {isWebcamActive ? (
-                  <>
-                    <video
-                      ref={videoRef}
-                      autoPlay playsInline muted
-                      className="w-full h-full object-cover"
-                    />
-
-                    {/* 3D Neural Face Mesh Overlay */}
-                    <NeuralFaceMeshOverlay
-                      videoRef={videoRef}
-                      isActive={isWebcamActive}
-                      targetAngle={currentAngle}
-                    />
-                    {/* Oval face guide overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div
-                        className={`w-36 h-48 rounded-full border-2 transition-colors duration-300 ${
-                          frameStatus === 'accepted' ? 'border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.4)]' :
-                          frameStatus === 'rejected' ? 'border-rose-400 shadow-[0_0_20px_rgba(248,113,113,0.4)]' :
-                          frameStatus === 'uploading' ? 'border-violet-300 animate-pulse' :
-                          'border-violet-400/60'
-                        }`}
-                      />
-                    </div>
-
-                    {/* Status overlay */}
-                    {(frameStatus === 'accepted' || frameStatus === 'rejected') && lastResult && (
-                      <div className={`absolute inset-0 flex items-center justify-center ${
-                        frameStatus === 'accepted' ? 'bg-emerald-900/50' : 'bg-rose-900/50'
-                      }`}>
-                        <div className="text-center px-4">
-                          {frameStatus === 'accepted' ? (
-                            <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-2" />
-                          ) : (
-                            <XCircle className="w-12 h-12 text-rose-400 mx-auto mb-2" />
-                          )}
-                          <p className={`text-sm font-bold ${frameStatus === 'accepted' ? 'text-emerald-300' : 'text-rose-300'}`}>
-                            {lastResult.reason}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {frameStatus === 'uploading' && (
-                      <div className="absolute inset-0 bg-slate-900/60 flex items-center justify-center">
-                        <div className="text-center">
-                          <RefreshCw className="w-8 h-8 text-violet-400 animate-spin mx-auto mb-2" />
-                          <p className="text-sm text-violet-300 font-semibold">Checking quality...</p>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="text-center p-8">
-                    {webcamError ? (
-                      <>
-                        <AlertCircle className="w-10 h-10 text-rose-400 mx-auto mb-3" />
-                        <p className="text-sm text-rose-400 font-medium mb-3">{webcamError}</p>
-                        <button
-                          onClick={startWebcam}
-                          className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs rounded-lg"
-                        >
-                          Try Again
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <Camera className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-                        <p className="text-slate-500 text-sm mb-3">Camera not started</p>
-                        <button
-                          onClick={startWebcam}
-                          className="px-4 py-2 bg-violet-600 hover:bg-violet-500 text-white text-xs font-semibold rounded-lg"
-                        >
-                          Start Camera
-                        </button>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Capture button area */}
-              <div className="p-4 bg-slate-900 border-t border-slate-800">
-                <button
-                  id="capture-frame-btn"
-                  onClick={() => captureAndSubmit()}
-                  disabled={!isWebcamActive || frameStatus !== 'idle'}
-                  className="w-full py-3 px-4 bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-violet-600/20 flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {frameStatus === 'capturing' || frameStatus === 'uploading' ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Analysing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Camera className="w-4 h-4" />
-                      <span>Capture — {ANGLE_LABELS[currentAngle]}</span>
-                    </>
-                  )}
-                </button>
-                <p className="text-center text-[11px] text-slate-500 mt-2">
-                  Make sure your face is clearly inside the oval guide before capturing.
-                </p>
-              </div>
+            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 shrink-0">
+              {ANGLE_SVG[currentAngle]}
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Hidden canvas for capturing frames */}
+          {/* Full-width camera feed — tall enough to see your face clearly */}
+          <div className="relative bg-slate-950" style={{ aspectRatio: '4/3', minHeight: '320px', maxHeight: '480px' }}>
+            {isWebcamActive ? (
+              <>
+                <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                <NeuralFaceMeshOverlay videoRef={videoRef} isActive={isWebcamActive} targetAngle={currentAngle} />
+
+                {(frameStatus === 'accepted' || frameStatus === 'rejected') && lastResult && (
+                  <div className={`absolute inset-0 flex items-center justify-center ${
+                    frameStatus === 'accepted' ? 'bg-emerald-900/60' : 'bg-rose-900/60'
+                  }`}>
+                    <div className="text-center px-6 py-4 rounded-2xl bg-white shadow-2xl">
+                      {frameStatus === 'accepted' ? (
+                        <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2 animate-bounce" />
+                      ) : (
+                        <XCircle className="w-10 h-10 text-rose-500 mx-auto mb-2" />
+                      )}
+                      <p className={`text-sm font-bold ${frameStatus === 'accepted' ? 'text-emerald-700' : 'text-rose-700'}`}>
+                        {lastResult.reason}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-white gap-3">
+                <Camera className="w-10 h-10 text-slate-400" />
+                <p className="text-xs text-slate-400">Camera Standby</p>
+                <button
+                  onClick={startWebcam}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl transition-all"
+                >
+                  Start Camera
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Capture button — full width below the camera */}
+          <div className="p-5 bg-white">
+            <button
+              id="capture-frame-btn"
+              onClick={() => captureAndSubmit()}
+              disabled={!isWebcamActive || frameStatus !== 'idle'}
+              className="w-full py-4 px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-sm rounded-2xl shadow-sm flex items-center justify-center gap-2.5 transition-all disabled:opacity-40"
+            >
+              {frameStatus === 'capturing' || frameStatus === 'uploading' ? (
+                <><RefreshCw className="w-4 h-4 animate-spin" /><span>Processing...</span></>
+              ) : (
+                <><Camera className="w-4 h-4" /><span>Capture — {ANGLE_LABELS[currentAngle]}</span></>
+              )}
+            </button>
+            <p className="text-center text-xs text-slate-400 mt-2">Make sure your face is clearly inside the oval guide before capturing.</p>
+          </div>
+        </div>
+      </main>
+
+      <footer className="py-6 border-t border-slate-200/80 bg-white text-center text-xs text-slate-500">
+        AttendX Facial Geometry Enrollment
+      </footer>
+
       <canvas ref={canvasRef} className="hidden" />
     </div>
   );

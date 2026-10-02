@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ScanFace, Lock, User, ArrowRight, ChevronLeft, BookOpen, Hash, Mail, UserPlus, LogIn } from 'lucide-react';
+import { Camera, ScanFace, Lock, User, ArrowRight, ChevronLeft, BookOpen, Hash, Mail, UserPlus, LogIn, GraduationCap, Sparkles, CheckCircle2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { StudentPortalService } from '../services/api';
 import { StudentUser, StudentPublicClass } from '../types';
 import { extractErrorMessage } from '../utils/error';
@@ -11,6 +12,7 @@ interface StudentLoginProps {
 type AuthTab = 'login' | 'register';
 
 export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<AuthTab>('login');
 
   // Login state
@@ -30,6 +32,7 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Fetch available classes when register tab is shown
   useEffect(() => {
@@ -41,7 +44,7 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
           if (data.length > 0) setRegClassId(data[0].id);
         })
         .catch(() => {
-          // Silently fail — classes will appear empty
+          // Silently fail
         })
         .finally(() => setClassesLoading(false));
     }
@@ -55,6 +58,7 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
       const student = await StudentPortalService.login(studentId.trim(), password);
       localStorage.setItem('attendx_student_token', student.access_token);
       onLoginSuccess(student);
+      navigate('/student');
     } catch (err: any) {
       setError(extractErrorMessage(err, 'Login failed. Please check your Student ID and password.'));
     } finally {
@@ -87,7 +91,11 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
         password: regPassword || undefined,
       });
       localStorage.setItem('attendx_student_token', student.access_token);
-      onLoginSuccess(student);
+      setSuccessMsg('Registration successful! Redirecting to face enrollment...');
+      setTimeout(() => {
+        onLoginSuccess(student);
+        navigate('/student');
+      }, 500);
     } catch (err: any) {
       setError(extractErrorMessage(err, 'Registration failed. Please try again.'));
     } finally {
@@ -100,367 +108,328 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
     setError(null);
   };
 
+  const fillQuickStudent = (id: string) => {
+    setStudentId(id);
+    setPassword(id);
+    setActiveTab('login');
+  };
+
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4 relative overflow-hidden">
-      {/* Background decorations */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-violet-600/8 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-80 h-80 bg-blue-600/6 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute top-20 left-10 w-40 h-40 bg-fuchsia-600/5 rounded-full blur-2xl pointer-events-none" />
-
-      <div className="max-w-md w-full space-y-6 relative z-10">
-        {/* Back to Teacher Portal */}
-        <a
-          href="/"
-          className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+    <div className="min-h-screen bg-[#FBFBFB] text-[#111827] flex flex-col justify-between selection:bg-blue-600 selection:text-white font-sans">
+      {/* Top Simple Header */}
+      <header className="w-full max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+        <div 
+          onClick={() => navigate('/')} 
+          className="flex items-center gap-2.5 cursor-pointer group"
         >
-          <ChevronLeft className="w-3.5 h-3.5" />
-          Teacher Portal
-        </a>
-
-        {/* Header */}
-        <div className="text-center space-y-3">
-          <div className="inline-flex p-4 rounded-2xl bg-violet-600/20 text-violet-400 border border-violet-500/30 shadow-lg shadow-violet-500/10">
-            <ScanFace className="w-9 h-9" />
+          <div className="w-9 h-9 rounded-xl bg-black text-white flex items-center justify-center font-bold shadow-sm transition-transform group-hover:scale-105">
+            <Camera className="w-5 h-5 text-white" />
           </div>
-          <div>
-            <h1 className="text-3xl font-extrabold text-white tracking-tight">
-              Attend<span className="text-violet-400">X</span> <span className="text-slate-400 font-normal text-2xl">Student</span>
-            </h1>
-            <p className="text-sm text-slate-400 font-medium mt-1">
-              {activeTab === 'login'
-                ? 'Sign in to access face enrollment'
-                : 'Register to get assigned to your class'}
-            </p>
+          <div className="flex items-center">
+            <span className="font-extrabold text-2xl tracking-tight text-slate-900">Attend</span>
+            <span className="font-extrabold text-2xl tracking-tight text-blue-600">X</span>
           </div>
         </div>
 
-        {/* Auth Card */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
-          {/* Tab switcher */}
-          <div className="flex border-b border-slate-800">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => navigate('/login')}
+            className="text-sm font-semibold text-slate-600 hover:text-slate-950 flex items-center gap-1.5 transition-colors px-3 py-2 rounded-lg hover:bg-slate-100/60"
+          >
+            <span>Teacher Portal</span>
+          </button>
+          <button
+            onClick={() => navigate('/')}
+            className="text-sm font-semibold text-slate-600 hover:text-slate-950 flex items-center gap-1 transition-colors px-3 py-2 rounded-lg hover:bg-slate-100/60"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Home</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Main Form Container */}
+      <main className="flex-1 flex items-center justify-center px-4 py-12">
+        <div className="max-w-md w-full space-y-6">
+          {/* Header */}
+          <div className="text-center space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-100 mb-1">
+              <GraduationCap className="w-3.5 h-3.5 text-blue-600" /> Student Attendance Portal
+            </div>
+            <h1 className="font-serif text-4xl text-slate-900 font-normal tracking-tight">
+              {activeTab === 'login' ? 'Student Sign In.' : 'Register for Face Verification.'}
+            </h1>
+            <p className="text-sm text-slate-600">
+              {activeTab === 'login'
+                ? 'Check attendance stats, percentage thresholds, and face registration status.'
+                : 'Self-enroll in your cohort to participate in automatic biometric roll calls.'}
+            </p>
+          </div>
+
+          {/* Tab Switcher */}
+          <div className="bg-slate-100/80 p-1 rounded-xl flex gap-1 border border-slate-200/60">
             <button
               onClick={() => switchTab('login')}
-              className={`flex-1 py-3 px-4 text-sm font-semibold flex items-center justify-center gap-2 transition-all relative ${
+              className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
                 activeTab === 'login'
-                  ? 'text-violet-400'
-                  : 'text-slate-500 hover:text-slate-300'
+                  ? 'bg-white text-slate-950 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              <LogIn className="w-4 h-4" />
-              Sign In
-              {activeTab === 'login' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-violet-500 to-violet-400 rounded-full" />
-              )}
+              <LogIn className="w-3.5 h-3.5 text-blue-600" />
+              <span>Sign In</span>
             </button>
             <button
               onClick={() => switchTab('register')}
-              className={`flex-1 py-3 px-4 text-sm font-semibold flex items-center justify-center gap-2 transition-all relative ${
+              className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
                 activeTab === 'register'
-                  ? 'text-violet-400'
-                  : 'text-slate-500 hover:text-slate-300'
+                  ? 'bg-white text-slate-950 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              <UserPlus className="w-4 h-4" />
-              Sign Up
-              {activeTab === 'register' && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-violet-500 to-violet-400 rounded-full" />
-              )}
+              <UserPlus className="w-3.5 h-3.5 text-blue-600" />
+              <span>Self-Enroll</span>
             </button>
           </div>
 
-          <div className="p-6 sm:p-8">
+          {/* Main Card */}
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-7 sm:p-8 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.05)]">
             {error && (
-              <div className="mb-5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm font-medium">
+              <div className="mb-5 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
                 {error}
               </div>
             )}
 
-            {/* ── Login Form ─────────────────────────────────────────── */}
-            {activeTab === 'login' && (
+            {successMsg && (
+              <div className="mb-5 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{successMsg}</span>
+              </div>
+            )}
+
+            {activeTab === 'login' ? (
               <form onSubmit={handleLogin} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
                     Student ID
                   </label>
                   <div className="relative">
-                    <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                     <input
-                      id="student-id-input"
                       type="text"
+                      required
                       value={studentId}
                       onChange={(e) => setStudentId(e.target.value)}
-                      required
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/50 transition-all"
                       placeholder="e.g. STU001"
-                      autoComplete="username"
+                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
                     Password
                   </label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                     <input
-                      id="student-password-input"
                       type="password"
+                      required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      required
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/50 transition-all"
                       placeholder="Default: your Student ID"
-                      autoComplete="current-password"
+                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
                     />
                   </div>
                   <p className="mt-1.5 text-[11px] text-slate-500">
-                    First time? Your default password is your Student ID (e.g., STU001).
+                    First time logging in? Your initial password is your Student ID.
                   </p>
                 </div>
 
                 <button
-                  id="student-login-btn"
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3 px-4 bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-xl text-sm transition-all shadow-lg shadow-violet-600/25 flex items-center justify-center gap-2 group disabled:opacity-50 mt-2"
+                  className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold py-3 px-4 rounded-xl text-sm transition-all duration-150 active:scale-[0.99] shadow-sm hover:shadow flex items-center justify-center gap-2 mt-2 disabled:opacity-60"
                 >
                   {loading ? (
-                    <span>Signing in...</span>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
                     <>
-                      <span>Access Student Portal</span>
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                      <span>Open Student Portal</span>
+                      <ArrowRight className="w-4 h-4" />
                     </>
                   )}
                 </button>
 
-                <p className="text-center text-[11px] text-slate-500 pt-1">
-                  Don't have an account?{' '}
-                  <button
-                    type="button"
-                    onClick={() => switchTab('register')}
-                    className="text-violet-400 hover:text-violet-300 font-semibold transition-colors"
-                  >
-                    Sign up here
-                  </button>
-                </p>
+                {/* Quick Student Autofill */}
+                <div className="pt-4 border-t border-slate-100">
+                  <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider text-center mb-2.5">
+                    Quick Student Profiles
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => fillQuickStudent('STU001')}
+                      className="text-xs font-semibold py-2 px-2 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-100 text-slate-700 transition-colors"
+                    >
+                      Rahul (STU001)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => fillQuickStudent('STU002')}
+                      className="text-xs font-semibold py-2 px-2 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-100 text-slate-700 transition-colors"
+                    >
+                      Amit (STU002)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => fillQuickStudent('STU003')}
+                      className="text-xs font-semibold py-2 px-2 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-100 text-slate-700 transition-colors"
+                    >
+                      Priya (STU003)
+                    </button>
+                  </div>
+                </div>
               </form>
-            )}
-
-            {/* ── Registration Form ──────────────────────────────────── */}
-            {activeTab === 'register' && (
+            ) : (
               <form onSubmit={handleRegister} className="space-y-4">
-                {/* Class Selection — the key feature */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
-                    Select Your Class *
-                  </label>
-                  {classesLoading ? (
-                    <div className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-500 flex items-center gap-2">
-                      <div className="w-3.5 h-3.5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
-                      Loading classes...
-                    </div>
-                  ) : classes.length === 0 ? (
-                    <div className="w-full bg-slate-950 border border-rose-500/30 rounded-xl px-4 py-3 text-sm text-rose-400">
-                      No classes available. Please contact your teacher.
-                    </div>
-                  ) : (
-                    <div className="relative">
-                      <BookOpen className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                      <select
-                        id="register-class-select"
-                        value={regClassId}
-                        onChange={(e) => setRegClassId(Number(e.target.value))}
-                        required
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/50 transition-all appearance-none cursor-pointer"
-                      >
-                        {classes.map((cls) => (
-                          <option key={cls.id} value={cls.id}>
-                            {cls.name} — {cls.section} ({cls.academic_year})
-                          </option>
-                        ))}
-                      </select>
-                      <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
-                        <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </div>
-                    </div>
-                  )}
-                  {regClassId > 0 && classes.length > 0 && (
-                    <div className="mt-2 px-3 py-2 rounded-lg bg-violet-500/10 border border-violet-500/20 text-[11px] text-violet-300 flex items-center gap-2">
-                      <BookOpen className="w-3.5 h-3.5 shrink-0" />
-                      <span>
-                        You'll be assigned to{' '}
-                        <strong className="text-violet-200">
-                          {classes.find(c => c.id === regClassId)?.name} {classes.find(c => c.id === regClassId)?.section}
-                        </strong>{' '}
-                        for {classes.find(c => c.id === regClassId)?.academic_year}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Student ID and Roll Number */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
-                      Student ID *
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Student ID
                     </label>
-                    <div className="relative">
-                      <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                      <input
-                        id="register-student-id"
-                        type="text"
-                        value={regStudentId}
-                        onChange={(e) => setRegStudentId(e.target.value)}
-                        required
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/50 transition-all"
-                        placeholder="STU001"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
-                      Roll Number *
-                    </label>
-                    <div className="relative">
-                      <Hash className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                      <input
-                        id="register-roll-number"
-                        type="text"
-                        value={regRollNumber}
-                        onChange={(e) => setRegRollNumber(e.target.value)}
-                        required
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/50 transition-all"
-                        placeholder="2026CSE01"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Full Name */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
-                    Full Name *
-                  </label>
-                  <div className="relative">
-                    <User className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
                     <input
-                      id="register-name"
                       type="text"
-                      value={regName}
-                      onChange={(e) => setRegName(e.target.value)}
                       required
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/50 transition-all"
-                      placeholder="Rahul Verma"
+                      value={regStudentId}
+                      onChange={(e) => setRegStudentId(e.target.value)}
+                      placeholder="e.g. STU099"
+                      className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
                     />
                   </div>
-                </div>
-
-                {/* Email */}
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
-                    Email <span className="text-slate-600 normal-case">(optional)</span>
-                  </label>
-                  <div className="relative">
-                    <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Roll Number
+                    </label>
                     <input
-                      id="register-email"
-                      type="email"
-                      value={regEmail}
-                      onChange={(e) => setRegEmail(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/50 transition-all"
-                      placeholder="rahul@student.edu"
+                      type="text"
+                      required
+                      value={regRollNumber}
+                      onChange={(e) => setRegRollNumber(e.target.value)}
+                      placeholder="2026CSE99"
+                      className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
                     />
                   </div>
                 </div>
 
-                {/* Password fields */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={regName}
+                    onChange={(e) => setRegName(e.target.value)}
+                    placeholder="Full Student Name"
+                    className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Assigned Class / Cohort
+                  </label>
+                  <select
+                    value={regClassId}
+                    onChange={(e) => setRegClassId(Number(e.target.value))}
+                    required
+                    className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                  >
+                    {classesLoading ? (
+                      <option>Loading classrooms...</option>
+                    ) : classes.length > 0 ? (
+                      classes.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} - Section {c.section} ({c.academic_year})
+                        </option>
+                      ))
+                    ) : (
+                      <option value={1}>CSE - Section A (2025-2026)</option>
+                    )}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Email Address (Optional)
+                  </label>
+                  <input
+                    type="email"
+                    value={regEmail}
+                    onChange={(e) => setRegEmail(e.target.value)}
+                    placeholder="student@university.edu"
+                    className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                  />
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
                       Password
                     </label>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                      <input
-                        id="register-password"
-                        type="password"
-                        value={regPassword}
-                        onChange={(e) => setRegPassword(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/50 transition-all"
-                        placeholder="Set password"
-                        autoComplete="new-password"
-                      />
-                    </div>
+                    <input
+                      type="password"
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      placeholder="Optional"
+                      className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                    />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
                       Confirm
                     </label>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                      <input
-                        id="register-confirm-password"
-                        type="password"
-                        value={regConfirmPassword}
-                        onChange={(e) => setRegConfirmPassword(e.target.value)}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500/50 transition-all"
-                        placeholder="Re-enter"
-                        autoComplete="new-password"
-                      />
-                    </div>
+                    <input
+                      type="password"
+                      value={regConfirmPassword}
+                      onChange={(e) => setRegConfirmPassword(e.target.value)}
+                      placeholder="Optional"
+                      className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                    />
                   </div>
                 </div>
-                <p className="text-[11px] text-slate-500 -mt-2">
-                  Leave blank to default to your Student ID as password.
-                </p>
 
                 <button
-                  id="student-register-btn"
                   type="submit"
-                  disabled={loading || classes.length === 0}
-                  className="w-full py-3 px-4 bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-xl text-sm transition-all shadow-lg shadow-violet-600/25 flex items-center justify-center gap-2 group disabled:opacity-50 mt-2"
+                  disabled={loading}
+                  className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold py-3 px-4 rounded-xl text-sm transition-all duration-150 active:scale-[0.99] shadow-sm hover:shadow flex items-center justify-center gap-2 mt-2 disabled:opacity-60"
                 >
                   {loading ? (
-                    <span>Creating account...</span>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
                     <>
-                      <span>Register & Continue</span>
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                      <span>Complete Registration</span>
+                      <ArrowRight className="w-4 h-4" />
                     </>
                   )}
                 </button>
-
-                <p className="text-center text-[11px] text-slate-500 pt-1">
-                  Already registered?{' '}
-                  <button
-                    type="button"
-                    onClick={() => switchTab('login')}
-                    className="text-violet-400 hover:text-violet-300 font-semibold transition-colors"
-                  >
-                    Sign in instead
-                  </button>
-                </p>
               </form>
             )}
           </div>
         </div>
+      </main>
 
-        {/* Info box */}
-        <div className="bg-slate-900/50 border border-slate-800/50 rounded-xl p-4 text-xs text-slate-400 space-y-1.5">
-          <p className="font-semibold text-slate-300">
-            {activeTab === 'login' ? '📋 What happens after login?' : '🎓 How registration works'}
-          </p>
-          <p>
-            {activeTab === 'login'
-              ? "You'll be guided through a 5-step face scan wizard. Each step captures a different angle of your face to ensure the AI can recognise you accurately from any seat in the classroom."
-              : 'Select your class to get assigned to the right teacher and section. After registration, you\'ll complete a 5-step face scan so the AI can recognise you during attendance.'}
-          </p>
+      {/* Footer */}
+      <footer className="py-6 border-t border-slate-200/80 bg-white">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+          <div>AttendX Biometric Enrollment · Student Privacy Protected</div>
+          <div className="flex gap-4">
+            <span className="hover:text-slate-800 cursor-pointer">Privacy Details</span>
+            <span className="hover:text-slate-800 cursor-pointer">Help Center</span>
+          </div>
         </div>
-      </div>
+      </footer>
     </div>
   );
 };

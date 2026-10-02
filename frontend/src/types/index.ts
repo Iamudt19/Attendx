@@ -108,6 +108,8 @@ export interface StudentItem {
   active: boolean;
   face_count?: number;
   attendance_percentage?: number;
+  avatar_url?: string;
+  face_images?: string[];
 }
 
 export interface BoundingBox {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Plus, Users, PlusCircle, CheckCircle2 } from 'lucide-react';
+import { BookOpen, Plus, Users, PlusCircle, Sparkles, School, GraduationCap } from 'lucide-react';
 import { ClassService, SubjectService } from '../services/api';
 import { ClassItem, SubjectItem } from '../types';
 
@@ -69,73 +69,88 @@ export const Classes: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-blue-500" />
-            Classes & Subjects Directory
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200/70 text-blue-700 text-xs font-semibold uppercase tracking-wider mb-2">
+            <School className="w-3.5 h-3.5" />
+            Curriculum & Roster Schema
+          </div>
+          <h1 className="font-serif text-3xl font-normal text-slate-900 tracking-tight">
+            Academic Classes & Course Directory
           </h1>
-          <p className="text-xs text-slate-400">
-            Manage institutional class sections, academic years, and enrolled subjects.
+          <p className="text-xs sm:text-sm text-slate-500 font-sans mt-0.5">
+            Manage institutional cohorts, sections, curriculum syllabi, and student class mappings.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowSubjectModal(true)}
-            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 flex items-center gap-1.5"
+            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-semibold border border-slate-200/80 flex items-center gap-2 transition-colors shadow-sm"
           >
-            <PlusCircle className="w-4 h-4 text-blue-400" />
+            <PlusCircle className="w-4 h-4 text-blue-600" />
             Add Subject
           </button>
           <button
             onClick={() => setShowClassModal(true)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs rounded-xl shadow-lg shadow-blue-600/20 flex items-center gap-1.5"
+            className="px-4 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs rounded-xl shadow-sm flex items-center gap-2 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Add Class
+            Add Class Section
           </button>
         </div>
       </div>
 
       {/* Classes Grid */}
       {loading ? (
-        <div className="text-center py-12 text-slate-500 text-sm">Loading classes...</div>
+        <div className="text-center py-16 bg-white border border-slate-200/90 rounded-2xl shadow-sm text-slate-500 text-sm">
+          Loading cohorts and course catalog...
+        </div>
+      ) : classes.length === 0 ? (
+        <div className="text-center py-16 bg-white border border-slate-200/90 rounded-2xl shadow-sm text-slate-500 text-sm">
+          No classes registered yet. Click "Add Class Section" to create your first academic group.
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {classes.map((cls) => {
             const classSubjects = subjects.filter((s) => s.class_id === cls.id);
             return (
-              <div key={cls.id} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div key={cls.id} className="bg-white border border-slate-200/90 rounded-2xl p-6 space-y-4 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <div>
-                    <h2 className="text-lg font-bold text-white">
-                      {cls.name} <span className="text-blue-400">{cls.section}</span>
-                    </h2>
-                    <p className="text-xs text-slate-400">Academic Year: {cls.academic_year}</p>
+                    <div className="flex items-center gap-2">
+                      <GraduationCap className="w-5 h-5 text-blue-600" />
+                      <h2 className="font-serif text-xl font-normal text-slate-900">
+                        {cls.name} <span className="text-blue-600 font-sans font-semibold text-base">{cls.section}</span>
+                      </h2>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-0.5">Academic Session: <span className="font-semibold text-slate-700">{cls.academic_year}</span></p>
                   </div>
-                  <div className="px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-xs font-semibold flex items-center gap-1">
+                  <div className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100 text-xs font-semibold flex items-center gap-1.5 shadow-sm">
                     <Users className="w-3.5 h-3.5" />
-                    {cls.student_count || 0} Students
+                    {cls.student_count || 0} Enrolled
                   </div>
                 </div>
 
                 {/* Enrolled Subjects List */}
                 <div className="space-y-2">
-                  <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    Enrolled Subjects ({classSubjects.length})
+                  <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    Enrolled Courses ({classSubjects.length})
                   </div>
                   {classSubjects.length === 0 ? (
-                    <p className="text-xs text-slate-500 italic">No subjects added for this class yet.</p>
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/60 text-xs text-slate-500 italic text-center">
+                      No subjects configured for this section yet.
+                    </div>
                   ) : (
                     <div className="grid grid-cols-1 gap-2">
                       {classSubjects.map((sub) => (
                         <div
                           key={sub.id}
-                          className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between text-xs"
+                          className="p-3 rounded-xl bg-slate-50/80 border border-slate-200/70 hover:border-blue-200 flex items-center justify-between text-xs transition-colors"
                         >
-                          <span className="font-semibold text-slate-200">{sub.name}</span>
-                          <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-mono text-[11px]">
+                          <span className="font-semibold text-slate-800">{sub.name}</span>
+                          <span className="px-2.5 py-1 rounded-md bg-white border border-slate-200 text-slate-600 font-mono text-[11px] font-semibold shadow-xs">
                             {sub.code}
                           </span>
                         </div>
@@ -151,53 +166,59 @@ export const Classes: React.FC = () => {
 
       {/* Add Class Modal */}
       {showClassModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-            <h3 className="text-base font-bold text-white">Add New Class Section</h3>
-            <form onSubmit={handleCreateClass} className="space-y-3 text-xs">
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200/90 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div>
+              <h3 className="font-serif text-xl font-normal text-slate-900">Add Academic Section</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Define department, cohort code, and academic term.</p>
+            </div>
+            <form onSubmit={handleCreateClass} className="space-y-3.5 text-xs">
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Class Name *</label>
+                <label className="block text-slate-700 font-semibold mb-1">Class / Department Name *</label>
                 <input
                   type="text"
                   required
-                  placeholder="CSE"
+                  placeholder="e.g. Computer Science & Eng"
                   value={className}
                   onChange={(e) => setClassName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-none transition-colors"
                 />
               </div>
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Section *</label>
+                <label className="block text-slate-700 font-semibold mb-1">Section Identifier *</label>
                 <input
                   type="text"
                   required
-                  placeholder="Section A"
+                  placeholder="e.g. Section A (Year 3)"
                   value={section}
                   onChange={(e) => setSection(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-none transition-colors"
                 />
               </div>
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Academic Year *</label>
+                <label className="block text-slate-700 font-semibold mb-1">Academic Year *</label>
                 <input
                   type="text"
                   required
                   placeholder="2026-27"
                   value={academicYear}
                   onChange={(e) => setAcademicYear(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-none transition-colors"
                 />
               </div>
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowClassModal(false)}
-                  className="px-4 py-2 bg-slate-800 text-slate-300 font-semibold rounded-lg"
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition-colors"
                 >
                   Cancel
                 </button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg">
-                  Create Class
+                <button 
+                  type="submit" 
+                  className="px-4 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold rounded-xl text-xs shadow-sm transition-colors"
+                >
+                  Create Class Section
                 </button>
               </div>
             </form>
@@ -207,56 +228,62 @@ export const Classes: React.FC = () => {
 
       {/* Add Subject Modal */}
       {showSubjectModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-            <h3 className="text-base font-bold text-white">Add New Subject</h3>
-            <form onSubmit={handleCreateSubject} className="space-y-3 text-xs">
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200/90 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div>
+              <h3 className="font-serif text-xl font-normal text-slate-900">Add Course Subject</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Attach a curriculum course to an existing student cohort.</p>
+            </div>
+            <form onSubmit={handleCreateSubject} className="space-y-3.5 text-xs">
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Class *</label>
+                <label className="block text-slate-700 font-semibold mb-1">Target Section *</label>
                 <select
                   value={subClassId}
                   onChange={(e) => setSubClassId(Number(e.target.value))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-none transition-colors font-medium"
                 >
                   {classes.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} {c.section}
+                      {c.name} — {c.section}
                     </option>
                   ))}
                 </select>
               </div>
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Subject Name *</label>
+                <label className="block text-slate-700 font-semibold mb-1">Course Title *</label>
                 <input
                   type="text"
                   required
-                  placeholder="Database Management Systems"
+                  placeholder="e.g. Distributed Operating Systems"
                   value={subName}
                   onChange={(e) => setSubName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-none transition-colors"
                 />
               </div>
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Subject Code *</label>
+                <label className="block text-slate-700 font-semibold mb-1">Course Code *</label>
                 <input
                   type="text"
                   required
-                  placeholder="DBMS101"
+                  placeholder="e.g. CS-401"
                   value={subCode}
                   onChange={(e) => setSubCode(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 focus:bg-white focus:border-blue-500 focus:outline-none transition-colors font-mono uppercase"
                 />
               </div>
-              <div className="flex items-center justify-end gap-2 pt-2">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowSubjectModal(false)}
-                  className="px-4 py-2 bg-slate-800 text-slate-300 font-semibold rounded-lg"
+                  className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition-colors"
                 >
                   Cancel
                 </button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg">
-                  Create Subject
+                <button 
+                  type="submit" 
+                  className="px-4 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold rounded-xl text-xs shadow-sm transition-colors"
+                >
+                  Create Course
                 </button>
               </div>
             </form>

@@ -175,16 +175,20 @@ def save_attendance_session(
 
         # Record teacher decision audit log if verified / overridden
         if rec.verification_status in ["TEACHER_VERIFIED", "MANUAL"]:
-            audit = AttendanceAuditLog(
-                session_id=session.id,
-                student_id=rec.student_id,
-                teacher_id=teacher_id,
-                original_status="PRESENT" if rec.status == "ABSENT" else "ABSENT",
-                original_score=rec.confidence,
-                final_status=rec.status,
-                reason=f"Teacher decision: marked {rec.status}"
-            )
-            db.add(audit)
+            try:
+                from app.models.models import AttendanceAuditLog
+                audit = AttendanceAuditLog(
+                    session_id=session.id,
+                    student_id=rec.student_id,
+                    teacher_id=teacher_id,
+                    original_status="PRESENT" if rec.status == "ABSENT" else "ABSENT",
+                    original_score=rec.confidence,
+                    final_status=rec.status,
+                    reason=f"Teacher decision: marked {rec.status}"
+                )
+                db.add(audit)
+            except Exception as audit_err:
+                print(f"Attendance audit log notice (non-fatal): {audit_err}")
 
     db.commit()
     db.refresh(session)

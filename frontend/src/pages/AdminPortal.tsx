@@ -3,7 +3,7 @@ import {
   Shield, Lock, Unlock, KeyRound, CheckCircle2, AlertCircle,
   Users, BookOpen, GraduationCap, Server, RefreshCw, Plus,
   Trash2, Search, ArrowRight, ExternalLink, Activity, Sparkles,
-  Sliders, Eye, EyeOff, Check, X, ShieldAlert, Cpu, Database
+  Sliders, Eye, EyeOff, Check, X, ShieldAlert, ShieldCheck, Cpu, Database, Camera, ChevronLeft
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AuthService, ClassService, StudentService, SubjectService, api } from '../services/api';
@@ -63,7 +63,7 @@ export const AdminPortal: React.FC = () => {
     setTimeout(() => setActionMessage(null), 4000);
   };
 
-  // ── Authenticate with master password 2026/ ─────────────────────────────────
+  // Authenticate with master password 2026/
   const handleAdminLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setAuthError(null);
@@ -82,7 +82,6 @@ export const AdminPortal: React.FC = () => {
       setIsAuthenticated(true);
       setPasswordInput('');
     } catch (err: any) {
-      // Fallback local verification if offline or local network
       if (passwordInput.trim() === '2026/') {
         localStorage.setItem('attendx_admin_session', 'active');
         setIsAuthenticated(true);
@@ -101,7 +100,7 @@ export const AdminPortal: React.FC = () => {
     setPasswordInput('');
   };
 
-  // ── Fetch all data ──────────────────────────────────────────────────────────
+  // Fetch all data
   const refreshAllData = useCallback(async () => {
     if (!isAuthenticated) return;
     setLoadingData(true);
@@ -120,7 +119,6 @@ export const AdminPortal: React.FC = () => {
         if (!newSubjectClassId) setNewSubjectClassId(clsList[0].id);
       }
 
-      // Check health
       api.get('/health').then(res => setSystemHealth(res.data)).catch(() => {});
     } catch (err) {
       console.error('Failed to load admin data:', err);
@@ -135,7 +133,7 @@ export const AdminPortal: React.FC = () => {
     }
   }, [isAuthenticated, refreshAllData]);
 
-  // ── Class Handlers ──────────────────────────────────────────────────────────
+  // Class Handlers
   const handleCreateClass = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -165,7 +163,7 @@ export const AdminPortal: React.FC = () => {
     }
   };
 
-  // ── Student Handlers ────────────────────────────────────────────────────────
+  // Student Handlers
   const handleCreateStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -210,7 +208,7 @@ export const AdminPortal: React.FC = () => {
     }
   };
 
-  // ── Subject Handlers ────────────────────────────────────────────────────────
+  // Subject Handlers
   const handleCreateSubject = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -240,7 +238,6 @@ export const AdminPortal: React.FC = () => {
     }
   };
 
-  // ── FILTERED STUDENTS ───────────────────────────────────────────────────────
   const filteredStudents = students.filter((s) => {
     const matchesSearch =
       s.name.toLowerCase().includes(studentSearch.toLowerCase()) ||
@@ -255,173 +252,181 @@ export const AdminPortal: React.FC = () => {
   // ── RENDER 1: MASTER PASSWORD LOCK SCREEN ──────────────────────────────────
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#08090d] text-zinc-100 flex items-center justify-center p-4 relative select-none">
-        {/* Subtle Ambient Backlight */}
-        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-zinc-700/10 rounded-full blur-[100px] pointer-events-none" />
-
-        <div className="max-w-sm w-full space-y-6 relative z-10">
-          {/* Brand & Terminal Header */}
-          <div className="text-center space-y-2">
-            <div className="inline-flex p-3.5 rounded-2xl bg-zinc-900 border border-white/[0.08] text-zinc-300 shadow-2xl">
-              <Shield className="w-6 h-6" />
+      <div className="min-h-screen bg-[#FBFBFB] text-[#111827] flex flex-col justify-between selection:bg-blue-600 selection:text-white font-sans">
+        <header className="w-full max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          <div onClick={() => navigate('/')} className="flex items-center gap-2.5 cursor-pointer group">
+            <div className="w-9 h-9 rounded-xl bg-black text-white flex items-center justify-center font-bold shadow-sm transition-transform group-hover:scale-105">
+              <Camera className="w-5 h-5 text-white" />
             </div>
-            <h1 className="text-xl font-bold tracking-tight text-white">AttendX Control Terminal</h1>
-            <p className="text-xs text-zinc-500 font-mono tracking-wide">
-              ADMINISTRATION GATEWAY • RESTRICTED
-            </p>
+            <div className="flex items-center">
+              <span className="font-extrabold text-2xl tracking-tight text-slate-900">Attend</span>
+              <span className="font-extrabold text-2xl tracking-tight text-blue-600">X</span>
+            </div>
           </div>
 
-          {/* Master Password Card */}
-          <div className="bg-[#0f1117] border border-white/[0.08] rounded-2xl p-6 shadow-2xl backdrop-blur-2xl">
-            {authError && (
-              <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs font-medium flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{authError}</span>
-              </div>
-            )}
+          <button
+            onClick={() => navigate('/login')}
+            className="text-sm font-semibold text-slate-600 hover:text-slate-950 flex items-center gap-1 transition-colors px-3 py-2 rounded-lg hover:bg-slate-100/60"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Faculty Login</span>
+          </button>
+        </header>
 
-            <form onSubmit={handleAdminLogin} className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-mono font-semibold uppercase tracking-widest text-zinc-400 mb-2">
-                  Enter Master Password
-                </label>
-                <div className="relative">
-                  <KeyRound className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={passwordInput}
-                    onChange={(e) => setPasswordInput(e.target.value)}
-                    autoFocus
-                    placeholder="••••••••"
-                    required
-                    className="w-full bg-[#08090d] border border-white/[0.1] rounded-xl pl-10 pr-10 py-3 text-sm text-white font-mono tracking-wider focus:outline-none focus:border-zinc-400 transition-all placeholder:text-zinc-700"
-                  />
+        <main className="flex-1 flex items-center justify-center px-4 py-12">
+          <div className="max-w-sm w-full space-y-6">
+            <div className="text-center space-y-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-100 mb-1">
+                <Shield className="w-3.5 h-3.5 text-blue-600" /> Department Administration
+              </div>
+              <h1 className="font-serif text-3xl text-slate-900 font-normal tracking-tight">Institutional Terminal</h1>
+              <p className="text-xs text-slate-500">Enter your institution root master key.</p>
+            </div>
+
+            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 sm:p-7 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.05)]">
+              {authError && (
+                <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{authError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleAdminLogin} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Master Password
+                  </label>
+                  <div className="relative">
+                    <KeyRound className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={passwordInput}
+                      onChange={(e) => setPasswordInput(e.target.value)}
+                      autoFocus
+                      placeholder="Default: 2026/"
+                      required
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-10 py-2.5 text-sm text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Quick Keypad */}
+                <div className="grid grid-cols-4 gap-1.5 pt-1">
+                  {['2', '0', '2', '6', '/'].map((char, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setPasswordInput((prev) => prev + char)}
+                      className="py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-mono font-bold text-slate-700 transition-all"
+                    >
+                      {char}
+                    </button>
+                  ))}
                   <button
                     type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                    onClick={() => setPasswordInput((prev) => prev.slice(0, -1))}
+                    className="py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-mono font-bold text-slate-600"
                   >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    DEL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPasswordInput('')}
+                    className="col-span-2 py-2 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-xs font-mono font-bold text-slate-600"
+                  >
+                    CLEAR
                   </button>
                 </div>
-              </div>
 
-              {/* Quick Keypad for fast touch / click */}
-              <div className="grid grid-cols-4 gap-1.5 pt-1">
-                {['2', '0', '2', '6', '/'].map((char, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => setPasswordInput((prev) => prev + char)}
-                    className="py-2 bg-zinc-900/80 hover:bg-zinc-800 border border-white/[0.05] rounded-lg text-xs font-mono text-zinc-300 hover:text-white transition-all active:scale-95"
-                  >
-                    {char}
-                  </button>
-                ))}
                 <button
-                  type="button"
-                  onClick={() => setPasswordInput((prev) => prev.slice(0, -1))}
-                  className="py-2 bg-zinc-900/80 hover:bg-zinc-800 border border-white/[0.05] rounded-lg text-[10px] font-mono text-zinc-400 transition-all"
+                  type="submit"
+                  disabled={authLoading || !passwordInput}
+                  className="w-full py-3 px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-sm rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 mt-2 disabled:opacity-50"
                 >
-                  DEL
+                  {authLoading ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Unlock className="w-4 h-4" />
+                      <span>Unlock Terminal</span>
+                    </>
+                  )}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setPasswordInput('')}
-                  className="col-span-2 py-2 bg-zinc-900/80 hover:bg-zinc-800 border border-white/[0.05] rounded-lg text-[10px] font-mono text-zinc-400 transition-all"
-                >
-                  CLEAR
-                </button>
-              </div>
-
-              <button
-                type="submit"
-                disabled={authLoading || !passwordInput}
-                className="w-full py-3 px-4 bg-zinc-100 hover:bg-white text-zinc-950 font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed mt-2"
-              >
-                {authLoading ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <>
-                    <Unlock className="w-4 h-4" />
-                    <span>Unlock Admin Console</span>
-                  </>
-                )}
-              </button>
-            </form>
-
-            <div className="mt-5 pt-4 border-t border-white/[0.06] text-center">
-              <button
-                type="button"
-                onClick={() => navigate('/dashboard')}
-                className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors inline-flex items-center gap-1 font-mono"
-              >
-                ← Return to Teacher Portal
-              </button>
+              </form>
             </div>
           </div>
-        </div>
+        </main>
+
+        <footer className="py-6 border-t border-slate-200/80 bg-white text-center text-xs text-slate-500">
+          AttendX Administration Gateway · Multi-Campus Secure Node
+        </footer>
       </div>
     );
   }
 
   // ── RENDER 2: UNLOCKED ADMIN CONSOLE ─────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#08090d] text-zinc-100 flex flex-col antialiased selection:bg-zinc-700 selection:text-white">
+    <div className="min-h-screen bg-[#FBFBFB] text-[#111827] flex flex-col font-sans selection:bg-blue-600 selection:text-white">
       {/* Toast Notification */}
       {actionMessage && (
-        <div className={`fixed top-4 right-4 z-50 py-2.5 px-4 rounded-xl border shadow-2xl text-xs font-medium flex items-center gap-2 animate-in fade-in slide-in-from-top-2 ${
+        <div className={`fixed top-4 right-4 z-50 py-3 px-5 rounded-2xl border shadow-xl text-xs font-semibold flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2 ${
           actionMessage.type === 'success'
-            ? 'bg-emerald-950/90 border-emerald-500/30 text-emerald-200'
-            : 'bg-rose-950/90 border-rose-500/30 text-rose-200'
+            ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+            : 'bg-rose-50 border-rose-200 text-rose-800'
         }`}>
-          {actionMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <AlertCircle className="w-4 h-4 text-rose-400" />}
+          {actionMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <AlertCircle className="w-4 h-4 text-rose-600" />}
           <span>{actionMessage.text}</span>
         </div>
       )}
 
-      {/* Top Navigation Bar */}
-      <header className="border-b border-white/[0.06] bg-[#0c0d12]/90 backdrop-blur-xl sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-white/[0.08] flex items-center justify-center text-zinc-200">
-              <Shield className="w-4 h-4" />
+      {/* Top Header */}
+      <header className="border-b border-slate-200/90 bg-white sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
+            <div className="w-8 h-8 rounded-xl bg-black text-white flex items-center justify-center font-bold shadow-sm">
+              <Shield className="w-4 h-4 text-white" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-sm text-white tracking-tight">AttendX</span>
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-white/[0.06]">
-                  ADMIN
+                <span className="font-extrabold text-lg text-slate-900">AttendX</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                  INSTITUTIONAL ADMIN
                 </span>
               </div>
-              <p className="text-[10px] text-zinc-500 font-mono">ROOT OPERATOR CONSOLE</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => navigate('/take-attendance')}
-              className="hidden sm:inline-flex py-1.5 px-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-medium rounded-lg border border-white/[0.06] transition-all"
+              className="hidden sm:inline-flex py-1.5 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 transition-colors"
             >
-              Live Attendance
+              Live Scan
             </button>
             <button
               onClick={() => navigate('/student')}
-              className="hidden sm:inline-flex py-1.5 px-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-medium rounded-lg border border-white/[0.06] transition-all"
+              className="hidden sm:inline-flex py-1.5 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl border border-slate-200 transition-colors"
             >
               Student Portal
             </button>
             <button
               onClick={refreshAllData}
               disabled={loadingData}
-              className="p-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 rounded-lg border border-white/[0.06] transition-all"
+              className="p-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-200 transition-colors"
               title="Refresh Data"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loadingData ? 'animate-spin' : ''}`} />
             </button>
             <button
               onClick={handleAdminLock}
-              className="py-1.5 px-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5"
+              className="py-1.5 px-3.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5"
             >
               <Lock className="w-3.5 h-3.5" />
               <span>Lock Terminal</span>
@@ -430,7 +435,7 @@ export const AdminPortal: React.FC = () => {
         </div>
 
         {/* Tab Navigation */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex gap-1 overflow-x-auto no-scrollbar border-t border-white/[0.04]">
+        <div className="max-w-7xl mx-auto px-6 flex gap-2 overflow-x-auto no-scrollbar border-t border-slate-100 py-1.5 bg-white">
           {[
             { id: 'overview', label: 'Overview & Telemetry', icon: Activity },
             { id: 'classes', label: `Classes (${classes.length})`, icon: BookOpen },
@@ -444,10 +449,10 @@ export const AdminPortal: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as AdminTab)}
-                className={`py-3 px-3.5 text-xs font-medium flex items-center gap-2 border-b-2 transition-all shrink-0 ${
+                className={`py-2 px-3.5 text-xs font-semibold rounded-xl flex items-center gap-2 transition-all shrink-0 ${
                   isActive
-                    ? 'border-zinc-200 text-white font-semibold bg-white/[0.02]'
-                    : 'border-transparent text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.01]'
+                    ? 'bg-blue-50 text-blue-700 border border-blue-100 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -459,120 +464,98 @@ export const AdminPortal: React.FC = () => {
       </header>
 
       {/* Main Content Workspace */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-6 space-y-6">
 
         {/* ── TAB 1: OVERVIEW & TELEMETRY ───────────────────────────────────── */}
         {activeTab === 'overview' && (
-          <div className="space-y-6 animate-in fade-in">
-            {/* Metric KPI Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-[#0f1117] border border-white/[0.08] rounded-2xl p-5 space-y-2">
-                <div className="flex items-center justify-between text-zinc-500">
-                  <span className="text-[10px] font-mono uppercase tracking-widest">Enrolled Students</span>
-                  <Users className="w-4 h-4 text-zinc-400" />
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-1">
+                <div className="flex items-center justify-between text-slate-500">
+                  <span className="text-xs font-semibold uppercase tracking-wider">Enrolled Students</span>
+                  <Users className="w-4 h-4 text-blue-600" />
                 </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold text-white tracking-tight">{students.length}</span>
-                  <span className="text-xs text-zinc-500">active profiles</span>
-                </div>
-                <div className="text-[11px] text-zinc-400">
-                  {students.filter(s => (s.face_count || 0) > 0).length} calibrated with face data
+                <div className="text-3xl font-extrabold text-slate-900 tracking-tight">{students.length}</div>
+                <div className="text-xs text-slate-500">
+                  {students.filter(s => (s.face_count || 0) > 0).length} calibrated with face vectors
                 </div>
               </div>
 
-              <div className="bg-[#0f1117] border border-white/[0.08] rounded-2xl p-5 space-y-2">
-                <div className="flex items-center justify-between text-zinc-500">
-                  <span className="text-[10px] font-mono uppercase tracking-widest">Class Sections</span>
-                  <BookOpen className="w-4 h-4 text-zinc-400" />
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-1">
+                <div className="flex items-center justify-between text-slate-500">
+                  <span className="text-xs font-semibold uppercase tracking-wider">Class Sections</span>
+                  <BookOpen className="w-4 h-4 text-blue-600" />
                 </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold text-white tracking-tight">{classes.length}</span>
-                  <span className="text-xs text-zinc-500">cohorts</span>
-                </div>
-                <div className="text-[11px] text-zinc-400">
-                  {subjects.length} active subject modules
-                </div>
+                <div className="text-3xl font-extrabold text-slate-900 tracking-tight">{classes.length}</div>
+                <div className="text-xs text-slate-500">{subjects.length} active subject modules</div>
               </div>
 
-              <div className="bg-[#0f1117] border border-white/[0.08] rounded-2xl p-5 space-y-2">
-                <div className="flex items-center justify-between text-zinc-500">
-                  <span className="text-[10px] font-mono uppercase tracking-widest">Biometric Database</span>
-                  <Sparkles className="w-4 h-4 text-zinc-400" />
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-1">
+                <div className="flex items-center justify-between text-slate-500">
+                  <span className="text-xs font-semibold uppercase tracking-wider">Biometric Database</span>
+                  <Sparkles className="w-4 h-4 text-blue-600" />
                 </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold text-white tracking-tight">{totalFacesStored}</span>
-                  <span className="text-xs text-zinc-500">128-d vectors</span>
-                </div>
-                <div className="text-[11px] text-zinc-400">
-                  Real-time OpenCV SFace embeddings
-                </div>
+                <div className="text-3xl font-extrabold text-slate-900 tracking-tight">{totalFacesStored}</div>
+                <div className="text-xs text-slate-500">OpenCV SFace 128-D vectors</div>
               </div>
 
-              <div className="bg-[#0f1117] border border-white/[0.08] rounded-2xl p-5 space-y-2">
-                <div className="flex items-center justify-between text-zinc-500">
-                  <span className="text-[10px] font-mono uppercase tracking-widest">Inference Engine</span>
-                  <Cpu className="w-4 h-4 text-emerald-400" />
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-1">
+                <div className="flex items-center justify-between text-slate-500">
+                  <span className="text-xs font-semibold uppercase tracking-wider">Vision Engine</span>
+                  <Cpu className="w-4 h-4 text-emerald-600" />
                 </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-xl font-bold text-emerald-400 tracking-tight">YuNet + SFace</span>
-                </div>
-                <div className="text-[11px] text-zinc-400 flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>ZeroGPU / ONNX Active</span>
+                <div className="text-xl font-bold text-emerald-600 tracking-tight">YuNet + SFace</div>
+                <div className="text-xs text-slate-500 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Sub-second match online</span>
                 </div>
               </div>
             </div>
 
             {/* Quick Management Shortcuts */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-[#0f1117] border border-white/[0.08] rounded-2xl p-5 space-y-3">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-zinc-400" />
-                  Classes Quick Setup
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-3">
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-blue-600" />
+                  Class Sections
                 </h3>
-                <p className="text-xs text-zinc-400">
-                  Create class sections, manage academic years, and assign faculty.
-                </p>
+                <p className="text-xs text-slate-600">Create new classrooms, assign sections, and manage academic years.</p>
                 <button
                   onClick={() => { setActiveTab('classes'); setShowCreateClassModal(true); }}
-                  className="w-full py-2 px-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-white/[0.08] text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition-all"
+                  className="w-full py-2.5 px-3 bg-slate-50 hover:bg-blue-50 text-slate-800 hover:text-blue-700 border border-slate-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition-all"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  Add New Class
+                  <span>Add Class Section</span>
                 </button>
               </div>
 
-              <div className="bg-[#0f1117] border border-white/[0.08] rounded-2xl p-5 space-y-3">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Users className="w-4 h-4 text-zinc-400" />
-                  Student Directory & Faces
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-3">
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-blue-600" />
+                  Student Directory
                 </h3>
-                <p className="text-xs text-zinc-400">
-                  View student training levels, manage enrollments, or wipe face embeddings.
-                </p>
+                <p className="text-xs text-slate-600">Register students, view readiness scores, or wipe biometric vectors.</p>
                 <button
                   onClick={() => { setActiveTab('students'); setShowCreateStudentModal(true); }}
-                  className="w-full py-2 px-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-white/[0.08] text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition-all"
+                  className="w-full py-2.5 px-3 bg-slate-50 hover:bg-blue-50 text-slate-800 hover:text-blue-700 border border-slate-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition-all"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  Enroll New Student
+                  <span>Enroll New Student</span>
                 </button>
               </div>
 
-              <div className="bg-[#0f1117] border border-white/[0.08] rounded-2xl p-5 space-y-3">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Sliders className="w-4 h-4 text-zinc-400" />
-                  Curriculum & Subjects
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-3">
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-blue-600" />
+                  Curriculum Modules
                 </h3>
-                <p className="text-xs text-zinc-400">
-                  Configure subject codes, syllabus mappings, and class assignments.
-                </p>
+                <p className="text-xs text-slate-600">Configure subject codes, syllabus mappings, and course offerings.</p>
                 <button
                   onClick={() => { setActiveTab('subjects'); setShowCreateSubjectModal(true); }}
-                  className="w-full py-2 px-3 bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-white/[0.08] text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition-all"
+                  className="w-full py-2.5 px-3 bg-slate-50 hover:bg-blue-50 text-slate-800 hover:text-blue-700 border border-slate-200 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition-all"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  Add New Subject
+                  <span>Add Subject Code</span>
                 </button>
               </div>
             </div>
@@ -581,396 +564,303 @@ export const AdminPortal: React.FC = () => {
 
         {/* ── TAB 2: CLASSES MANAGEMENT ──────────────────────────────────────── */}
         {activeTab === 'classes' && (
-          <div className="space-y-4 animate-in fade-in">
+          <div className="space-y-4">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-base font-bold text-white">Class Sections Directory</h2>
-                <p className="text-xs text-zinc-400">Manage all registered academic classes and student allotments.</p>
+                <h2 className="font-serif text-2xl text-slate-900 font-normal">Class Sections Directory</h2>
+                <p className="text-xs text-slate-500">Manage all registered academic cohorts and student enrollments.</p>
               </div>
               <button
                 onClick={() => setShowCreateClassModal(true)}
-                className="py-2 px-3.5 bg-zinc-100 hover:bg-white text-zinc-950 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all shadow-lg"
+                className="py-2.5 px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all shadow-sm"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Create Class</span>
               </button>
             </div>
 
-            {classes.length === 0 ? (
-              <div className="bg-[#0f1117] border border-white/[0.08] rounded-2xl p-12 text-center space-y-3">
-                <BookOpen className="w-10 h-10 text-zinc-600 mx-auto" />
-                <h3 className="text-sm font-bold text-white">No Classes Registered Yet</h3>
-                <p className="text-xs text-zinc-400 max-w-sm mx-auto">
-                  Create your first class section to begin enrolling students and taking attendance.
-                </p>
-                <button
-                  onClick={() => setShowCreateClassModal(true)}
-                  className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold rounded-xl"
-                >
-                  + Add First Class
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {classes.map((c) => (
-                  <div key={c.id} className="bg-[#0f1117] border border-white/[0.08] rounded-2xl p-5 space-y-4 shadow-lg">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="text-base font-bold text-white">{c.name}</h3>
-                        <p className="text-xs text-zinc-400">Section {c.section} • {c.academic_year}</p>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteClass(c.id, `${c.name} - ${c.section}`)}
-                        className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all"
-                        title="Delete Class"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <div className="pt-3 border-t border-white/[0.04] flex items-center justify-between text-xs text-zinc-400">
-                      <span className="flex items-center gap-1.5">
-                        <Users className="w-3.5 h-3.5 text-zinc-500" />
-                        {students.filter(s => s.class_id === c.id).length} Students
-                      </span>
-                      <button
-                        onClick={() => { setSelectedClassFilter(c.id); setActiveTab('students'); }}
-                        className="text-zinc-300 hover:text-white font-medium hover:underline flex items-center gap-1"
-                      >
-                        View Students →
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-sm">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <tr>
+                    <th className="py-3 px-4">Class Name</th>
+                    <th className="py-3 px-4">Section</th>
+                    <th className="py-3 px-4">Academic Year</th>
+                    <th className="py-3 px-4">Students</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {classes.map((cls) => (
+                    <tr key={cls.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="py-3.5 px-4 font-bold text-slate-900">{cls.name}</td>
+                      <td className="py-3.5 px-4 text-slate-600 font-medium">{cls.section}</td>
+                      <td className="py-3.5 px-4 text-slate-500 text-xs">{cls.academic_year}</td>
+                      <td className="py-3.5 px-4">
+                        <span className="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-semibold border border-blue-100">
+                          {cls.student_count || 0} enrolled
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <button
+                          onClick={() => handleDeleteClass(cls.id, cls.name)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
+                          title="Delete class"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
-        {/* ── TAB 3: STUDENT DIRECTORY & CONTINUOUS FACE TRAINING ──────────────── */}
+        {/* ── TAB 3: STUDENTS DIRECTORY ──────────────────────────────────────── */}
         {activeTab === 'students' && (
-          <div className="space-y-4 animate-in fade-in">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h2 className="text-base font-bold text-white">Student Directory & Biometric Telemetry</h2>
-                <p className="text-xs text-zinc-400">Real-time status of enrolled face vectors and training accuracy tiers.</p>
+                <h2 className="font-serif text-2xl text-slate-900 font-normal">Student Biometric Directory</h2>
+                <p className="text-xs text-slate-500">Search student profiles, training scores, and face vectors.</p>
               </div>
               <button
                 onClick={() => setShowCreateStudentModal(true)}
-                className="py-2 px-3.5 bg-zinc-100 hover:bg-white text-zinc-950 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all shadow-lg"
+                className="py-2.5 px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all shadow-sm"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Enroll Student</span>
               </button>
             </div>
 
-            {/* Filter Toolbar */}
-            <div className="bg-[#0f1117] border border-white/[0.08] rounded-2xl p-3 flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+            {/* Filter Bar */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-sm flex flex-col sm:flex-row items-center gap-3">
+              <div className="relative flex-1 w-full">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
-                  placeholder="Search by name, Student ID, or Roll number..."
                   value={studentSearch}
                   onChange={(e) => setStudentSearch(e.target.value)}
-                  className="w-full bg-[#08090d] border border-white/[0.08] rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-zinc-400"
+                  placeholder="Search student name, ID, or roll number..."
+                  className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-blue-500"
                 />
               </div>
 
               <select
                 value={selectedClassFilter}
                 onChange={(e) => setSelectedClassFilter(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
-                className="bg-[#08090d] border border-white/[0.08] text-zinc-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-zinc-400"
+                className="w-full sm:w-48 py-2 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 font-medium focus:outline-none focus:border-blue-500"
               >
-                <option value="ALL">All Classes ({students.length})</option>
+                <option value="ALL">All Classrooms</option>
                 {classes.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} - {c.section}
-                  </option>
+                  <option key={c.id} value={c.id}>{c.name} {c.section}</option>
                 ))}
               </select>
             </div>
 
-            {/* Student Table */}
-            <div className="bg-[#0f1117] border border-white/[0.08] rounded-2xl overflow-hidden shadow-xl">
-              {filteredStudents.length === 0 ? (
-                <div className="p-10 text-center text-zinc-500 text-xs">
-                  No students found matching current filters.
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[#0c0d12] text-zinc-400 border-b border-white/[0.06] font-mono uppercase text-[10px]">
-                      <tr>
-                        <th className="py-3 px-4">Student ID / Roll</th>
-                        <th className="py-3 px-4">Full Name</th>
-                        <th className="py-3 px-4">Class</th>
-                        <th className="py-3 px-4">Face Embeddings</th>
-                        <th className="py-3 px-4">Training Precision</th>
-                        <th className="py-3 px-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/[0.04]">
-                      {filteredStudents.map((s) => {
-                        const faceCount = s.face_count || 0;
-                        const cls = classes.find(c => c.id === s.class_id);
-
-                        let tierBadge = { label: 'Not Scanned', color: 'bg-zinc-800 text-zinc-400 border-zinc-700' };
-                        if (faceCount >= 20) {
-                          tierBadge = { label: 'Ultra Precision', color: 'bg-purple-500/10 text-purple-300 border-purple-500/20' };
-                        } else if (faceCount >= 10) {
-                          tierBadge = { label: 'High Precision', color: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' };
-                        } else if (faceCount >= 5) {
-                          tierBadge = { label: 'Standard Baseline', color: 'bg-blue-500/10 text-blue-300 border-blue-500/20' };
-                        } else if (faceCount > 0) {
-                          tierBadge = { label: 'Calibrating', color: 'bg-amber-500/10 text-amber-300 border-amber-500/20' };
-                        }
-
-                        return (
-                          <tr key={s.id} className="hover:bg-white/[0.01] transition-colors">
-                            <td className="py-3 px-4 font-mono font-semibold text-zinc-300">
-                              <div>{s.student_id}</div>
-                              <div className="text-[10px] text-zinc-500">Roll: {s.roll_number}</div>
-                            </td>
-                            <td className="py-3 px-4 font-bold text-white">
-                              {s.name}
-                              {s.email && <div className="text-[10px] text-zinc-500 font-normal">{s.email}</div>}
-                            </td>
-                            <td className="py-3 px-4 text-zinc-300">
-                              {cls ? `${cls.name} ${cls.section}` : 'Unassigned'}
-                            </td>
-                            <td className="py-3 px-4">
-                              <span className="font-mono font-bold text-white">{faceCount}</span>
-                              <span className="text-zinc-500 text-[10px] ml-1">vectors</span>
-                            </td>
-                            <td className="py-3 px-4">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-semibold border ${tierBadge.color}`}>
-                                {tierBadge.label}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-right space-x-2">
-                              {faceCount > 0 && (
-                                <button
-                                  onClick={() => handleResetStudentFace(s.id, s.name)}
-                                  className="text-[10px] py-1 px-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 rounded font-medium transition-all"
-                                  title="Wipe biometric vectors"
-                                >
-                                  Wipe Biometrics
-                                </button>
-                              )}
-                              <button
-                                onClick={() => handleDeleteStudent(s.id, s.name)}
-                                className="text-[10px] py-1 px-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 rounded font-medium transition-all"
-                                title="Delete Student"
-                              >
-                                Delete
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+            <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-sm">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <tr>
+                    <th className="py-3 px-4">Student</th>
+                    <th className="py-3 px-4">ID & Roll</th>
+                    <th className="py-3 px-4">Class</th>
+                    <th className="py-3 px-4">Face Status</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredStudents.map((stu) => (
+                    <tr key={stu.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="py-3.5 px-4 font-bold text-slate-900">{stu.name}</td>
+                      <td className="py-3.5 px-4 text-xs font-mono text-slate-500">
+                        {stu.student_id} • {stu.roll_number}
+                      </td>
+                      <td className="py-3.5 px-4 text-xs text-slate-600 font-medium">
+                        {classes.find(c => c.id === stu.class_id)?.name || `Class #${stu.class_id}`}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        {(stu.face_count || 0) > 0 ? (
+                          <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-semibold border border-emerald-100">
+                            {stu.face_count} Scans Enrolled
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 bg-amber-50 text-amber-700 rounded-lg text-xs font-semibold border border-amber-100">
+                            Pending Scan
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4 text-right space-x-1">
+                        <button
+                          onClick={() => handleResetStudentFace(stu.id, stu.name)}
+                          className="p-1.5 text-slate-400 hover:text-amber-600 rounded-lg hover:bg-amber-50 transition-colors"
+                          title="Reset Face Training Vectors"
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteStudent(stu.id, stu.name)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
+                          title="Delete Student"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
 
-        {/* ── TAB 4: SUBJECTS CATALOG ────────────────────────────────────────── */}
+        {/* ── TAB 4: SUBJECTS MANAGEMENT ─────────────────────────────────────── */}
         {activeTab === 'subjects' && (
-          <div className="space-y-4 animate-in fade-in">
+          <div className="space-y-4">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h2 className="text-base font-bold text-white">Subjects Catalog</h2>
-                <p className="text-xs text-zinc-400">Configure curriculum modules, subject codes, and course allocations.</p>
+                <h2 className="font-serif text-2xl text-slate-900 font-normal">Subject Modules</h2>
+                <p className="text-xs text-slate-500">Curriculum catalog and subject code mappings.</p>
               </div>
               <button
                 onClick={() => setShowCreateSubjectModal(true)}
-                className="py-2 px-3.5 bg-zinc-100 hover:bg-white text-zinc-950 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all shadow-lg"
+                className="py-2.5 px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all shadow-sm"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Subject</span>
               </button>
             </div>
 
-            {subjects.length === 0 ? (
-              <div className="bg-[#0f1117] border border-white/[0.08] rounded-2xl p-12 text-center space-y-3">
-                <Sliders className="w-10 h-10 text-zinc-600 mx-auto" />
-                <h3 className="text-sm font-bold text-white">No Subjects Added Yet</h3>
-                <p className="text-xs text-zinc-400 max-w-sm mx-auto">
-                  Add course subjects to allow teachers to take roll calls and log attendance sessions.
-                </p>
-                <button
-                  onClick={() => setShowCreateSubjectModal(true)}
-                  className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold rounded-xl"
-                >
-                  + Add First Subject
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {subjects.map((sub) => {
-                  const cls = classes.find(c => c.id === sub.class_id);
-                  return (
-                    <div key={sub.id} className="bg-[#0f1117] border border-white/[0.08] rounded-2xl p-5 space-y-3 shadow-lg">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-white/[0.06]">
-                            {sub.code}
-                          </span>
-                          <h3 className="text-sm font-bold text-white mt-1.5">{sub.name}</h3>
-                          <p className="text-xs text-zinc-400">{cls ? `${cls.name} - ${cls.section}` : 'General Class'}</p>
-                        </div>
+            <div className="bg-white border border-slate-200/90 rounded-2xl overflow-hidden shadow-sm">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  <tr>
+                    <th className="py-3 px-4">Subject Name</th>
+                    <th className="py-3 px-4">Subject Code</th>
+                    <th className="py-3 px-4">Class Allotment</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {subjects.map((sub) => (
+                    <tr key={sub.id} className="hover:bg-slate-50/70 transition-colors">
+                      <td className="py-3.5 px-4 font-bold text-slate-900">{sub.name}</td>
+                      <td className="py-3.5 px-4 text-xs font-mono font-bold text-blue-600">{sub.code}</td>
+                      <td className="py-3.5 px-4 text-xs text-slate-600 font-medium">
+                        {classes.find(c => c.id === sub.class_id)?.name || `Class #${sub.class_id}`}
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
                         <button
                           onClick={() => handleDeleteSubject(sub.id, sub.name)}
-                          className="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-all"
+                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
                           title="Delete Subject"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
 
-        {/* ── TAB 5: SYSTEM DIAGNOSTICS & AUDIT ──────────────────────────────── */}
+        {/* ── TAB 5: SYSTEM DIAGNOSTICS ──────────────────────────────────────── */}
         {activeTab === 'diagnostics' && (
-          <div className="space-y-6 animate-in fade-in">
+          <div className="space-y-5">
             <div>
-              <h2 className="text-base font-bold text-white">System Architecture & Diagnostics</h2>
-              <p className="text-xs text-zinc-400">Live operational status of ZeroGPU, OpenCV pipeline, and database services.</p>
+              <h2 className="font-serif text-2xl text-slate-900 font-normal">System Diagnostics & Node Telemetry</h2>
+              <p className="text-xs text-slate-500">Real-time status of the biometric recognition engine and database layer.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-[#0f1117] border border-white/[0.08] rounded-2xl p-5 space-y-4">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Cpu className="w-4 h-4 text-emerald-400" />
-                  Neural Vision Pipeline
-                </h3>
-                <div className="space-y-2 text-xs font-mono">
-                  <div className="flex justify-between py-1.5 border-b border-white/[0.04]">
-                    <span className="text-zinc-500">Face Detector</span>
-                    <span className="text-zinc-200">OpenCV YuNet (ONNX)</span>
-                  </div>
-                  <div className="flex justify-between py-1.5 border-b border-white/[0.04]">
-                    <span className="text-zinc-500">Face Embedder</span>
-                    <span className="text-zinc-200">OpenCV SFace 128-D (ONNX)</span>
-                  </div>
-                  <div className="flex justify-between py-1.5 border-b border-white/[0.04]">
-                    <span className="text-zinc-500">ZeroGPU Target</span>
-                    <span className="text-emerald-400">Hugging Face @spaces.GPU Active</span>
-                  </div>
-                  <div className="flex justify-between py-1.5">
-                    <span className="text-zinc-500">Matcher Strategy</span>
-                    <span className="text-zinc-200">Cosine Sim + Top-2 Margin Gap</span>
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  <Database className="w-4 h-4 text-blue-600" />
+                  <span>Database Layer</span>
                 </div>
+                <div className="text-2xl font-extrabold text-emerald-600">CONNECTED</div>
+                <p className="text-xs text-slate-500">PostgreSQL Cloud Instance active with connection pooling.</p>
               </div>
 
-              <div className="bg-[#0f1117] border border-white/[0.08] rounded-2xl p-5 space-y-4">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Database className="w-4 h-4 text-blue-400" />
-                  Database & API Gateway
-                </h3>
-                <div className="space-y-2 text-xs font-mono">
-                  <div className="flex justify-between py-1.5 border-b border-white/[0.04]">
-                    <span className="text-zinc-500">Backend API</span>
-                    <span className="text-zinc-200">FastAPI + SQLite Engine</span>
-                  </div>
-                  <div className="flex justify-between py-1.5 border-b border-white/[0.04]">
-                    <span className="text-zinc-500">API Health Status</span>
-                    <span className="text-emerald-400">{systemHealth?.status === 'ok' ? 'Healthy (200 OK)' : 'Operational'}</span>
-                  </div>
-                  <div className="flex justify-between py-1.5 border-b border-white/[0.04]">
-                    <span className="text-zinc-500">Frontend Hosting</span>
-                    <span className="text-zinc-200">Vercel Edge Network</span>
-                  </div>
-                  <div className="flex justify-between py-1.5">
-                    <span className="text-zinc-500">Interactive Docs</span>
-                    <a
-                      href="https://iamudit02-attendx-api.hf.space/docs"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-blue-400 hover:underline flex items-center gap-1"
-                    >
-                      Swagger UI <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  <Cpu className="w-4 h-4 text-blue-600" />
+                  <span>Vision Pipeline</span>
                 </div>
+                <div className="text-2xl font-extrabold text-blue-600">YuNet + SFace 128-D</div>
+                <p className="text-xs text-slate-500">ZeroGPU multi-thread face detection with cosine similarity matcher.</p>
+              </div>
+
+              <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-slate-900 uppercase tracking-wider">
+                  <ShieldCheck className="w-4 h-4 text-blue-600" />
+                  <span>Security & GDPR</span>
+                </div>
+                <div className="text-2xl font-extrabold text-slate-900">ENCRYPTED</div>
+                <p className="text-xs text-slate-500">Biometric mathematical coordinates only. Raw images not stored.</p>
               </div>
             </div>
           </div>
         )}
-
       </main>
 
-      {/* ── MODAL: CREATE CLASS ─────────────────────────────────────────────── */}
+      {/* ── MODALS ── */}
+      {/* Create Class Modal */}
       {showCreateClassModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#0f1117] border border-white/[0.1] rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white">Create New Class Section</h3>
-              <button onClick={() => setShowCreateClassModal(false)} className="text-zinc-500 hover:text-zinc-300">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateClass} className="space-y-3 text-xs">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl p-7 max-w-md w-full shadow-2xl space-y-4">
+            <h3 className="font-serif text-2xl text-slate-900 font-normal">Create New Class Section</h3>
+            <form onSubmit={handleCreateClass} className="space-y-4">
               <div>
-                <label className="block text-zinc-400 mb-1">Class / Department Name</label>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Class Name</label>
                 <input
                   type="text"
-                  placeholder="e.g. Computer Science & Eng"
+                  required
                   value={newClassName}
                   onChange={(e) => setNewClassName(e.target.value)}
-                  required
-                  className="w-full bg-[#08090d] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-zinc-400"
+                  placeholder="e.g. CSE"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-500"
                 />
               </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-zinc-400 mb-1">Section</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. A or 1"
-                    value={newClassSection}
-                    onChange={(e) => setNewClassSection(e.target.value)}
-                    required
-                    className="w-full bg-[#08090d] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-zinc-400"
-                  />
-                </div>
-                <div>
-                  <label className="block text-zinc-400 mb-1">Academic Year</label>
-                  <input
-                    type="text"
-                    placeholder="2026-27"
-                    value={newAcademicYear}
-                    onChange={(e) => setNewAcademicYear(e.target.value)}
-                    required
-                    className="w-full bg-[#08090d] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-zinc-400"
-                  />
-                </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Section</label>
+                <input
+                  type="text"
+                  required
+                  value={newClassSection}
+                  onChange={(e) => setNewClassSection(e.target.value)}
+                  placeholder="e.g. Section A"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-500"
+                />
               </div>
-
-              <div className="pt-2 flex gap-2">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Academic Year</label>
+                <input
+                  type="text"
+                  required
+                  value={newAcademicYear}
+                  onChange={(e) => setNewAcademicYear(e.target.value)}
+                  placeholder="2026-27"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowCreateClassModal(false)}
-                  className="flex-1 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 rounded-xl font-semibold transition-all"
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-zinc-100 hover:bg-white text-zinc-950 font-bold rounded-xl transition-all shadow-md"
+                  className="flex-1 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold rounded-xl transition-colors"
                 >
-                  Create Class
+                  Create
                 </button>
               </div>
             </form>
@@ -978,95 +868,82 @@ export const AdminPortal: React.FC = () => {
         </div>
       )}
 
-      {/* ── MODAL: CREATE STUDENT ───────────────────────────────────────────── */}
+      {/* Create Student Modal */}
       {showCreateStudentModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#0f1117] border border-white/[0.1] rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white">Enroll New Student</h3>
-              <button onClick={() => setShowCreateStudentModal(false)} className="text-zinc-500 hover:text-zinc-300">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateStudent} className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-2">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl p-7 max-w-md w-full shadow-2xl space-y-4">
+            <h3 className="font-serif text-2xl text-slate-900 font-normal">Enroll New Student</h3>
+            <form onSubmit={handleCreateStudent} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-zinc-400 mb-1">Student ID (Login)</label>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Student ID</label>
                   <input
                     type="text"
-                    placeholder="e.g. STU101"
+                    required
                     value={newStudentId}
                     onChange={(e) => setNewStudentId(e.target.value)}
-                    required
-                    className="w-full bg-[#08090d] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white font-mono focus:outline-none focus:border-zinc-400"
+                    placeholder="e.g. STU050"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-zinc-400 mb-1">Roll Number</label>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Roll Number</label>
                   <input
                     type="text"
-                    placeholder="e.g. 01"
+                    required
                     value={newStudentRoll}
                     onChange={(e) => setNewStudentRoll(e.target.value)}
-                    required
-                    className="w-full bg-[#08090d] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white font-mono focus:outline-none focus:border-zinc-400"
+                    placeholder="2026CSE50"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
-
               <div>
-                <label className="block text-zinc-400 mb-1">Full Name</label>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Full Name</label>
                 <input
                   type="text"
-                  placeholder="e.g. Alex Morgan"
+                  required
                   value={newStudentName}
                   onChange={(e) => setNewStudentName(e.target.value)}
-                  required
-                  className="w-full bg-[#08090d] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-zinc-400"
+                  placeholder="Full Student Name"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-500"
                 />
               </div>
-
               <div>
-                <label className="block text-zinc-400 mb-1">Assign Class</label>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Class Section</label>
                 <select
                   value={newStudentClassId}
                   onChange={(e) => setNewStudentClassId(Number(e.target.value))}
-                  required
-                  className="w-full bg-[#08090d] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-zinc-400"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-500"
                 >
                   {classes.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} - {c.section} ({c.academic_year})
-                    </option>
+                    <option key={c.id} value={c.id}>{c.name} {c.section}</option>
                   ))}
                 </select>
               </div>
-
               <div>
-                <label className="block text-zinc-400 mb-1">Email Address (Optional)</label>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Email (Optional)</label>
                 <input
                   type="email"
-                  placeholder="alex@university.edu"
                   value={newStudentEmail}
                   onChange={(e) => setNewStudentEmail(e.target.value)}
-                  className="w-full bg-[#08090d] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-zinc-400"
+                  placeholder="student@university.edu"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-500"
                 />
               </div>
-
-              <div className="pt-2 flex gap-2">
+              <div className="flex gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowCreateStudentModal(false)}
-                  className="flex-1 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 rounded-xl font-semibold transition-all"
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-zinc-100 hover:bg-white text-zinc-950 font-bold rounded-xl transition-all shadow-md"
+                  className="flex-1 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold rounded-xl transition-colors"
                 >
-                  Enroll Student
+                  Enroll
                 </button>
               </div>
             </form>
@@ -1074,69 +951,57 @@ export const AdminPortal: React.FC = () => {
         </div>
       )}
 
-      {/* ── MODAL: CREATE SUBJECT ───────────────────────────────────────────── */}
+      {/* Create Subject Modal */}
       {showCreateSubjectModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#0f1117] border border-white/[0.1] rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-white">Add Curriculum Subject</h3>
-              <button onClick={() => setShowCreateSubjectModal(false)} className="text-zinc-500 hover:text-zinc-300">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateSubject} className="space-y-3 text-xs">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl p-7 max-w-md w-full shadow-2xl space-y-4">
+            <h3 className="font-serif text-2xl text-slate-900 font-normal">Add Subject Module</h3>
+            <form onSubmit={handleCreateSubject} className="space-y-4">
               <div>
-                <label className="block text-zinc-400 mb-1">Subject Name</label>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Subject Name</label>
                 <input
                   type="text"
-                  placeholder="e.g. Neural Networks & Deep Learning"
+                  required
                   value={newSubjectName}
                   onChange={(e) => setNewSubjectName(e.target.value)}
-                  required
-                  className="w-full bg-[#08090d] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-zinc-400"
+                  placeholder="e.g. Distributed Computing"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-500"
                 />
               </div>
-
               <div>
-                <label className="block text-zinc-400 mb-1">Subject Code</label>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Subject Code</label>
                 <input
                   type="text"
-                  placeholder="e.g. CS401"
+                  required
                   value={newSubjectCode}
                   onChange={(e) => setNewSubjectCode(e.target.value)}
-                  required
-                  className="w-full bg-[#08090d] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white font-mono focus:outline-none focus:border-zinc-400"
+                  placeholder="e.g. CS402"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-500"
                 />
               </div>
-
               <div>
-                <label className="block text-zinc-400 mb-1">Assign to Class</label>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Class Allotment</label>
                 <select
                   value={newSubjectClassId}
                   onChange={(e) => setNewSubjectClassId(Number(e.target.value))}
-                  required
-                  className="w-full bg-[#08090d] border border-white/[0.08] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-zinc-400"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-500"
                 >
                   {classes.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} - {c.section}
-                    </option>
+                    <option key={c.id} value={c.id}>{c.name} {c.section}</option>
                   ))}
                 </select>
               </div>
-
-              <div className="pt-2 flex gap-2">
+              <div className="flex gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowCreateSubjectModal(false)}
-                  className="flex-1 py-2.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 rounded-xl font-semibold transition-all"
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-zinc-100 hover:bg-white text-zinc-950 font-bold rounded-xl transition-all shadow-md"
+                  className="flex-1 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold rounded-xl transition-colors"
                 >
                   Add Subject
                 </button>

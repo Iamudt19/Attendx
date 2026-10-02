@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Camera, Lock, Mail, User as UserIcon, ArrowRight, ShieldCheck, GraduationCap, UserPlus, LogIn, ExternalLink } from 'lucide-react';
+import { Camera, Lock, Mail, User as UserIcon, ArrowRight, ShieldCheck, GraduationCap, UserPlus, LogIn, ChevronLeft, Sparkles, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AuthService } from '../services/api';
 import { User } from '../types';
@@ -38,6 +38,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       const data = await AuthService.login(email.trim(), password);
       localStorage.setItem('attendx_token', data.access_token);
       onLoginSuccess(data.user, data.access_token);
+      navigate('/dashboard');
     } catch (err: any) {
       setError(extractErrorMessage(err, 'Login failed. Please check your email and password.'));
     } finally {
@@ -69,10 +70,11 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         role: role,
       });
       localStorage.setItem('attendx_token', data.access_token);
-      setSuccessMsg('Account created successfully! Redirecting...');
+      setSuccessMsg('Account created successfully! Redirecting to dashboard...');
       setTimeout(() => {
         onLoginSuccess(data.user, data.access_token);
-      }, 500);
+        navigate('/dashboard');
+      }, 600);
     } catch (err: any) {
       setError(extractErrorMessage(err, 'Registration failed. Please try again with another email.'));
     } finally {
@@ -80,269 +82,321 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     }
   };
 
+  const fillDemoTeacher = () => {
+    setEmail('teacher@attendx.edu');
+    setPassword('teacher123');
+    setActiveTab('signin');
+  };
+
+  const fillDemoAdmin = () => {
+    setEmail('admin@attendx.edu');
+    setPassword('admin123');
+    setActiveTab('signin');
+  };
+
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center p-4 relative overflow-hidden">
-      {/* Dynamic Background Glows */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[32rem] h-[32rem] bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute bottom-10 right-10 w-80 h-80 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none"></div>
-
-      <div className="max-w-md w-full space-y-6 relative z-10">
-        {/* Brand Header */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex p-3 rounded-2xl bg-blue-600/20 text-blue-400 border border-blue-500/30 mb-2 shadow-lg shadow-blue-500/10">
-            <Camera className="w-8 h-8" />
+    <div className="min-h-screen bg-[#FBFBFB] text-[#111827] flex flex-col justify-between selection:bg-blue-600 selection:text-white font-sans">
+      {/* Top Simple Header */}
+      <header className="w-full max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+        <div 
+          onClick={() => navigate('/')} 
+          className="flex items-center gap-2.5 cursor-pointer group"
+        >
+          <div className="w-9 h-9 rounded-xl bg-black text-white flex items-center justify-center font-bold shadow-sm transition-transform group-hover:scale-105">
+            <Camera className="w-5 h-5 text-white" />
           </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight">
-            Attend<span className="text-blue-500">X</span>
-          </h1>
-          <p className="text-sm text-slate-400 font-medium">"One Photo. Complete Attendance."</p>
+          <div className="flex items-center">
+            <span className="font-extrabold text-2xl tracking-tight text-slate-900">Attend</span>
+            <span className="font-extrabold text-2xl tracking-tight text-blue-600">X</span>
+          </div>
         </div>
 
-        {/* Tab Selector: Sign In vs Create Account */}
-        <div className="bg-slate-900/90 backdrop-blur-xl border border-slate-800 p-1.5 rounded-xl flex gap-1">
+        <div className="flex items-center gap-3">
           <button
-            type="button"
-            onClick={() => {
-              setActiveTab('signin');
-              setError(null);
-            }}
-            className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
-              activeTab === 'signin'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-            }`}
+            onClick={() => navigate('/student/login')}
+            className="text-sm font-semibold text-slate-600 hover:text-slate-950 flex items-center gap-1.5 transition-colors px-3 py-2 rounded-lg hover:bg-slate-100/60"
           >
-            <LogIn className="w-3.5 h-3.5" />
-            Sign In
+            <GraduationCap className="w-4 h-4 text-blue-600" />
+            <span>Student Portal</span>
           </button>
           <button
-            type="button"
-            onClick={() => {
-              setActiveTab('signup');
-              setError(null);
-            }}
-            className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
-              activeTab === 'signup'
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-            }`}
+            onClick={() => navigate('/')}
+            className="text-sm font-semibold text-slate-600 hover:text-slate-950 flex items-center gap-1 transition-colors px-3 py-2 rounded-lg hover:bg-slate-100/60"
           >
-            <UserPlus className="w-3.5 h-3.5" />
-            Create Account
+            <ChevronLeft className="w-4 h-4" />
+            <span>Overview</span>
           </button>
         </div>
+      </header>
 
-        {/* Main Card */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl">
-          {error && (
-            <div className="mb-4 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium">
-              {error}
+      {/* Main Login Card Container */}
+      <main className="flex-1 flex items-center justify-center px-4 py-12">
+        <div className="max-w-md w-full space-y-6">
+          {/* Card Header */}
+          <div className="text-center space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-100 mb-1">
+              <Sparkles className="w-3.5 h-3.5 text-blue-600" /> Educator & Institutional Access
             </div>
-          )}
+            <h1 className="font-serif text-4xl text-slate-900 font-normal tracking-tight">
+              {activeTab === 'signin' ? 'Welcome back.' : 'Create your account.'}
+            </h1>
+            <p className="text-sm text-slate-600">
+              {activeTab === 'signin' 
+                ? 'Sign in to access your lecture rosters, real-time scanning, and reports.' 
+                : 'Join AttendX to modernize multi-face attendance across your campus.'}
+            </p>
+          </div>
 
-          {successMsg && (
-            <div className="mb-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
-              {successMsg}
-            </div>
-          )}
+          {/* Tab Pill Selector */}
+          <div className="bg-slate-100/80 p-1 rounded-xl flex gap-1 border border-slate-200/60">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('signin');
+                setError(null);
+              }}
+              className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                activeTab === 'signin'
+                  ? 'bg-white text-slate-950 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <LogIn className="w-3.5 h-3.5 text-blue-600" />
+              <span>Sign In</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('signup');
+                setError(null);
+              }}
+              className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                activeTab === 'signup'
+                  ? 'bg-white text-slate-950 shadow-sm'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <UserPlus className="w-3.5 h-3.5 text-blue-600" />
+              <span>Create Account</span>
+            </button>
+          </div>
 
-          {activeTab === 'signin' ? (
-            /* ── Sign In Form ──────────────────────────────────────────────── */
-            <form onSubmit={handleSignIn} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-                    placeholder="teacher@attendx.edu"
-                  />
-                </div>
+          {/* Form Card */}
+          <div className="bg-white border border-slate-200/90 rounded-2xl p-7 sm:p-8 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.05)]">
+            {error && (
+              <div className="mb-5 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
+                {error}
               </div>
+            )}
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
-                  Password
-                </label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-                    placeholder="••••••••"
-                  />
-                </div>
+            {successMsg && (
+              <div className="mb-5 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>{successMsg}</span>
               </div>
+            )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-lg text-sm transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 group disabled:opacity-50 mt-2"
-              >
-                {loading ? (
-                  <span>Signing in...</span>
-                ) : (
-                  <>
-                    <span>Sign In</span>
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                  </>
-                )}
-              </button>
-            </form>
-          ) : (
-            /* ── Sign Up Form ──────────────────────────────────────────────── */
-            <form onSubmit={handleSignUp} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1 uppercase tracking-wider">
-                  Full Name
-                </label>
-                <div className="relative">
-                  <UserIcon className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-                    placeholder="Prof. Sarah Jenkins"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1 uppercase tracking-wider">
-                  Email Address
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                  <input
-                    type="email"
-                    value={regEmail}
-                    onChange={(e) => setRegEmail(e.target.value)}
-                    required
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-                    placeholder="sarah@university.edu"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1 uppercase tracking-wider">
-                  Account Role
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setRole('TEACHER')}
-                    className={`py-2 px-3 rounded-lg border text-xs font-medium flex items-center justify-center gap-1.5 transition-all ${
-                      role === 'TEACHER'
-                        ? 'bg-blue-600/20 border-blue-500 text-blue-300 font-semibold'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-                    }`}
-                  >
-                    <GraduationCap className="w-3.5 h-3.5" />
-                    Teacher / Faculty
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRole('ADMIN')}
-                    className={`py-2 px-3 rounded-lg border text-xs font-medium flex items-center justify-center gap-1.5 transition-all ${
-                      role === 'ADMIN'
-                        ? 'bg-purple-600/20 border-purple-500 text-purple-300 font-semibold'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-                    }`}
-                  >
-                    <ShieldCheck className="w-3.5 h-3.5" />
-                    School Admin
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {activeTab === 'signin' ? (
+              <form onSubmit={handleSignIn} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1 uppercase tracking-wider">
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Institutional Email
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="teacher@attendx.edu"
+                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
                     Password
                   </label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                     <input
                       type="password"
-                      value={regPassword}
-                      onChange={(e) => setRegPassword(e.target.value)}
                       required
-                      minLength={6}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-                      placeholder="Min 6 chars"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
                     />
                   </div>
                 </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold py-3 px-4 rounded-xl text-sm transition-all duration-150 active:scale-[0.99] shadow-sm hover:shadow flex items-center justify-center gap-2 mt-2 disabled:opacity-60"
+                >
+                  {loading ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <span>Sign In</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+
+                {/* Quick Demo Logins Bar */}
+                <div className="pt-4 border-t border-slate-100">
+                  <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider text-center mb-2.5">
+                    Quick Demo Autofill
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={fillDemoTeacher}
+                      className="text-xs font-semibold py-2 px-3 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-100 text-slate-700 transition-colors"
+                    >
+                      Demo Teacher
+                    </button>
+                    <button
+                      type="button"
+                      onClick={fillDemoAdmin}
+                      className="text-xs font-semibold py-2 px-3 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-100 text-slate-700 transition-colors"
+                    >
+                      Demo Admin
+                    </button>
+                  </div>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={handleSignUp} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1 uppercase tracking-wider">
-                    Confirm
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Full Name
                   </label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <UserIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
                     <input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      type="text"
                       required
-                      minLength={6}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-                      placeholder="Repeat"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Dr. Sarah Jenkins"
+                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
                     />
                   </div>
                 </div>
-              </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold rounded-lg text-sm transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-2 group disabled:opacity-50 mt-2"
-              >
-                {loading ? (
-                  <span>Creating Account...</span>
-                ) : (
-                  <>
-                    <span>Create Free Account</span>
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                  </>
-                )}
-              </button>
-            </form>
-          )}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Work Email
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                    <input
+                      type="email"
+                      required
+                      value={regEmail}
+                      onChange={(e) => setRegEmail(e.target.value)}
+                      placeholder="s.jenkins@stanford.edu"
+                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                    />
+                  </div>
+                </div>
 
-          {/* Student Portal Switch Banner */}
-          <div className="mt-5 pt-4 border-t border-slate-800/80">
-            <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
-                  <GraduationCap className="w-4 h-4 text-emerald-400" />
-                  Are you a Student?
-                </p>
-                <p className="text-[11px] text-slate-400">Self-register and enroll your face scan.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => navigate('/student')}
-                className="py-1.5 px-3 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 shrink-0"
-              >
-                Student Portal
-                <ExternalLink className="w-3 h-3" />
-              </button>
-            </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      placeholder="Min 6 chars"
+                      className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                      Confirm
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Repeat password"
+                      className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Account Role
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setRole('TEACHER')}
+                      className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                        role === 'TEACHER'
+                          ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
+                          : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      <UserIcon className="w-3.5 h-3.5" />
+                      <span>Instructor / Teacher</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRole('ADMIN')}
+                      className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                        role === 'ADMIN'
+                          ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
+                          : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
+                      }`}
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      <span>Department Admin</span>
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold py-3 px-4 rounded-xl text-sm transition-all duration-150 active:scale-[0.99] shadow-sm hover:shadow flex items-center justify-center gap-2 mt-2 disabled:opacity-60"
+                >
+                  {loading ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <span>Complete Registration</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
           </div>
         </div>
-      </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="py-6 border-t border-slate-200/80 bg-white">
+        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
+          <div>AttendX AI Campus Attendance · Enterprise Biometric Security</div>
+          <div className="flex gap-4">
+            <span className="hover:text-slate-800 cursor-pointer">Security Compliance</span>
+            <span className="hover:text-slate-800 cursor-pointer">Support</span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
