@@ -25,8 +25,11 @@ class Settings(BaseSettings):
     @property
     def clean_database_url(self) -> str:
         raw = self.DATABASE_URL
+        backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        canonical_sqlite = os.path.join(backend_dir, "attendx.db").replace("\\", "/")
+        
         if not raw or not isinstance(raw, str):
-            return "sqlite:///./attendx.db"
+            return f"sqlite:///{canonical_sqlite}"
         
         url = raw.strip().strip("'\"").strip()
         if url.startswith("psql "):
@@ -35,8 +38,11 @@ class Settings(BaseSettings):
         if url.startswith("postgres://"):
             url = url.replace("postgres://", "postgresql://", 1)
         
+        if url in ["sqlite:///./attendx.db", "sqlite:///attendx.db", "sqlite://attendx.db"]:
+            return f"sqlite:///{canonical_sqlite}"
+            
         if not (url.startswith("sqlite") or url.startswith("postgresql") or url.startswith("mysql")):
-            return "sqlite:///./attendx.db"
+            return f"sqlite:///{canonical_sqlite}"
             
         return url
 

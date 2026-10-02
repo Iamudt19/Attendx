@@ -26,7 +26,7 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
 
   const initialFaces: RecognizedFace[] = analysisResult?.recognized_faces || [
     {
-      box: { x: 180, y: 150, width: 90, height: 90 },
+      box: { x: 180, y: 150, w: 90, h: 90, width: 90, height: 90 },
       student_id: 2,
       name: 'Elena Rostova',
       confidence: 0.984,
@@ -35,7 +35,7 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
       verification_status: 'AI_VERIFIED'
     },
     {
-      box: { x: 440, y: 210, width: 95, height: 95 },
+      box: { x: 440, y: 210, w: 95, h: 95, width: 95, height: 95 },
       student_id: 3,
       name: 'David Kim',
       confidence: 0.991,

@@ -117,6 +117,8 @@ export interface BoundingBox {
   y: number;
   w: number;
   h: number;
+  width?: number;
+  height?: number;
 }
 
 export interface RecognizedFace {
