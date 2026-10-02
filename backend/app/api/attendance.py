@@ -6,7 +6,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Request
 from sqlalchemy.orm import Session
 from app.database.session import get_db
-from app.models.models import AttendanceSession, AttendanceRecord, Student, Class, Subject, FaceEmbedding, User
+from app.models.models import AttendanceSession, AttendanceRecord, Student, Class, Subject, FaceEmbedding, User, AttendanceAuditLog
 from app.schemas.schemas import (
     AttendanceAnalysisResponse, SaveAttendanceSessionRequest, AttendanceSessionOut, AttendanceRecordOut
 )
