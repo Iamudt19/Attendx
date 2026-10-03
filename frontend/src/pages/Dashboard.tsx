@@ -11,8 +11,8 @@ import {
   ArrowRight, 
   BarChart3, 
   CheckCircle2, 
-  Plus,
-  BookOpen
+  BookOpen,
+  ChevronRight
 } from 'lucide-react';
 import { AttendanceService, ClassService, StudentService } from '../services/api';
 import { AttendanceSessionOut, ClassItem, StudentItem, User } from '../types';
@@ -99,369 +99,288 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   });
 
   return (
-    <div className="flex flex-col w-full space-y-8 max-w-7xl mx-auto pb-16 transition-colors font-sans">
-      {/* Toast notification */}
+    <div className="flex flex-col w-full space-y-5 sm:space-y-8 max-w-7xl mx-auto pb-10 sm:pb-16 transition-colors font-sans">
+
+      {/* Toast */}
       {toastMessage && (
-        <div className="fixed top-20 right-6 z-50 py-2.5 px-4 rounded-lg bg-[var(--accent-primary)] text-white text-xs font-mono font-medium shadow-md flex items-center gap-2 animate-in fade-in">
-          <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+        <div className="fixed top-16 right-3 sm:top-20 sm:right-6 z-50 py-2 px-3 sm:py-2.5 sm:px-4 rounded-lg bg-[var(--accent-primary)] text-white text-[11px] sm:text-xs font-mono font-medium shadow-md flex items-center gap-2 animate-in fade-in max-w-[90vw]">
+          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
           <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* ── Swiss Header & Context Bar ── */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[var(--border-color)]">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 font-mono text-[11px] text-[var(--text-muted)] uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            <span>Academic Term 2026–27</span>
+      {/* ── Header ── */}
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[var(--border-color)]">
+        <div className="space-y-0.5">
+          <div className="flex items-center gap-1.5 font-mono text-[10px] sm:text-[11px] text-[var(--text-muted)] uppercase tracking-wider">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span>Term 2026–27</span>
             <span>•</span>
             <span className="text-[var(--text-secondary)] font-bold">{user?.role || 'TEACHER'}</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--text-primary)]">
+          <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight text-[var(--text-primary)]">
             Attendance Ledger & Studio
           </h1>
-          <p className="text-xs text-[var(--text-secondary)]">
-            Institutional roll-call console for {user?.name || 'Faculty Member'}
+          <p className="text-[11px] sm:text-xs text-[var(--text-secondary)] hidden sm:block">
+            Roll-call console for {user?.name || 'Faculty Member'}
           </p>
         </div>
-
-        {/* Action Button Bar */}
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="btn-secondary p-2.5"
-            title="Refresh Data"
-            type="button"
-          >
+        <div className="flex items-center gap-2 flex-wrap">
+          <button onClick={handleRefresh} disabled={refreshing} className="btn-secondary p-2 sm:p-2.5" title="Refresh">
             <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin text-blue-600' : ''}`} />
           </button>
-          
-          <button
-            onClick={() => handleExportExcel()}
-            className="btn-secondary text-xs px-3.5 py-2 flex items-center gap-2 font-mono"
-            type="button"
-          >
+          <button onClick={() => handleExportExcel()} className="btn-secondary text-[11px] sm:text-xs px-2.5 sm:px-3.5 py-2 flex items-center gap-1.5 font-mono">
             <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>Export Excel (.XLSX)</span>
+            <span className="hidden sm:inline">Export Excel (.XLSX)</span>
+            <span className="sm:hidden">Export</span>
           </button>
-
-          <button
-            onClick={() => navigate('/take-attendance')}
-            className="btn-primary text-xs px-4 py-2 flex items-center gap-2 font-semibold shadow-sm"
-            type="button"
-          >
+          <button onClick={() => navigate('/take-attendance')} className="btn-primary text-[11px] sm:text-xs px-3 sm:px-4 py-2 flex items-center gap-1.5 font-semibold shadow-sm">
             <Camera className="w-3.5 h-3.5" />
             <span>Mark Attendance</span>
           </button>
         </div>
       </header>
 
-      {/* ── Key Metrics Grid (Swiss Data Blocks) ── */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Metric 1: Total Enrolled */}
-        <div className="swiss-card p-5 rounded-lg space-y-3">
+      {/* ── Metrics: 2×2 mobile / 4-col desktop ── */}
+      <section className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+        <div className="swiss-card p-3.5 sm:p-5 rounded-lg space-y-2 sm:space-y-3">
           <div className="flex items-center justify-between text-[var(--text-muted)]">
-            <span className="text-[11px] font-mono font-bold uppercase tracking-wider">Total Enrolled</span>
-            <Users className="w-4 h-4" />
+            <span className="text-[9px] sm:text-[11px] font-mono font-bold uppercase tracking-wider">Enrolled</span>
+            <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-[var(--text-primary)] tracking-tight font-mono">{totalStudentsCount}</span>
-            <span className="text-xs text-[var(--text-muted)] font-mono">Students</span>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl sm:text-3xl font-extrabold text-[var(--text-primary)] tracking-tight font-mono">{totalStudentsCount}</span>
+            <span className="text-[10px] sm:text-xs text-[var(--text-muted)] font-mono hidden sm:inline">Students</span>
           </div>
-          <div className="flex items-center justify-between text-[11px] font-mono text-[var(--text-secondary)] pt-2 border-t border-[var(--border-color)]">
+          <div className="flex items-center justify-between text-[9px] sm:text-[11px] font-mono text-[var(--text-secondary)] pt-1.5 sm:pt-2 border-t border-[var(--border-color)]">
             <span>{classes.length} Sections</span>
             <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Synced</span>
           </div>
         </div>
-
-        {/* Metric 2: Calibrated Face Profiles */}
-        <div className="swiss-card p-5 rounded-lg space-y-3">
+        <div className="swiss-card p-3.5 sm:p-5 rounded-lg space-y-2 sm:space-y-3">
           <div className="flex items-center justify-between text-[var(--text-muted)]">
-            <span className="text-[11px] font-mono font-bold uppercase tracking-wider">Calibrated Faces</span>
-            <ShieldCheck className="w-4 h-4" />
+            <span className="text-[9px] sm:text-[11px] font-mono font-bold uppercase tracking-wider">Faces</span>
+            <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-[var(--text-primary)] tracking-tight font-mono">{verifiedFacesCount}</span>
-            <span className="text-xs text-[var(--text-muted)] font-mono">/ {totalStudentsCount}</span>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl sm:text-3xl font-extrabold text-[var(--text-primary)] tracking-tight font-mono">{verifiedFacesCount}</span>
+            <span className="text-[10px] sm:text-xs text-[var(--text-muted)] font-mono">/ {totalStudentsCount}</span>
           </div>
-          <div className="flex items-center justify-between text-[11px] font-mono text-[var(--text-secondary)] pt-2 border-t border-[var(--border-color)]">
+          <div className="flex items-center justify-between text-[9px] sm:text-[11px] font-mono text-[var(--text-secondary)] pt-1.5 sm:pt-2 border-t border-[var(--border-color)]">
             <span>Coverage</span>
-            <span className="text-blue-600 font-semibold">
-              {totalStudentsCount > 0 ? `${Math.round((verifiedFacesCount / totalStudentsCount) * 100)}%` : '0%'}
-            </span>
+            <span className="text-blue-600 font-semibold">{totalStudentsCount > 0 ? `${Math.round((verifiedFacesCount / totalStudentsCount) * 100)}%` : '0%'}</span>
           </div>
         </div>
-
-        {/* Metric 3: Average Attendance Rate */}
-        <div className="swiss-card p-5 rounded-lg space-y-3">
+        <div className="swiss-card p-3.5 sm:p-5 rounded-lg space-y-2 sm:space-y-3">
           <div className="flex items-center justify-between text-[var(--text-muted)]">
-            <span className="text-[11px] font-mono font-bold uppercase tracking-wider">Term Attendance</span>
-            <BarChart3 className="w-4 h-4" />
+            <span className="text-[9px] sm:text-[11px] font-mono font-bold uppercase tracking-wider">Attendance</span>
+            <BarChart3 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 tracking-tight font-mono">{avgAttendancePct}%</span>
-            <span className="text-xs text-[var(--text-muted)] font-mono">Mean</span>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 tracking-tight font-mono">{avgAttendancePct}%</span>
+            <span className="text-[10px] sm:text-xs text-[var(--text-muted)] font-mono hidden sm:inline">Mean</span>
           </div>
-          <div className="flex items-center justify-between text-[11px] font-mono text-[var(--text-secondary)] pt-2 border-t border-[var(--border-color)]">
-            <span>{totalSessionsCount} Lectures Logged</span>
-            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Verified</span>
+          <div className="flex items-center justify-between text-[9px] sm:text-[11px] font-mono text-[var(--text-secondary)] pt-1.5 sm:pt-2 border-t border-[var(--border-color)]">
+            <span>{totalSessionsCount} Lectures</span>
+            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">OK</span>
           </div>
         </div>
-
-        {/* Metric 4: Total Sessions */}
-        <div className="swiss-card p-5 rounded-lg space-y-3">
+        <div className="swiss-card p-3.5 sm:p-5 rounded-lg space-y-2 sm:space-y-3">
           <div className="flex items-center justify-between text-[var(--text-muted)]">
-            <span className="text-[11px] font-mono font-bold uppercase tracking-wider">Ledger Entries</span>
-            <Clock className="w-4 h-4" />
+            <span className="text-[9px] sm:text-[11px] font-mono font-bold uppercase tracking-wider">Sessions</span>
+            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-3xl font-extrabold text-[var(--text-primary)] tracking-tight font-mono">{totalSessionsCount}</span>
-            <span className="text-xs text-[var(--text-muted)] font-mono">Sessions</span>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-2xl sm:text-3xl font-extrabold text-[var(--text-primary)] tracking-tight font-mono">{totalSessionsCount}</span>
+            <span className="text-[10px] sm:text-xs text-[var(--text-muted)] font-mono hidden sm:inline">Total</span>
           </div>
-          <div className="flex items-center justify-between text-[11px] font-mono text-[var(--text-secondary)] pt-2 border-t border-[var(--border-color)]">
-            <span>Latest: {sessions[0]?.date || 'None today'}</span>
-            <span className="text-blue-600 font-semibold cursor-pointer hover:underline" onClick={() => navigate('/history')}>
-              History →
-            </span>
+          <div className="flex items-center justify-between text-[9px] sm:text-[11px] font-mono text-[var(--text-secondary)] pt-1.5 sm:pt-2 border-t border-[var(--border-color)]">
+            <span className="truncate">{sessions[0]?.date || 'None yet'}</span>
+            <span className="text-blue-600 font-semibold cursor-pointer hover:underline shrink-0 ml-1" onClick={() => navigate('/history')}>Logs →</span>
           </div>
         </div>
       </section>
 
-      {/* ── Attendance Workstation (Dual Mode Trigger) ── */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Upload Classroom Capture Box */}
-        <div className="swiss-card p-6 rounded-lg flex flex-col justify-between space-y-5">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-blue-600">
-                Mode A // Optical Photo Upload
-              </span>
-              <Camera className="w-4 h-4 text-[var(--text-muted)]" />
+      {/* ── Quick Actions (compact on mobile) ── */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="swiss-card p-4 sm:p-5 rounded-lg flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-[9px] sm:text-[11px] font-mono font-bold uppercase tracking-wider text-blue-600">Photo Upload</span>
+              <h2 className="text-sm font-bold text-[var(--text-primary)] mt-0.5">Upload Classroom Photo</h2>
             </div>
-            <h2 className="text-base font-bold text-[var(--text-primary)]">Classroom Frame Ingestion</h2>
-            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-              Upload single or multi-angle photos of the lecture hall. The engine crops, normalizes, and matches faces against enrolled student biometric profiles.
-            </p>
+            <Camera className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
           </div>
-
-          <label className="border border-dashed border-[var(--border-color)] hover:border-blue-600 bg-[var(--bg-inset)] rounded-lg p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-colors">
-            <Upload className="w-5 h-5 text-blue-600" />
-            <div className="text-center font-mono">
-              <span className="text-xs font-semibold text-[var(--text-primary)]">Select or drop classroom photo</span>
-              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">JPEG, PNG, WEBP (Supports multi-file batches)</p>
+          <label className="border border-dashed border-[var(--border-color)] hover:border-blue-600 bg-[var(--bg-inset)] rounded-lg p-4 flex items-center justify-center gap-3 cursor-pointer transition-colors">
+            <Upload className="w-4 h-4 text-blue-600 shrink-0" />
+            <div className="font-mono text-center">
+              <span className="text-[11px] font-semibold text-[var(--text-primary)] block">Select or drop photo</span>
+              <p className="text-[10px] text-[var(--text-muted)]">JPEG · PNG · WEBP · Multi-file</p>
             </div>
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={handleFileUpload}
-              className="hidden"
-            />
+            <input type="file" multiple accept="image/*" onChange={handleFileUpload} className="hidden" />
           </label>
         </div>
-
-        {/* Live Camera Rig */}
-        <div className="swiss-card p-6 rounded-lg flex flex-col justify-between space-y-5">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                Mode B // Connected Camera Rig
-              </span>
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        <div className="swiss-card p-4 sm:p-5 rounded-lg flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-[9px] sm:text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Live Camera</span>
+              <h2 className="text-sm font-bold text-[var(--text-primary)] mt-0.5">Real-time Video Scan</h2>
             </div>
-            <h2 className="text-base font-bold text-[var(--text-primary)]">Live Lecture Video Stream</h2>
-            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-              Scan students in real time through your integrated laptop camera or classroom webcam with live optical feedback.
-            </p>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
           </div>
-
-          <div className="p-6 rounded-lg bg-[var(--bg-inset)] border border-[var(--border-color)] flex flex-col items-center justify-center text-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-              <Camera className="w-5 h-5" />
+          <div className="flex items-center gap-3 p-3.5 rounded-lg bg-[var(--bg-inset)] border border-[var(--border-color)]">
+            <div className="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+              <Camera className="w-4 h-4" />
             </div>
-            <div className="space-y-1">
-              <span className="text-xs font-mono font-bold text-[var(--text-primary)]">Optical Rig Ready</span>
-              <p className="text-[11px] text-[var(--text-muted)] font-mono">Supports 1080p and 4K optical feeds</p>
+            <div className="flex-1 min-w-0">
+              <span className="text-[11px] font-mono font-bold text-[var(--text-primary)] block">Optical Rig Ready</span>
+              <p className="text-[10px] text-[var(--text-muted)] font-mono truncate">1080p · 4K · Webcam feeds</p>
             </div>
-            <button
-              onClick={() => navigate('/take-attendance')}
-              className="btn-primary text-xs px-4 py-2 font-mono flex items-center gap-2"
-            >
-              <span>Activate Camera Feed</span>
+            <button onClick={() => navigate('/take-attendance')} className="btn-primary text-[11px] px-3 py-1.5 font-mono flex items-center gap-1 shrink-0">
+              <span>Start</span>
               <ArrowRight className="w-3 h-3" />
             </button>
           </div>
         </div>
       </section>
 
-      {/* ── Recent Attendance Ledger ── */}
-      <section className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[var(--border-color)]">
-          <div className="space-y-0.5">
-            <h2 className="text-lg font-bold text-[var(--text-primary)]">Recent Attendance Sessions</h2>
-            <p className="text-xs text-[var(--text-secondary)]">Classroom rolls committed to Supabase ledger</p>
-          </div>
-
-          {/* Filter Tabs */}
-          <div className="flex items-center gap-1 font-mono text-xs">
-            <button
-              onClick={() => setFilter('all')}
-              className={`px-3 py-1.5 rounded-md transition-colors ${
-                filter === 'all'
-                  ? 'bg-[var(--accent-primary)] text-white font-bold'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg-surface)] border border-[var(--border-color)]'
-              }`}
-            >
-              All Sessions
-            </button>
-            <button
-              onClick={() => setFilter('verified')}
-              className={`px-3 py-1.5 rounded-md transition-colors ${
-                filter === 'verified'
-                  ? 'bg-[var(--accent-primary)] text-white font-bold'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg-surface)] border border-[var(--border-color)]'
-              }`}
-            >
-              High Attendance (≥90%)
-            </button>
-            <button
-              onClick={() => setFilter('audit')}
-              className={`px-3 py-1.5 rounded-md transition-colors ${
-                filter === 'audit'
-                  ? 'bg-[var(--accent-primary)] text-white font-bold'
-                  : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg-surface)] border border-[var(--border-color)]'
-              }`}
-            >
-              Needs Review (&lt;75%)
-            </button>
-          </div>
-        </div>
-
-        {/* Sessions Table */}
-        <div className="swiss-card rounded-lg overflow-x-auto">
-          {loading ? (
-            <div className="p-8 text-center text-xs font-mono text-[var(--text-muted)] animate-pulse">
-              Loading session records from database...
-            </div>
-          ) : filteredSessions.length === 0 ? (
-            <div className="p-12 text-center space-y-3">
-              <div className="w-10 h-10 rounded-lg bg-[var(--bg-inset)] border border-[var(--border-color)] text-[var(--text-muted)] flex items-center justify-center mx-auto">
-                <Clock className="w-5 h-5" />
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs font-mono font-bold text-[var(--text-primary)]">No sessions match current filter</p>
-                <p className="text-[11px] text-[var(--text-secondary)]">Take attendance now to record your first roll-call.</p>
-              </div>
-              <button
-                onClick={() => navigate('/take-attendance')}
-                className="btn-primary text-xs px-4 py-2 font-mono"
-              >
-                Mark Attendance
-              </button>
-            </div>
-          ) : (
-            <table className="w-full text-left text-xs font-mono">
-              <thead>
-                <tr className="border-b border-[var(--border-color)] bg-[var(--bg-inset)] text-[var(--text-muted)] uppercase">
-                  <th className="p-3.5 font-bold">Date & Time</th>
-                  <th className="p-3.5 font-bold">Class Section</th>
-                  <th className="p-3.5 font-bold">Roll Present</th>
-                  <th className="p-3.5 font-bold">Turnout Rate</th>
-                  <th className="p-3.5 font-bold text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border-color)]">
-                {filteredSessions.map((session) => {
-                  const rate = session.total_enrolled > 0
-                    ? Math.round((session.present_count / session.total_enrolled) * 100)
-                    : 0;
-
-                  return (
-                    <tr key={session.id} className="hover:bg-[var(--bg-inset)] transition-colors">
-                      <td className="p-3.5">
-                        <div className="font-bold text-[var(--text-primary)]">{session.date}</div>
-                        <div className="text-[10px] text-[var(--text-muted)]">{session.start_time || '10:00 AM'}</div>
-                      </td>
-                      <td className="p-3.5">
-                        <div className="font-bold text-[var(--text-primary)] font-sans">{session.class_name || `Class #${session.class_id}`}</div>
-                        <div className="text-[10px] text-[var(--text-muted)]">{session.subject_name || 'Lecture Session'}</div>
-                      </td>
-                      <td className="p-3.5">
-                        <span className="font-bold text-[var(--text-primary)]">{session.present_count}</span>
-                        <span className="text-[var(--text-muted)]"> / {session.total_enrolled}</span>
-                      </td>
-                      <td className="p-3.5">
-                        <div className="flex items-center gap-2">
-                          <span className={`font-bold ${rate >= 90 ? 'text-emerald-600 dark:text-emerald-400' : rate < 75 ? 'text-amber-500' : 'text-[var(--text-primary)]'}`}>
-                            {rate}%
-                          </span>
-                        </div>
-                      </td>
-                      <td className="p-3.5 text-right">
-                        <button
-                          onClick={() => navigate('/history')}
-                          className="text-blue-600 hover:underline font-bold text-xs"
-                        >
-                          Inspect & Edit →
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </section>
-
-      {/* ── Active Class Sections ── */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-[var(--border-color)]">
+      {/* ── Recent Sessions ── */}
+      <section className="space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-[var(--border-color)]">
           <div>
-            <h2 className="text-lg font-bold text-[var(--text-primary)]">Enrolled Class Sections</h2>
-            <p className="text-xs text-[var(--text-secondary)]">Active course rosters configured in AttendX</p>
+            <h2 className="text-base sm:text-lg font-bold text-[var(--text-primary)]">Recent Sessions</h2>
+            <p className="text-[10px] text-[var(--text-secondary)] hidden sm:block">Classroom rolls committed to Supabase ledger</p>
           </div>
-          <button
-            onClick={() => navigate('/classes')}
-            className="text-blue-600 font-mono text-xs hover:underline flex items-center gap-1 font-semibold"
-          >
-            <span>Manage All Classes</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex items-center gap-1 font-mono text-[10px] sm:text-xs overflow-x-auto shrink-0">
+            {(['all', 'verified', 'audit'] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-2.5 sm:px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ${
+                  filter === f
+                    ? 'bg-[var(--accent-primary)] text-white font-bold'
+                    : 'text-[var(--text-secondary)] bg-[var(--bg-surface)] border border-[var(--border-color)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                {f === 'all' ? 'All' : f === 'verified' ? '≥90%' : '<75%'}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {classes.map((cls) => (
-            <div key={cls.id} className="swiss-card p-5 rounded-lg space-y-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="font-bold text-sm text-[var(--text-primary)] font-sans">{cls.name}</h3>
-                  <div className="font-mono text-xs text-[var(--text-muted)]">Section {cls.section} • {cls.academic_year}</div>
-                </div>
-                <div className="w-8 h-8 rounded-lg bg-[var(--bg-inset)] border border-[var(--border-color)] flex items-center justify-center text-[var(--text-muted)]">
-                  <BookOpen className="w-4 h-4" />
-                </div>
-              </div>
-
-              <div className="pt-3 border-t border-[var(--border-color)] flex items-center justify-between text-xs font-mono">
-                <button
-                  onClick={() => navigate('/students')}
-                  className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:underline"
-                >
-                  View Roster
-                </button>
-                <button
-                  onClick={() => navigate('/take-attendance')}
-                  className="text-blue-600 font-bold hover:underline"
-                >
-                  Mark Attendance →
-                </button>
-              </div>
+        {loading ? (
+          <div className="p-8 text-center text-xs font-mono text-[var(--text-muted)] animate-pulse">Loading session records...</div>
+        ) : filteredSessions.length === 0 ? (
+          <div className="swiss-card rounded-lg p-8 text-center space-y-3">
+            <div className="w-9 h-9 rounded-lg bg-[var(--bg-inset)] border border-[var(--border-color)] text-[var(--text-muted)] flex items-center justify-center mx-auto">
+              <Clock className="w-4 h-4" />
             </div>
-          ))}
-        </div>
+            <p className="text-xs font-mono font-bold text-[var(--text-primary)]">No sessions match filter</p>
+            <button onClick={() => navigate('/take-attendance')} className="btn-primary text-xs px-4 py-2 font-mono">Mark Attendance</button>
+          </div>
+        ) : (
+          <>
+            {/* Mobile card list */}
+            <div className="sm:hidden space-y-2">
+              {filteredSessions.slice(0, 8).map((session) => {
+                const rate = session.total_enrolled > 0 ? Math.round((session.present_count / session.total_enrolled) * 100) : 0;
+                const rateColor = rate >= 90 ? 'text-emerald-600 dark:text-emerald-400' : rate < 75 ? 'text-amber-500' : 'text-[var(--text-primary)]';
+                return (
+                  <div
+                    key={session.id}
+                    onClick={() => navigate('/history')}
+                    className="swiss-card rounded-lg px-3.5 py-3 flex items-center gap-3 cursor-pointer active:opacity-70 transition-opacity"
+                  >
+                    <div className="shrink-0 text-center w-10">
+                      <div className="text-[11px] font-mono font-bold text-[var(--text-primary)] leading-tight">{session.date?.slice(5) || '—'}</div>
+                      <div className="text-[9px] font-mono text-[var(--text-muted)] leading-tight">{session.date?.slice(0, 4) || ''}</div>
+                    </div>
+                    <div className="w-px h-8 bg-[var(--border-color)] shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-semibold text-[var(--text-primary)] truncate">{session.class_name || `Class #${session.class_id}`}</div>
+                      <div className="text-[10px] font-mono text-[var(--text-muted)] truncate">{session.subject_name || 'Lecture'}</div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className={`text-sm font-extrabold font-mono ${rateColor}`}>{rate}%</div>
+                      <div className="text-[9px] font-mono text-[var(--text-muted)]">{session.present_count}/{session.total_enrolled}</div>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
+                  </div>
+                );
+              })}
+              {filteredSessions.length > 8 && (
+                <button onClick={() => navigate('/history')} className="w-full text-center text-xs text-blue-600 font-semibold py-2 hover:underline">
+                  View all {filteredSessions.length} sessions →
+                </button>
+              )}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden sm:block swiss-card rounded-lg overflow-x-auto">
+              <table className="w-full text-left text-xs font-mono">
+                <thead>
+                  <tr className="border-b border-[var(--border-color)] bg-[var(--bg-inset)] text-[var(--text-muted)] uppercase text-[10px]">
+                    <th className="p-3.5 font-bold">Date & Time</th>
+                    <th className="p-3.5 font-bold">Class Section</th>
+                    <th className="p-3.5 font-bold">Roll Present</th>
+                    <th className="p-3.5 font-bold">Turnout</th>
+                    <th className="p-3.5 font-bold text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border-color)]">
+                  {filteredSessions.map((session) => {
+                    const rate = session.total_enrolled > 0 ? Math.round((session.present_count / session.total_enrolled) * 100) : 0;
+                    return (
+                      <tr key={session.id} className="hover:bg-[var(--bg-inset)] transition-colors">
+                        <td className="p-3.5"><div className="font-bold text-[var(--text-primary)]">{session.date}</div><div className="text-[10px] text-[var(--text-muted)]">{session.start_time || '10:00'}</div></td>
+                        <td className="p-3.5"><div className="font-bold text-[var(--text-primary)] font-sans">{session.class_name || `Class #${session.class_id}`}</div><div className="text-[10px] text-[var(--text-muted)]">{session.subject_name || 'Lecture'}</div></td>
+                        <td className="p-3.5"><span className="font-bold text-[var(--text-primary)]">{session.present_count}</span><span className="text-[var(--text-muted)]"> / {session.total_enrolled}</span></td>
+                        <td className="p-3.5"><span className={`font-bold ${rate >= 90 ? 'text-emerald-600 dark:text-emerald-400' : rate < 75 ? 'text-amber-500' : 'text-[var(--text-primary)]'}`}>{rate}%</span></td>
+                        <td className="p-3.5 text-right"><button onClick={() => navigate('/history')} className="text-blue-600 hover:underline font-bold text-xs">Inspect & Edit →</button></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </section>
+
+      {/* ── Class Sections ── */}
+      {classes.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-[var(--border-color)]">
+            <div>
+              <h2 className="text-base sm:text-lg font-bold text-[var(--text-primary)]">Class Sections</h2>
+              <p className="text-[10px] text-[var(--text-secondary)] hidden sm:block">Active course rosters in AttendX</p>
+            </div>
+            <button onClick={() => navigate('/classes')} className="text-blue-600 font-mono text-[11px] sm:text-xs hover:underline flex items-center gap-1 font-semibold">
+              <span>Manage</span>
+              <ArrowRight className="w-3 h-3" />
+            </button>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4">
+            {classes.map((cls) => (
+              <div key={cls.id} className="swiss-card p-3 sm:p-4 rounded-lg flex flex-col gap-2">
+                <div className="flex items-start justify-between gap-1">
+                  <div className="min-w-0">
+                    <h3 className="font-bold text-[11px] sm:text-sm text-[var(--text-primary)] truncate">{cls.name}</h3>
+                    <div className="font-mono text-[9px] sm:text-xs text-[var(--text-muted)] truncate">§{cls.section} · {cls.academic_year}</div>
+                  </div>
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-md bg-[var(--bg-inset)] border border-[var(--border-color)] flex items-center justify-center text-[var(--text-muted)] shrink-0">
+                    <BookOpen className="w-3 h-3 sm:w-4 sm:h-4" />
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-[var(--border-color)] flex items-center justify-between text-[9px] sm:text-[11px] font-mono">
+                  <button onClick={() => navigate('/students')} className="text-[var(--text-secondary)] hover:text-[var(--text-primary)]">Roster</button>
+                  <button onClick={() => navigate('/take-attendance')} className="text-blue-600 font-bold hover:underline">Mark →</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 };
