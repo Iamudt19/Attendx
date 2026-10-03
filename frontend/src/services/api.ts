@@ -261,7 +261,7 @@ export const AttendanceService = {
       verification_status?: string;
     }>
   ): Promise<AttendanceSessionOut> => {
-    const res = await api.put(`/attendance/sessions/${sessionId}`, { records });
+    const res = await api.patch(`/attendance/sessions/${sessionId}`, { records });
     return res.data;
   },
   getStudentAttendanceLog: async (studentId: number) => {

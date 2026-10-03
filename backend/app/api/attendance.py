@@ -463,10 +463,11 @@ def get_attendance_session_detail(
         records=records_out
     )
 
-@router.put("/sessions/{session_id}", response_model=AttendanceSessionOut)
-@router.post("/sessions/{session_id}", response_model=AttendanceSessionOut)
+@router.patch("/sessions/{session_id}/records", response_model=AttendanceSessionOut)
 @router.put("/sessions/{session_id}/records", response_model=AttendanceSessionOut)
 @router.post("/sessions/{session_id}/records", response_model=AttendanceSessionOut)
+@router.patch("/sessions/{session_id}", response_model=AttendanceSessionOut)
+@router.put("/sessions/{session_id}", response_model=AttendanceSessionOut)
 def update_attendance_session_records(
     session_id: int,
     req: UpdateSessionRecordsRequest,
