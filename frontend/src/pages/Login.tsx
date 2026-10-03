@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { AuthService } from '../services/api';
 import { User } from '../types';
 import { extractErrorMessage } from '../utils/error';
+import { Logo } from '../components/Logo';
 
 interface LoginProps {
   onLoginSuccess: (user: User, token: string) => void;
@@ -102,13 +103,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
           onClick={() => navigate('/')} 
           className="flex items-center gap-2.5 cursor-pointer group"
         >
-          <div className="w-9 h-9 rounded-xl bg-black text-white flex items-center justify-center font-bold shadow-sm transition-transform group-hover:scale-105">
-            <Camera className="w-5 h-5 text-white" />
-          </div>
-          <div className="flex items-center">
-            <span className="font-extrabold text-2xl tracking-tight text-slate-900">Attend</span>
-            <span className="font-extrabold text-2xl tracking-tight text-blue-600">X</span>
-          </div>
+          <Logo size="md" variant="light" showTagline />
         </div>
 
         <div className="flex items-center gap-3">

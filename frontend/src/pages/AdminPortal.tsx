@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 import { AuthService, ClassService, StudentService, SubjectService, api } from '../services/api';
 import { ClassItem, StudentItem, SubjectItem } from '../types';
 import { extractErrorMessage } from '../utils/error';
+import { Logo } from '../components/Logo';
 
 type AdminTab = 'overview' | 'classes' | 'students' | 'subjects' | 'diagnostics';
 
@@ -255,13 +256,7 @@ export const AdminPortal: React.FC = () => {
       <div className="min-h-screen bg-[#FBFBFB] text-[#111827] flex flex-col justify-between selection:bg-blue-600 selection:text-white font-sans">
         <header className="w-full max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div onClick={() => navigate('/')} className="flex items-center gap-2.5 cursor-pointer group">
-            <div className="w-9 h-9 rounded-xl bg-black text-white flex items-center justify-center font-bold shadow-sm transition-transform group-hover:scale-105">
-              <Camera className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex items-center">
-              <span className="font-extrabold text-2xl tracking-tight text-slate-900">Attend</span>
-              <span className="font-extrabold text-2xl tracking-tight text-blue-600">X</span>
-            </div>
+            <Logo size="md" variant="light" showTagline />
           </div>
 
           <button
@@ -390,17 +385,10 @@ export const AdminPortal: React.FC = () => {
       <header className="border-b border-slate-200/90 bg-white sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
-            <div className="w-8 h-8 rounded-xl bg-black text-white flex items-center justify-center font-bold shadow-sm">
-              <Shield className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-lg text-slate-900">AttendX</span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
-                  INSTITUTIONAL ADMIN
-                </span>
-              </div>
-            </div>
+            <Logo size="sm" variant="light" />
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100 font-mono">
+              INSTITUTIONAL ADMIN
+            </span>
           </div>
 
           <div className="flex items-center gap-3">
