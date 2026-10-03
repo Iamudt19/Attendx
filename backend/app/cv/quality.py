@@ -4,16 +4,17 @@ from typing import Tuple, Dict, Any, Optional
 from app.core.config import settings
 
 # Quality thresholds
-MIN_FACE_AREA_RATIO = 0.04    # Face must fill at least 4% of image area for registration
-MIN_BRIGHTNESS = 40.0         # Min mean pixel brightness (0-255)
-MAX_BRIGHTNESS = 235.0        # Max mean pixel brightness (avoid overexposed)
+MIN_FACE_AREA_RATIO = 0.04    # Face must fill at least 4% of image area (enrollment close-up only)
+MIN_BRIGHTNESS = 35.0         # Min mean pixel brightness (0-255)
+MAX_BRIGHTNESS = 240.0        # Max mean pixel brightness (avoid overexposed)
 
 
 def check_face_quality(
-    image_bgr: np.ndarray, 
+    image_bgr: np.ndarray,
     face_box: Dict[str, int],
     blur_threshold: Optional[float] = None,
-    min_size: Optional[int] = None
+    min_size: Optional[int] = None,
+    classroom_mode: bool = False
 ) -> Dict[str, Any]:
     """
     Comprehensive Face Quality Assessment.
@@ -22,10 +23,18 @@ def check_face_quality(
       - Sharpness / Blur (Laplacian variance)
       - Lighting / Brightness (mean pixel intensity)
       - Aspect Ratio sanity
-    Returns structured quality report.
+
+    Args:
+        classroom_mode: When True, relaxes the area-ratio and blur constraints to suit
+                        distant multi-face classroom photos (faces are naturally small
+                        and more compressed). Enrollment scans use classroom_mode=False.
     """
     blur_threshold = blur_threshold or settings.FACE_BLUR_THRESHOLD
     min_size = min_size or settings.FACE_MIN_SIZE
+
+    # In classroom mode use a more lenient blur threshold
+    if classroom_mode:
+        blur_threshold = min(blur_threshold, 25.0)
 
     h_img, w_img = image_bgr.shape[:2]
     if isinstance(face_box, dict):
@@ -33,9 +42,9 @@ def check_face_quality(
     else:
         x, y, w, h = int(face_box[0]), int(face_box[1]), int(face_box[2]), int(face_box[3])
 
-    # 1. Size check
+    # 1. Size check — pixel-based only (area-ratio check is enrollment-only)
     size_ok = (w >= min_size and h >= min_size)
-    
+
     # Crop face region
     pad = int(min(w, h) * 0.1)
     x1 = max(0, x - pad)
@@ -57,7 +66,7 @@ def check_face_quality(
         }
 
     gray_crop = cv2.cvtColor(face_crop, cv2.COLOR_BGR2GRAY)
-    
+
     # 2. Blur / Sharpness check (Laplacian variance)
     blur_score = float(cv2.Laplacian(gray_crop, cv2.CV_64F).var())
     blur_ok = (blur_score >= blur_threshold)

@@ -86,16 +86,63 @@ class FaceEmbedder:
             self.sface_recognizer = None
             self.ort_session = None
 
+    def _try_realign_crop(
+        self,
+        face_crop_bgr: np.ndarray
+    ) -> Optional[Any]:
+        """
+        When raw_face landmarks are unavailable (e.g. Haar cascade fallback),
+        re-run YuNet on the face crop itself to recover 5-point landmarks.
+        Returns the raw_face array if found, else None.
+        """
+        try:
+            if self.yunet_detector is None:
+                # Lazy import to avoid circular dependency
+                from app.cv.detector import face_detector
+                self.yunet_detector = getattr(face_detector, 'yunet_detector', None)
+
+            if self.yunet_detector is None:
+                return None
+
+            h, w = face_crop_bgr.shape[:2]
+            if h < 24 or w < 24:
+                return None
+
+            # Upscale tiny crops so YuNet can detect landmarks reliably
+            scale = 1.0
+            if h < 80 or w < 80:
+                scale = max(80 / h, 80 / w)
+                face_crop_bgr = cv2.resize(
+                    face_crop_bgr,
+                    (int(w * scale), int(h * scale)),
+                    interpolation=cv2.INTER_LINEAR
+                )
+                h, w = face_crop_bgr.shape[:2]
+
+            self.yunet_detector.setInputSize((w, h))
+            _, faces = self.yunet_detector.detect(face_crop_bgr)
+            if faces is not None and len(faces) > 0:
+                return faces[0]  # best detection on this crop
+        except Exception as e:
+            print(f"Re-alignment YuNet attempt failed: {e}")
+        return None
+
     def compute_embedding(
-        self, 
-        face_image_bgr: np.ndarray, 
-        full_image_bgr: Optional[np.ndarray] = None, 
+        self,
+        face_image_bgr: np.ndarray,
+        full_image_bgr: Optional[np.ndarray] = None,
         raw_face: Optional[Any] = None
     ) -> List[float]:
         """
         Compute a normalized face embedding using OpenCV FaceRecognizerSF.
-        Always uses the same alignment + feature extraction path to guarantee
-        consistent embeddings between registration and classroom attendance.
+
+        Alignment strategy (in order of preference):
+          1. alignCrop on full_image_bgr + raw_face (best — identical to enrollment)
+          2. alignCrop on the face_crop itself after re-running YuNet to recover landmarks
+          3. Proportional resize to 112×112 (last resort — may reduce match quality)
+
+        Consistent alignment between registration and classroom inference is the
+        single most important factor for high cosine-similarity scores.
         """
         if face_image_bgr is None or face_image_bgr.size == 0:
             return [0.0] * self.embedding_dim
@@ -105,15 +152,34 @@ class FaceEmbedder:
             if self.sface_recognizer is None:
                 return [0.0] * self.embedding_dim
 
-        try:
-            # 1. Landmark-based alignment (preferred — consistent with registration)
-            if full_image_bgr is not None and raw_face is not None:
-                aligned_face = self.sface_recognizer.alignCrop(full_image_bgr, raw_face)
-            else:
-                # Fallback: resize the cropped face to 112x112
-                aligned_face = cv2.resize(face_image_bgr, (112, 112))
+        # Lazily cache YuNet reference for re-alignment
+        if not hasattr(self, 'yunet_detector'):
+            self.yunet_detector = None
 
-            # 2. Extract 128-d embedding via OpenCV SFace (handles normalization internally)
+        try:
+            aligned_face = None
+
+            # ── Path 1: Full image + pre-extracted landmarks (enrollment / detection path) ──
+            if full_image_bgr is not None and raw_face is not None:
+                try:
+                    aligned_face = self.sface_recognizer.alignCrop(full_image_bgr, raw_face)
+                except Exception:
+                    aligned_face = None
+
+            # ── Path 2: Re-run YuNet on the face crop to recover landmarks ──
+            if aligned_face is None:
+                recovered_raw = self._try_realign_crop(face_image_bgr)
+                if recovered_raw is not None:
+                    try:
+                        aligned_face = self.sface_recognizer.alignCrop(face_image_bgr, recovered_raw)
+                    except Exception:
+                        aligned_face = None
+
+            # ── Path 3: Plain proportional resize (last resort) ──
+            if aligned_face is None or aligned_face.size == 0:
+                aligned_face = cv2.resize(face_image_bgr, (112, 112), interpolation=cv2.INTER_LINEAR)
+
+            # Extract 128-d embedding via SFace (handles normalization internally)
             feature = self.sface_recognizer.feature(aligned_face)
             vec = feature[0].astype(np.float32)
             norm = np.linalg.norm(vec)

@@ -125,7 +125,8 @@ class RecognitionPipeline:
         quality_infos = []
         for item in detected:
             box = item["box"]
-            q_info = check_face_quality(img, box)
+            # classroom_mode=True: relaxes blur/area thresholds for distant multi-face photos
+            q_info = check_face_quality(img, box, classroom_mode=True)
             quality_infos.append(q_info)
             if not q_info["size_ok"]:
                 small_faces_count += 1

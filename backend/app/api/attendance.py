@@ -215,6 +215,9 @@ def save_attendance_session(
                     if img_cv is not None:
                         loaded_images[idx] = (img_cv, clean_rel_path)
 
+            # Import the detector so we can re-extract landmarks per face crop
+            from app.cv.detector import face_detector as _face_detector
+
             for face in req.recognized_faces:
                 if not face.student_id or student_status_map.get(face.student_id) != "PRESENT":
                     continue
@@ -235,35 +238,70 @@ def save_attendance_session(
                 bh = max(10, min(h_img - by, face.box.h))
                 cropped = img[by:by+bh, bx:bx+bw]
 
-                if cropped.size > 0:
-                    new_emb = face_embedder.compute_embedding(cropped)
-                    if new_emb and any(v != 0.0 for v in new_emb):
-                        existing_embs = db.query(FaceEmbedding).filter(FaceEmbedding.student_id == face.student_id).all()
-                        should_add = True
-                        for ex in existing_embs:
-                            if ex.embedding:
-                                sim = float(np.dot(np.array(new_emb), np.array(ex.embedding)))
-                                if sim > 0.93:
-                                    should_add = False
-                                    break
+                if cropped.size == 0:
+                    continue
 
-                        if should_add:
-                            new_rec = FaceEmbedding(
-                                student_id=face.student_id,
-                                embedding=new_emb,
-                                source_image=clean_rel_path,
-                                angle_label="classroom_verified",
-                                source="teacher_verified"
-                            )
-                            db.add(new_rec)
+                # ── Re-run YuNet on a padded crop to recover 5-pt landmarks ──
+                # This ensures active-learning embeddings use landmark alignment
+                # (same path as enrollment), preventing database corruption.
+                recovered_raw_face = None
+                try:
+                    if _face_detector.yunet_detector is not None:
+                        pad = int(max(bw, bh) * 0.4)
+                        px1 = max(0, bx - pad)
+                        py1 = max(0, by - pad)
+                        px2 = min(w_img, bx + bw + pad)
+                        py2 = min(h_img, by + bh + pad)
+                        padded = img[py1:py2, px1:px2]
+                        ph, pw = padded.shape[:2]
+                        if ph >= 32 and pw >= 32:
+                            _face_detector.yunet_detector.setInputSize((pw, ph))
+                            _, yunet_faces = _face_detector.yunet_detector.detect(padded)
+                            if yunet_faces is not None and len(yunet_faces) > 0:
+                                best = yunet_faces[0].copy()
+                                # Offset landmarks back to full-image coordinates
+                                best[0] += px1; best[1] += py1
+                                for li in range(4, 14, 2):
+                                    best[li] += px1
+                                    best[li + 1] += py1
+                                recovered_raw_face = best
+                except Exception as _lm_err:
+                    print(f"Landmark re-extraction warning (non-fatal): {_lm_err}")
 
-                            if len(existing_embs) >= 12:
-                                oldest_tv = db.query(FaceEmbedding).filter(
-                                    FaceEmbedding.student_id == face.student_id,
-                                    FaceEmbedding.source == "teacher_verified"
-                                ).order_by(FaceEmbedding.created_at.asc()).first()
-                                if oldest_tv:
-                                    db.delete(oldest_tv)
+                # Compute embedding using aligned path when landmarks are available
+                new_emb = face_embedder.compute_embedding(
+                    face_image_bgr=cropped,
+                    full_image_bgr=img if recovered_raw_face is not None else None,
+                    raw_face=recovered_raw_face
+                )
+
+                if new_emb and any(v != 0.0 for v in new_emb):
+                    existing_embs = db.query(FaceEmbedding).filter(FaceEmbedding.student_id == face.student_id).all()
+                    should_add = True
+                    for ex in existing_embs:
+                        if ex.embedding:
+                            sim = float(np.dot(np.array(new_emb), np.array(ex.embedding)))
+                            if sim > 0.93:
+                                should_add = False
+                                break
+
+                    if should_add:
+                        new_rec = FaceEmbedding(
+                            student_id=face.student_id,
+                            embedding=new_emb,
+                            source_image=clean_rel_path,
+                            angle_label="classroom_verified",
+                            source="teacher_verified"
+                        )
+                        db.add(new_rec)
+
+                        if len(existing_embs) >= 12:
+                            oldest_tv = db.query(FaceEmbedding).filter(
+                                FaceEmbedding.student_id == face.student_id,
+                                FaceEmbedding.source == "teacher_verified"
+                            ).order_by(FaceEmbedding.created_at.asc()).first()
+                            if oldest_tv:
+                                db.delete(oldest_tv)
 
             db.commit()
     except Exception as e:
