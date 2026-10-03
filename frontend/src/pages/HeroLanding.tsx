@@ -1,20 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Camera, 
-  ArrowRight, 
-  Check, 
-  ShieldCheck, 
-  Users, 
-  BarChart3, 
+import {
+  Camera,
+  ArrowRight,
   Sliders,
   FileSpreadsheet,
-  CheckCircle2,
-  AlertCircle,
-  Clock,
-  Layers,
-  Sparkles,
-  ExternalLink
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -81,216 +71,205 @@ export const HeroLanding: React.FC = () => {
 
       {/* ── Editorial Hero Section ────────────────────────────────────────── */}
       <section className="border-b border-[var(--border-color)] relative overflow-hidden">
-        {/* Ambient Background Radial Mesh Glow */}
+        {/* Subtle dot-grid texture for visual depth */}
+        <div
+          className="absolute inset-0 pointer-events-none -z-10 opacity-[0.035] dark:opacity-[0.06]"
+          style={{
+            backgroundImage: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
+            backgroundSize: '24px 24px',
+            color: 'var(--text-primary)',
+          }}
+        />
+        {/* Ambient radial glow — desktop only, keep mobile clean */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
-          <div className="absolute -top-32 right-0 w-[450px] h-[450px] bg-blue-600/15 rounded-full blur-[120px] dark:bg-blue-500/20"></div>
-          <div className="absolute top-1/2 left-0 w-[350px] h-[350px] bg-indigo-600/10 rounded-full blur-[100px] dark:bg-indigo-500/15"></div>
+          <div className="hidden lg:block absolute -top-32 right-0 w-[450px] h-[450px] bg-blue-600/15 rounded-full blur-[120px] dark:bg-blue-500/20" />
+          <div className="hidden lg:block absolute top-1/2 left-0 w-[350px] h-[350px] bg-indigo-600/10 rounded-full blur-[100px] dark:bg-indigo-500/15" />
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-12 pb-16 lg:pt-20 lg:pb-28">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-start">
-            
-            {/* Left Column: Typographic Lead */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-10 pb-12 lg:pt-20 lg:pb-28">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 items-start">
+
+            {/* ── Left Column: Typographic Lead ─────── */}
             <div className="lg:col-span-6 space-y-5 sm:space-y-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[11px] font-mono tracking-wide backdrop-blur-md shadow-sm">
+
+              {/* Live status pill */}
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-muted)] text-[11px] font-mono tracking-widest uppercase rounded-sm">
                 <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                 </span>
-                OPTICAL CLASSROOM ROLL-CALL SYSTEM
+                LIVE · Optical Roll-Call System
               </div>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[var(--text-primary)] leading-[1.08]">
-                Verifiable attendance in{' '}
-                <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-500 dark:from-blue-400 dark:via-indigo-300 dark:to-cyan-400 bg-clip-text text-transparent">
-                  two seconds.
-                </span>
-              </h1>
+              {/* Headline — punchy two-line layout */}
+              <div className="space-y-1">
+                <h1 className="text-[2.6rem] sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[var(--text-primary)] leading-[1.05]">
+                  Attendance.
+                </h1>
+                <h1 className="text-[2.6rem] sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05]">
+                  Verified in{' '}
+                  <span className="relative inline-block">
+                    <span className="text-blue-600 dark:text-blue-400">1.8 seconds.</span>
+                    <span className="absolute -bottom-1 left-0 w-full h-[3px] bg-blue-600/30 dark:bg-blue-400/30 rounded-full" />
+                  </span>
+                </h1>
+              </div>
 
-              <p className="text-base sm:text-lg text-[var(--text-secondary)] max-w-xl font-normal leading-relaxed">
-                Process high-density lecture halls from a single optical capture. Instant face recognition, multi-angle identity verification, and zero-proxy roster synchronization.
+              <p className="text-sm sm:text-base text-[var(--text-secondary)] max-w-md font-normal leading-relaxed">
+                One photo. Entire lecture hall marked. Face recognition, biometric vector matching, and zero-proxy roster sync — no hardware required.
               </p>
 
-              {/* Mobile Interactive AI Preview Chip */}
-              <div className="lg:hidden p-3 rounded-xl border border-blue-500/20 bg-blue-500/5 dark:bg-blue-950/20 backdrop-blur-md flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-lg bg-blue-600/10 dark:bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
-                    <Sparkles className="w-4 h-4 animate-pulse" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-[var(--text-primary)]">SFace Biometric AI Active</p>
-                    <p className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400">● 99.8% Match Accuracy · 1.8s</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => navigate('/take-attendance')}
-                  className="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold flex items-center gap-1 shrink-0 shadow-sm"
-                >
-                  <span>Try AI</span>
-                  <ArrowRight className="w-3 h-3" />
-                </button>
-              </div>
-
               {/* Action Buttons */}
-              <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <button
                   onClick={() => navigate('/take-attendance')}
-                  className="py-3.5 px-6 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm shadow-[0_0_25px_rgba(37,99,235,0.35)] flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+                  className="py-3.5 px-6 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm shadow-[0_2px_16px_rgba(37,99,235,0.4)] flex items-center justify-center gap-2 transition-all active:scale-[0.98] rounded-sm"
                 >
                   <Camera className="w-4 h-4" />
                   <span>Start Roll-Call Scan</span>
                 </button>
                 <button
                   onClick={() => navigate('/dashboard')}
-                  className="py-3.5 px-6 rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--bg-inset)] text-[var(--text-primary)] font-medium text-sm border border-[var(--border-color)] flex items-center justify-center gap-2 transition-all backdrop-blur-md"
+                  className="py-3.5 px-6 bg-[var(--bg-surface)] hover:bg-[var(--bg-inset)] text-[var(--text-primary)] font-medium text-sm border border-[var(--border-color)] flex items-center justify-center gap-2 transition-all rounded-sm"
                 >
                   <span>Explore Dashboard</span>
                   <ArrowRight className="w-4 h-4 text-[var(--text-muted)]" />
                 </button>
               </div>
 
-              {/* Monospace Glassmorphic Metrics Card */}
-              <div className="pt-6 border-t border-[var(--border-color)]">
-                <div className="p-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)]/70 backdrop-blur-md grid grid-cols-3 gap-3 font-mono text-center shadow-sm">
-                  <div className="border-r border-[var(--border-color)]/60 pr-2">
-                    <div className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] flex items-center justify-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                      1.8s
-                    </div>
-                    <div className="text-[10px] sm:text-[11px] text-[var(--text-muted)] uppercase tracking-wider mt-0.5 truncate">Scan Latency</div>
+              {/* Key metrics — bold stat blocks */}
+              <div className="pt-5 border-t border-[var(--border-color)]">
+                <div className="grid grid-cols-3 gap-0 font-mono">
+                  <div className="pr-4 border-r border-[var(--border-color)]">
+                    <div className="text-2xl sm:text-3xl font-extrabold text-[var(--text-primary)] tabular-nums">1.8s</div>
+                    <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest mt-1">Scan latency</div>
                   </div>
-                  <div className="border-r border-[var(--border-color)]/60 pr-2">
-                    <div className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                      99.8%
-                    </div>
-                    <div className="text-[10px] sm:text-[11px] text-[var(--text-muted)] uppercase tracking-wider mt-0.5 truncate">Verification</div>
+                  <div className="px-4 border-r border-[var(--border-color)]">
+                    <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">99.8%</div>
+                    <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest mt-1">Verified match</div>
                   </div>
-                  <div>
-                    <div className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400 flex items-center justify-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                      0.0%
-                    </div>
-                    <div className="text-[10px] sm:text-[11px] text-[var(--text-muted)] uppercase tracking-wider mt-0.5 truncate">Proxy Rate</div>
+                  <div className="pl-4">
+                    <div className="text-2xl sm:text-3xl font-extrabold text-blue-600 dark:text-blue-400 tabular-nums">0%</div>
+                    <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest mt-1">Proxy rate</div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Right Column: Authentic Product Scanner Rig */}
+            {/* ── Right Column + Mobile Product Rig ─────────────────── */}
             <div className="lg:col-span-6">
+              <div className="border border-[var(--border-color)] rounded-sm overflow-hidden shadow-sm bg-[var(--bg-surface)]">
 
-              <div className="swiss-card rounded-xl overflow-hidden shadow-lg">
-                {/* Window Bar */}
+                {/* Window / session bar */}
                 <div className="bg-[var(--bg-inset)] px-4 py-3 border-b border-[var(--border-color)] flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-red-500/80"></span>
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80"></span>
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></span>
+                    <span className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
                     <span className="ml-2 font-mono text-[11px] text-[var(--text-muted)]">
-                      SESSION_ID: CSE-302_HALL-4
+                      SESSION · CSE-302 · HALL-4
                     </span>
                   </div>
-                  <div className="flex items-center gap-1 font-mono text-[11px] text-emerald-500 font-semibold">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    ONLINE
+                  <div className="flex items-center gap-1.5 font-mono text-[11px] text-emerald-500 font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    LIVE
                   </div>
                 </div>
 
                 {/* Tab Switcher */}
-                <div className="flex border-b border-[var(--border-color)] bg-[var(--bg-surface)] text-xs font-mono">
-                  <button
-                    onClick={() => setActiveTab('scan')}
-                    className={`flex-1 py-2.5 px-4 text-left border-r border-[var(--border-color)] transition-colors ${
-                      activeTab === 'scan' ? 'bg-[var(--bg-inset)] text-[var(--text-primary)] font-bold' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    01. Optical Detection
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('ledger')}
-                    className={`flex-1 py-2.5 px-4 text-left border-r border-[var(--border-color)] transition-colors ${
-                      activeTab === 'ledger' ? 'bg-[var(--bg-inset)] text-[var(--text-primary)] font-bold' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    02. Verified Ledger
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('export')}
-                    className={`flex-1 py-2.5 px-4 text-left transition-colors ${
-                      activeTab === 'export' ? 'bg-[var(--bg-inset)] text-[var(--text-primary)] font-bold' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
-                  >
-                    03. SIS Export
-                  </button>
+                <div className="flex border-b border-[var(--border-color)] bg-[var(--bg-surface)] text-[11px] font-mono">
+                  {(['scan', 'ledger', 'export'] as const).map((tab, i) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`flex-1 py-2.5 px-2 sm:px-4 text-center sm:text-left transition-colors border-r last:border-r-0 border-[var(--border-color)] ${
+                        activeTab === tab
+                          ? 'bg-blue-600 text-white font-bold'
+                          : 'text-[var(--text-secondary)] hover:bg-[var(--bg-inset)] hover:text-[var(--text-primary)]'
+                      }`}
+                    >
+                      <span className="hidden sm:inline">{`0${i + 1}. `}</span>
+                      {tab === 'scan' ? 'Optical' : tab === 'ledger' ? 'Ledger' : 'Export'}
+                    </button>
+                  ))}
                 </div>
 
-                {/* Tab Content Display */}
-                <div className="p-4 sm:p-6 bg-[var(--bg-surface)] min-h-[320px] flex flex-col justify-between">
+                {/* Tab Content */}
+                <div className="p-3 sm:p-5 bg-[var(--bg-surface)] min-h-[280px] flex flex-col justify-between">
                   {activeTab === 'scan' && (
-                    <div className="space-y-4">
-                      {/* Frame Viewport */}
-                      <div className="relative rounded-lg overflow-hidden border border-[var(--border-color)] bg-zinc-950 aspect-video flex items-center justify-center">
-                        <img 
-                          src="/hero-scenic-1.jpg" 
+                    <div className="space-y-3">
+                      {/* Camera frame */}
+                      <div className="relative rounded-sm overflow-hidden border border-[var(--border-color)] bg-zinc-950 aspect-video">
+                        <img
+                          src="/hero-scenic-1.jpg"
                           alt="Lecture Hall Capture"
-                          className="w-full h-full object-cover opacity-80"
+                          className="w-full h-full object-cover opacity-70"
                         />
+                        {/* Scan overlay lines */}
+                        <div className="absolute inset-0 pointer-events-none">
+                          <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-blue-400/60" />
+                          <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-blue-400/60" />
+                          <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-blue-400/60" />
+                          <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-blue-400/60" />
+                        </div>
                         {/* Detection Bounding Boxes */}
-                        <div className="absolute top-1/4 left-1/4 border-2 border-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded text-[10px] font-mono text-emerald-300">
-                          Alex Rivera (99.4%)
+                        <div className="absolute top-[22%] left-[18%] border border-emerald-400 bg-emerald-500/10 px-1 py-0.5 rounded-sm text-[9px] sm:text-[10px] font-mono text-emerald-300 leading-tight">
+                          <div>Alex Rivera</div>
+                          <div className="text-emerald-400/70">99.4%</div>
                         </div>
-                        <div className="absolute top-1/3 right-1/3 border-2 border-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded text-[10px] font-mono text-emerald-300">
-                          Sarah Jenkins (98.1%)
+                        <div className="absolute top-[35%] right-[22%] border border-emerald-400 bg-emerald-500/10 px-1 py-0.5 rounded-sm text-[9px] sm:text-[10px] font-mono text-emerald-300 leading-tight">
+                          <div>S. Jenkins</div>
+                          <div className="text-emerald-400/70">98.1%</div>
                         </div>
-                        <div className="absolute bottom-1/4 right-1/4 border-2 border-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded text-[10px] font-mono text-amber-300">
-                          Dev Patel (Review: 78%)
+                        <div className="absolute bottom-[22%] right-[18%] border border-amber-400 bg-amber-500/10 px-1 py-0.5 rounded-sm text-[9px] sm:text-[10px] font-mono text-amber-300 leading-tight">
+                          <div>Dev Patel</div>
+                          <div className="text-amber-400/70">78% ⚠</div>
                         </div>
-
                         {mockScanning && (
-                          <div className="absolute inset-0 bg-blue-600/20 backdrop-blur-xs flex items-center justify-center font-mono text-xs text-white font-bold animate-pulse">
-                            CALCULATING EMBEDDING DISTANCES...
+                          <div className="absolute inset-0 bg-blue-600/20 backdrop-blur-sm flex items-center justify-center font-mono text-[10px] sm:text-xs text-white font-bold animate-pulse">
+                            COMPUTING EMBEDDING DISTANCES...
                           </div>
                         )}
                       </div>
 
-                      {/* Control Bar */}
-                      <div className="flex items-center justify-between pt-1">
+                      {/* Recognized bar */}
+                      <div className="flex items-center justify-between">
                         <div className="font-mono text-xs text-[var(--text-secondary)]">
-                          Recognized: <strong className="text-[var(--text-primary)]">{detectedCount} / 48 Enrolled</strong>
+                          Recognized:{' '}
+                          <strong className="text-[var(--text-primary)]">{detectedCount} / 48</strong>
                         </div>
                         <button
                           onClick={handleSimulateScan}
                           disabled={mockScanning}
-                          className="btn-secondary text-xs px-3 py-1.5 font-mono flex items-center gap-1.5"
+                          className="text-[11px] font-mono px-2.5 py-1.5 border border-[var(--border-color)] bg-[var(--bg-inset)] hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1.5 transition-colors rounded-sm disabled:opacity-50"
                         >
-                          <Sliders className="w-3.5 h-3.5" />
-                          <span>{mockScanning ? 'Processing...' : 'Simulate Recalibration'}</span>
+                          <Sliders className="w-3 h-3" />
+                          {mockScanning ? 'Processing…' : 'Re-scan'}
                         </button>
                       </div>
                     </div>
                   )}
 
                   {activeTab === 'ledger' && (
-                    <div className="space-y-2">
-                      <div className="text-xs font-mono font-bold text-[var(--text-secondary)] uppercase tracking-wider pb-1 border-b border-[var(--border-color)] flex justify-between">
-                        <span>Student Record</span>
-                        <span>Status / Accuracy</span>
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] font-mono font-bold text-[var(--text-muted)] uppercase tracking-widest pb-1.5 border-b border-[var(--border-color)] flex justify-between">
+                        <span>Student</span>
+                        <span>Status · Acc.</span>
                       </div>
                       {[
-                        { roll: 'CSE-001', name: 'Alex Rivera', status: 'PRESENT', acc: '99.4%', color: 'text-emerald-500' },
-                        { roll: 'CSE-002', name: 'Sarah Jenkins', status: 'PRESENT', acc: '98.1%', color: 'text-emerald-500' },
-                        { roll: 'CSE-003', name: 'Dev Patel', status: 'PRESENT', acc: '91.0%', color: 'text-emerald-500' },
-                        { roll: 'CSE-004', name: 'Elena Rostova', status: 'PRESENT', acc: '97.6%', color: 'text-emerald-500' },
-                        { roll: 'CSE-005', name: 'Marcus Chen', status: 'ABSENT', acc: 'Unmatched', color: 'text-rose-500' },
+                        { roll: 'CSE-001', name: 'Alex Rivera', status: 'PRESENT', acc: '99.4%', ok: true },
+                        { roll: 'CSE-002', name: 'Sarah Jenkins', status: 'PRESENT', acc: '98.1%', ok: true },
+                        { roll: 'CSE-003', name: 'Dev Patel', status: 'PRESENT', acc: '91.0%', ok: true },
+                        { roll: 'CSE-004', name: 'Elena Rostova', status: 'PRESENT', acc: '97.6%', ok: true },
+                        { roll: 'CSE-005', name: 'Marcus Chen', status: 'ABSENT', acc: '—', ok: false },
                       ].map((item) => (
-                        <div key={item.roll} className="flex items-center justify-between py-1.5 border-b border-[var(--border-color)] text-xs font-mono">
+                        <div key={item.roll} className="flex items-center justify-between py-1.5 border-b border-[var(--border-color)] text-[11px] font-mono">
                           <div className="flex items-center gap-2">
-                            <span className="text-[var(--text-muted)]">{item.roll}</span>
+                            <span className="text-[var(--text-muted)] text-[10px]">{item.roll}</span>
                             <span className="font-medium text-[var(--text-primary)]">{item.name}</span>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <span className={item.color}>{item.status}</span>
+                          <div className="flex items-center gap-2.5">
+                            <span className={item.ok ? 'text-emerald-500' : 'text-rose-500'}>{item.status}</span>
                             <span className="text-[var(--text-muted)]">{item.acc}</span>
                           </div>
                         </div>
@@ -299,17 +278,17 @@ export const HeroLanding: React.FC = () => {
                   )}
 
                   {activeTab === 'export' && (
-                    <div className="space-y-4 py-4 text-center">
-                      <div className="w-12 h-12 mx-auto rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 flex items-center justify-center">
+                    <div className="space-y-4 py-6 flex flex-col items-center">
+                      <div className="w-12 h-12 rounded-sm bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 flex items-center justify-center">
                         <FileSpreadsheet className="w-6 h-6" />
                       </div>
-                      <div className="space-y-1">
-                        <h4 className="text-sm font-bold text-[var(--text-primary)] font-mono">AttendX_CSE302_2026-10-03.xlsx</h4>
-                        <p className="text-xs text-[var(--text-secondary)]">Formatted for Banner, Canvas, Blackboard, and custom SIS formats.</p>
+                      <div className="text-center space-y-1">
+                        <h4 className="text-xs font-bold text-[var(--text-primary)] font-mono">AttendX_CSE302_2026-10-03.xlsx</h4>
+                        <p className="text-[11px] text-[var(--text-secondary)]">Compatible with Banner, Canvas, Blackboard, and custom SIS formats.</p>
                       </div>
                       <button
                         onClick={() => navigate('/history')}
-                        className="btn-primary text-xs px-4 py-2 font-mono mx-auto"
+                        className="text-xs font-mono px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-colors rounded-sm"
                       >
                         Download Sample Ledger (.xlsx)
                       </button>
@@ -317,11 +296,25 @@ export const HeroLanding: React.FC = () => {
                   )}
 
                   {/* Rig Footer */}
-                  <div className="pt-4 border-t border-[var(--border-color)] flex items-center justify-between text-[11px] font-mono text-[var(--text-muted)]">
-                    <span>ALGORITHM: SFace-128D Cosine</span>
-                    <span>TIMESTAMP: 2026-10-03 14:00 UTC</span>
+                  <div className="pt-3 border-t border-[var(--border-color)] flex items-center justify-between text-[10px] font-mono text-[var(--text-muted)]">
+                    <span>ALGO: SFace-128D Cosine</span>
+                    <span>2026-10-03 · 14:00 UTC</span>
                   </div>
                 </div>
+              </div>
+
+              {/* Mobile-only: Biometric status chip below the rig */}
+              <div className="mt-3 lg:hidden flex items-center justify-between px-3 py-2.5 border border-[var(--border-color)] bg-[var(--bg-inset)] rounded-sm font-mono text-[11px]">
+                <div className="flex items-center gap-2 text-[var(--text-secondary)]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  SFace-128D · Biometric engine active
+                </div>
+                <button
+                  onClick={() => navigate('/take-attendance')}
+                  className="text-blue-600 dark:text-blue-400 font-semibold flex items-center gap-1 hover:underline"
+                >
+                  Try now <ArrowRight className="w-3 h-3" />
+                </button>
               </div>
             </div>
 
