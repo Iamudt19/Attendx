@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Users, UserPlus, Upload, ShieldCheck, Trash2, 
-  Eye, AlertCircle, CheckCircle2, RefreshCw, X 
+  Eye, AlertCircle, CheckCircle2, RefreshCw, X, Search, Sparkles
 } from 'lucide-react';
 import { StudentService, ClassService } from '../services/api';
 import { StudentItem, ClassItem } from '../types';
@@ -14,6 +14,7 @@ export const Students: React.FC = () => {
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [selectedClassId, setSelectedClassId] = useState<number | undefined>(undefined);
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   // Add Student & Face Upload Modal state
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
@@ -32,8 +33,8 @@ export const Students: React.FC = () => {
     const initData = async () => {
       try {
         const clsList = await ClassService.getClasses();
-        setClasses(clsList);
-        if (clsList.length > 0) {
+        setClasses(clsList || []);
+        if (clsList && clsList.length > 0) {
           setNewClassId(clsList[0].id);
         }
       } catch (err) {
@@ -47,7 +48,7 @@ export const Students: React.FC = () => {
     setLoading(true);
     try {
       const data = await StudentService.getStudents(selectedClassId);
-      setStudents(data);
+      setStudents(data || []);
     } catch (err) {
       console.error("Failed to load students", err);
     } finally {
@@ -108,219 +109,284 @@ export const Students: React.FC = () => {
   };
 
   const handleDeleteFaceData = async (studentId: number, name: string) => {
-    if (!window.confirm(`Are you sure you want to delete all biometric face embeddings for ${name}?`)) return;
+    if (!window.confirm(`Are you sure you want to purge all biometric face embeddings for ${name}?`)) return;
     try {
       await StudentService.deleteFaceData(studentId);
-      alert(`Biometric face data for ${name} deleted.`);
       fetchStudents();
     } catch (err) {
       alert("Failed to delete face data.");
     }
   };
 
+  const filteredStudents = students.filter(s =>
+    s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.student_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    s.roll_number.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="space-y-6 max-w-7xl mx-auto py-2">
-      {/* Title & Actions */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-6 max-w-7xl mx-auto py-2 text-[#e5e1e4]">
+      {/* ── Title & Actions ── */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-[#3c4a42]/30">
         <div>
-          <h1 className="font-serif text-3xl text-slate-900 font-normal tracking-tight flex items-center gap-2">
-            <Users className="w-6 h-6 text-blue-600" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1c1b1d] border border-[#3c4a42]/40 text-[#4edea3] text-[11px] font-mono font-semibold uppercase tracking-wider mb-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#4edea3] animate-pulse" />
+            Roster & Vector Database
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-2">
             Student Directory & Biometric Profiles
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Register students, manage reference face photos, and track attendance thresholds.
+          <p className="text-xs text-[#86948a] font-mono mt-0.5">
+            Register student profiles, verify multi-angle SFace reference embeddings, and monitor attendance thresholds.
           </p>
         </div>
 
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="px-4 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs rounded-xl shadow-sm flex items-center gap-2"
-        >
-          <UserPlus className="w-4 h-4" />
-          <span>Register Student</span>
-        </button>
+        <div className="flex items-center gap-2.5">
+          <button
+            onClick={() => fetchStudents()}
+            className="p-2.5 bg-[#1c1b1d] hover:bg-[#252427] text-[#bbcabf] rounded-xl border border-[#3c4a42]/40 transition-colors"
+            title="Refresh list"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-[#4edea3]' : ''}`} />
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="px-4 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs rounded-xl shadow-sm flex items-center gap-2 transition-all active:scale-[0.98]"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Register Student</span>
+          </button>
+        </div>
       </div>
 
-      {/* Class Filter Bar */}
-      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200/90 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Cohort Filter:</label>
+      {/* ── Filters & Search ── */}
+      <div className="bg-[#141416] border border-[#3c4a42]/30 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row gap-4 shadow-xl">
+        <div className="flex-1 relative">
+          <Search className="w-4 h-4 text-[#86948a] absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by student name, roll number, or institutional ID..."
+            className="w-full bg-[#1c1b1d] border border-[#3c4a42]/40 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-[#86948a] focus:outline-none focus:border-[#4edea3]"
+          />
+        </div>
+
+        <div className="sm:w-64">
           <select
             value={selectedClassId || ''}
             onChange={(e) => setSelectedClassId(e.target.value ? Number(e.target.value) : undefined)}
-            className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 font-medium focus:outline-none focus:border-blue-500"
+            className="w-full bg-[#1c1b1d] border border-[#3c4a42]/40 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#4edea3] font-medium"
           >
-            <option value="">All Cohorts ({students.length} Total)</option>
+            <option value="">All Classrooms</option>
             {classes.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name} {c.section}
+                {c.name} {c.section} ({c.academic_year})
               </option>
             ))}
           </select>
         </div>
-        <div className="text-xs text-slate-500">
-          Enrolled in view: <span className="text-slate-900 font-bold">{students.length}</span>
+      </div>
+
+      {/* ── Student Roster Table ── */}
+      <div className="bg-[#141416] border border-[#3c4a42]/30 rounded-2xl overflow-hidden shadow-xl">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-[#3c4a42]/30 bg-[#1c1b1d]/80 text-[#86948a] font-mono uppercase text-[10px] tracking-wider">
+                <th className="py-3.5 px-4">Student Profile</th>
+                <th className="py-3.5 px-4">Institutional ID</th>
+                <th className="py-3.5 px-4">Class & Section</th>
+                <th className="py-3.5 px-4 text-center">Biometric Status</th>
+                <th className="py-3.5 px-4 text-center">Attendance %</th>
+                <th className="py-3.5 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#3c4a42]/20">
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-[#86948a] font-mono">
+                    <div className="w-6 h-6 border-2 border-[#4edea3] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                    Loading student directory...
+                  </td>
+                </tr>
+              ) : filteredStudents.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-[#86948a] font-mono">
+                    No students found matching current query.
+                  </td>
+                </tr>
+              ) : (
+                filteredStudents.map((st) => {
+                  const hasFace = st.face_registration_complete || (st.embeddings_count && st.embeddings_count > 0);
+                  const attRatio = st.attendance_percentage || 100;
+                  return (
+                    <tr key={st.id} className="hover:bg-[#1c1b1d]/60 transition-colors group">
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-[#201f22] border border-[#3c4a42]/40 text-[#4edea3] flex items-center justify-center font-bold text-xs font-mono">
+                            {st.name.charAt(0)}
+                          </div>
+                          <div>
+                            <div className="font-semibold text-white group-hover:text-[#4edea3] transition-colors">
+                              {st.name}
+                            </div>
+                            <div className="text-[10px] text-[#86948a] font-mono">Roll: {st.roll_number}</div>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4 font-mono text-slate-300">
+                        {st.student_id}
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <span className="px-2 py-0.5 rounded bg-[#201f22] border border-[#3c4a42]/40 text-[#e5e1e4] font-medium font-mono text-[11px]">
+                          {classes.find(c => c.id === st.class_id)
+                            ? `${classes.find(c => c.id === st.class_id)?.name} ${classes.find(c => c.id === st.class_id)?.section}`
+                            : `Class #${st.class_id}`}
+                        </span>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-center">
+                        {hasFace ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-mono">
+                            <ShieldCheck className="w-3 h-3" />
+                            <span>Enrolled ({st.embeddings_count || 6} vectors)</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-mono">
+                            <AlertCircle className="w-3 h-3" />
+                            <span>Pending Scan</span>
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="py-3.5 px-4 text-center font-mono">
+                        <span className={`font-bold ${attRatio >= 85 ? 'text-emerald-400' : attRatio >= 75 ? 'text-amber-400' : 'text-rose-400'}`}>
+                          {attRatio}%
+                        </span>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => navigate(`/students/${st.id}`)}
+                            className="px-3 py-1.5 rounded-lg bg-[#201f22] hover:bg-[#2a2a2c] text-[#4edea3] border border-[#3c4a42]/40 text-xs font-semibold inline-flex items-center gap-1.5 transition-all"
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span>Inspect</span>
+                          </button>
+
+                          {hasFace && (
+                            <button
+                              onClick={() => handleDeleteFaceData(st.id, st.name)}
+                              className="p-1.5 rounded-lg text-[#86948a] hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                              title="Purge Biometrics"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Student List Table */}
-      <div className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-sm">
-        {loading ? (
-          <div className="text-center py-12 text-slate-400 text-sm">Loading student directory...</div>
-        ) : students.length === 0 ? (
-          <div className="text-center py-12 text-slate-500 text-sm">No students registered in this cohort.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 text-slate-500 uppercase tracking-wider font-semibold border-b border-slate-200">
-                <tr>
-                  <th className="py-3.5 px-4 font-bold">Student ID</th>
-                  <th className="py-3.5 px-4 font-bold">Roll No</th>
-                  <th className="py-3.5 px-4 font-bold">Student Name</th>
-                  <th className="py-3.5 px-4 font-bold">Email</th>
-                  <th className="py-3.5 px-4 font-bold text-center">Face Embeddings</th>
-                  <th className="py-3.5 px-4 font-bold text-center">Attendance Rate</th>
-                  <th className="py-3.5 px-4 font-bold text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {students.map((st) => (
-                  <tr key={st.id} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-3 px-4 text-slate-700 font-mono text-xs">{st.student_id}</td>
-                    <td className="py-3 px-4 text-slate-500 font-mono text-xs">{st.roll_number}</td>
-                    <td className="py-3 px-4 font-bold text-slate-900">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 border border-blue-100 flex items-center justify-center font-bold text-xs">
-                          {st.name.charAt(0)}
-                        </div>
-                        <div>
-                          <div className="text-sm font-bold text-slate-900">{st.name}</div>
-                          {st.face_images && st.face_images.length > 0 && (
-                            <div className="flex items-center gap-1 mt-0.5">
-                              {st.face_images.slice(0, 4).map((img, i) => (
-                                <img key={i} src={img} alt="face" className="w-3.5 h-3.5 rounded object-cover border border-slate-200" />
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-slate-500 text-xs">{st.email || '—'}</td>
-                    <td className="py-3 px-4 text-center">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                          (st.face_count || 0) > 0
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                            : 'bg-rose-50 text-rose-700 border border-rose-100'
-                        }`}
-                      >
-                        <span className={`w-1.5 h-1.5 rounded-full ${ (st.face_count || 0) > 0 ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
-                        {st.face_count || 0} Vectors
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <span className="font-bold text-slate-900">
-                        {st.attendance_percentage}%
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-right space-x-2">
-                      <button
-                        onClick={() => navigate(`/students/${st.id}`)}
-                        className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-semibold inline-flex items-center gap-1 transition-colors"
-                      >
-                        <Eye className="w-3.5 h-3.5 text-blue-600" />
-                        <span>Log</span>
-                      </button>
-                      {(st.face_count || 0) > 0 && (
-                        <button
-                          onClick={() => handleDeleteFaceData(st.id, st.name)}
-                          className="px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-semibold border border-rose-200 inline-flex items-center gap-1 transition-colors"
-                          title="Delete face vectors"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>Wipe</span>
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Add Student Modal */}
+      {/* ── Add Student Modal ── */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl max-w-lg w-full p-7 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="font-serif text-2xl text-slate-900 font-normal flex items-center gap-2">
-                <UserPlus className="w-5 h-5 text-blue-600" />
-                Register Student
-              </h3>
-              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-700">
-                <X className="w-5 h-5" />
-              </button>
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-[#141416] border border-[#3c4a42]/50 rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl relative text-[#e5e1e4]">
+            <button
+              onClick={() => setShowAddModal(false)}
+              className="absolute top-5 right-5 w-8 h-8 rounded-full bg-[#201f22] hover:bg-[#2a2a2c] flex items-center justify-center text-[#86948a] hover:text-white transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-500/30 text-blue-400 flex items-center justify-center">
+                <UserPlus className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg text-white">Register Student Profile</h3>
+                <p className="text-xs text-[#86948a]">Create roster record & optional face reference scan</p>
+              </div>
             </div>
 
             {modalError && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
-                {modalError}
+              <div className="p-3 mb-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{modalError}</span>
               </div>
             )}
 
             {modalSuccess && (
-              <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">
-                {modalSuccess}
+              <div className="p-3 mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>{modalSuccess}</span>
               </div>
             )}
 
-            <form onSubmit={handleCreateStudent} className="space-y-4 text-xs">
+            <form onSubmit={handleCreateStudent} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Student ID *</label>
+                  <label className="block text-[10px] font-mono uppercase tracking-wider text-[#86948a] mb-1 font-bold">
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder="e.g. John Doe"
+                    className="w-full bg-[#1c1b1d] border border-[#3c4a42]/40 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-mono uppercase tracking-wider text-[#86948a] mb-1 font-bold">
+                    Student ID *
+                  </label>
                   <input
                     type="text"
                     required
                     value={newStudentId}
                     onChange={(e) => setNewStudentId(e.target.value)}
-                    placeholder="STU099"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500"
+                    placeholder="e.g. STU101"
+                    className="w-full bg-[#1c1b1d] border border-[#3c4a42]/40 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Roll Number *</label>
+                  <label className="block text-[10px] font-mono uppercase tracking-wider text-[#86948a] mb-1 font-bold">
+                    Roll Number *
+                  </label>
                   <input
                     type="text"
                     required
                     value={newRollNumber}
                     onChange={(e) => setNewRollNumber(e.target.value)}
-                    placeholder="2026CSE99"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500"
+                    placeholder="e.g. 21CS042"
+                    className="w-full bg-[#1c1b1d] border border-[#3c4a42]/40 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
                   />
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Student Full Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Rahul Verma"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Class *</label>
+                  <label className="block text-[10px] font-mono uppercase tracking-wider text-[#86948a] mb-1 font-bold">
+                    Class & Section *
+                  </label>
                   <select
                     value={newClassId}
                     onChange={(e) => setNewClassId(Number(e.target.value))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500"
+                    className="w-full bg-[#1c1b1d] border border-[#3c4a42]/40 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-blue-500 font-medium"
                   >
                     {classes.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -329,49 +395,48 @@ export const Students: React.FC = () => {
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Email</label>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-mono uppercase tracking-wider text-[#86948a] mb-1 font-bold">
+                  Reference Face Photos (Optional)
+                </label>
+                <div className="border border-dashed border-[#3c4a42]/60 rounded-xl p-4 text-center bg-[#1c1b1d]/50 hover:bg-[#1c1b1d] transition-colors cursor-pointer relative">
                   <input
-                    type="email"
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    placeholder="rahul@student.edu"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-slate-900 text-sm focus:outline-none focus:border-blue-500"
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={(e) => {
+                      if (e.target.files) setFaceFiles(Array.from(e.target.files));
+                    }}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
                   />
+                  <Upload className="w-5 h-5 text-blue-400 mx-auto mb-1" />
+                  <div className="text-xs text-slate-300 font-medium">
+                    {faceFiles.length > 0
+                      ? `${faceFiles.length} photo(s) selected for neural embedding`
+                      : 'Drag & drop 1-5 portrait photos or click to browse'}
+                  </div>
+                  <div className="text-[10px] text-[#86948a] mt-0.5">
+                    Clear lighting, front & side profile recommended
+                  </div>
                 </div>
               </div>
 
-              <div className="border-t border-slate-100 pt-3 space-y-2">
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
-                  Upload Reference Photos (Optional)
-                </label>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={(e) => {
-                    if (e.target.files) {
-                      setFaceFiles(Array.from(e.target.files));
-                    }
-                  }}
-                  className="w-full text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-2">
+              <div className="pt-2 flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 bg-slate-100 text-slate-700 font-semibold text-xs rounded-xl"
+                  className="px-4 py-2.5 rounded-xl bg-[#201f22] text-[#bbcabf] text-xs font-semibold hover:bg-[#2a2a2c] transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs rounded-xl shadow-sm disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/20 transition-all disabled:opacity-50"
                 >
-                  {submitting ? 'Registering...' : 'Save & Register Student'}
+                  {submitting ? 'Registering...' : 'Complete Registration'}
                 </button>
               </div>
             </form>

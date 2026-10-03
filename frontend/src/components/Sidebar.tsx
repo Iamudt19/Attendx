@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { 
   X, 
   Cpu, 
@@ -18,6 +18,7 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = () => {
   const [showNodeModal, setShowNodeModal] = useState(false);
+  const location = useLocation();
 
   const navItems = [
     { label: 'Overview', path: '/dashboard', icon: 'dashboard' },
@@ -38,29 +39,31 @@ export const Sidebar: React.FC<SidebarProps> = () => {
               Workspace Architecture
             </div>
             <nav className="space-y-1 mt-1">
-              {navItems.map((item) => (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className={({ isActive }) =>
-                    `flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
+              {navItems.map((item) => {
+                const isActive = location.pathname === item.path || 
+                  (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-all ${
                       isActive
                         ? 'bg-[#2a2a2c] text-[#e5e1e4] border border-[#3c4a42]/50 shadow-sm'
                         : 'text-[#bbcabf] hover:text-[#e5e1e4] hover:bg-[#201f22] border border-transparent'
-                    }`
-                  }
-                >
+                    }`}
+                  >
                   <div className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-[18px]">{item.icon}</span>
                     <span>{item.label}</span>
                   </div>
-                  {item.badge && (
-                    <span className="px-2 py-0.5 rounded-full bg-[#d97707]/20 text-[#ffb77d] border border-[#d97707]/30 text-[10px] font-mono font-semibold">
-                      {item.badge}
-                    </span>
-                  )}
-                </NavLink>
-              ))}
+                    {item.badge && (
+                      <span className="px-2 py-0.5 rounded-full bg-[#d97707]/20 text-[#ffb77d] border border-[#d97707]/30 text-[10px] font-mono font-semibold">
+                        {item.badge}
+                      </span>
+                    )}
+                  </NavLink>
+                );
+              })}
             </nav>
           </div>
         </div>

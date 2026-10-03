@@ -159,9 +159,28 @@ export const AttendanceService = {
     return res.data;
   },
   downloadExcelUrl: (classId: number, subjectId?: number) => {
+    const token = localStorage.getItem('attendx_token');
     let url = `${API_BASE}/export/excel?class_id=${classId}`;
     if (subjectId) url += `&subject_id=${subjectId}`;
+    if (token) url += `&token=${encodeURIComponent(token)}`;
     return url;
+  },
+  downloadExcelDirect: async (classId: number, subjectId?: number) => {
+    const res = await api.get('/export/excel', {
+      params: { class_id: classId, subject_id: subjectId },
+      responseType: 'blob'
+    });
+    const blob = new Blob([res.data], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    });
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.setAttribute('download', `Attendance_Report_Class_${classId}.xlsx`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(downloadUrl);
   }
 };
 

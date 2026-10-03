@@ -18,6 +18,8 @@ import {
 import { User, ClassItem } from '../types';
 import { ClassService } from '../services/api';
 
+import { Logo } from './Logo';
+
 interface NavbarProps {
   user: User | null;
   onLogout: () => void;
@@ -94,13 +96,7 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
           onClick={() => navigate('/dashboard')} 
           className="flex items-center gap-3 cursor-pointer group select-none min-w-[200px]"
         >
-          <div className="w-8 h-8 rounded-lg bg-[#201f22] border border-[#3c4a42]/40 text-[#4edea3] flex items-center justify-center font-bold shadow-sm transition-transform group-hover:scale-105">
-            <span className="material-symbols-outlined text-[18px]">center_focus_strong</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="font-semibold text-sm tracking-tight text-[#e5e1e4]">ATTENDX.</span>
-            <span className="text-[10px] text-[#86948a] uppercase tracking-widest font-mono">AI Intelligence</span>
-          </div>
+          <Logo size="sm" variant="glass" showTagline />
         </div>
 
         {/* Middle search bar & semester badge */}
