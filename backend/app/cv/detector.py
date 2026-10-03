@@ -73,34 +73,76 @@ class FaceDetector:
             self.face_cascade = None
 
     def _detect_yunet(self, image_bgr: np.ndarray) -> List[Dict[str, Any]]:
-        """Use OpenCV YuNet ONNX model (extracts bbox + 5 facial landmarks)."""
-        h_img, w_img = image_bgr.shape[:2]
-        self.yunet_detector.setInputSize((w_img, h_img))
-        _, faces = self.yunet_detector.detect(image_bgr)
+        """Use OpenCV YuNet ONNX model with adaptive multi-scale detection."""
+        h_orig, w_orig = image_bgr.shape[:2]
+        if h_orig == 0 or w_orig == 0:
+            return []
+
+        # Determine optimal detection scale (target max dimension 1280 for optimal YuNet anchor pyramid)
+        max_dim = max(h_orig, w_orig)
+        if max_dim > 1280:
+            scale_ratio = 1280.0 / max_dim
+            w_scaled = int(round(w_orig * scale_ratio))
+            h_scaled = int(round(h_orig * scale_ratio))
+            det_img = cv2.resize(image_bgr, (w_scaled, h_scaled), interpolation=cv2.INTER_AREA)
+        else:
+            scale_ratio = 1.0
+            w_scaled, h_scaled = w_orig, h_orig
+            det_img = image_bgr
+
+        self.yunet_detector.setInputSize((w_scaled, h_scaled))
+        _, faces = self.yunet_detector.detect(det_img)
+
+        # Fallback multi-scale scan for distant classroom shots if initial detection found few/no faces
+        if (faces is None or len(faces) == 0) and max_dim > 640 and scale_ratio != 1.0:
+            self.yunet_detector.setInputSize((w_orig, h_orig))
+            _, faces = self.yunet_detector.detect(image_bgr)
+            scale_ratio = 1.0
+
         if faces is None or len(faces) == 0:
             return []
 
+        inv_scale = 1.0 / scale_ratio
         results = []
         for face in faces:
-            x, y, w, h = int(face[0]), int(face[1]), int(face[2]), int(face[3])
             score = float(face[14])
-            if score < 0.25 or w < 16 or h < 16:
+            # Calibrated score threshold: filter out wall art / textures, preserve real faces
+            if score < 0.38:
                 continue
 
-            # Bounding box clamp
-            x1 = max(0, x)
-            y1 = max(0, y)
-            x2 = min(w_img, x + w)
-            y2 = min(h_img, y + h)
+            # Scale coordinates back to original full image space
+            x = int(round(face[0] * inv_scale))
+            y = int(round(face[1] * inv_scale))
+            w = int(round(face[2] * inv_scale))
+            h = int(round(face[3] * inv_scale))
+
+            if w < 16 or h < 16:
+                continue
+
+            # Bounding box clamp to full image bounds
+            x1 = max(0, min(w_orig - 1, x))
+            y1 = max(0, min(h_orig - 1, y))
+            x2 = max(x1 + 1, min(w_orig, x + w))
+            y2 = max(y1 + 1, min(h_orig, y + h))
 
             cropped = image_bgr[y1:y2, x1:x2]
             if cropped.size == 0:
                 continue
 
+            # Scale all 5 landmarks (x, y) back to original coordinates
+            scaled_raw_face = face.copy()
+            scaled_raw_face[0] = x1
+            scaled_raw_face[1] = y1
+            scaled_raw_face[2] = x2 - x1
+            scaled_raw_face[3] = y2 - y1
+            for li in range(4, 14, 2):
+                scaled_raw_face[li] = scaled_raw_face[li] * inv_scale
+                scaled_raw_face[li + 1] = scaled_raw_face[li + 1] * inv_scale
+
             results.append({
                 "box": {"x": x1, "y": y1, "w": x2 - x1, "h": y2 - y1},
                 "cropped_face": cropped,
-                "raw_face": face,  # 15-element array containing 5-point landmarks
+                "raw_face": scaled_raw_face,
                 "score": score
             })
         return results

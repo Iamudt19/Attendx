@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Eye, EyeOff, CheckCircle2, AlertTriangle, HelpCircle, SlidersHorizontal } from 'lucide-react';
 import { RecognizedFace } from '../types';
 import { getStorageUrl } from '../services/api';
@@ -19,12 +19,24 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
+  // Layout recalculation trigger state
+  const [, setDimensionsTrigger] = useState(0);
+
   // Visibility & mode filters
   const [showPresent, setShowPresent] = useState(true);
   const [showReview, setShowReview] = useState(true);
   const [showUnknown, setShowUnknown] = useState(false);
   const [alwaysShowLabels, setAlwaysShowLabels] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+
+  // Recalculate offsets on window resize or layout updates
+  useEffect(() => {
+    const handleResize = () => {
+      setDimensionsTrigger((prev) => prev + 1);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const resolvedImageUrl = imageUrl ? getStorageUrl(imageUrl) : '';
 
@@ -43,7 +55,7 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
 
   return (
     <div className="space-y-2">
-      {/* Interactive Toolbar for Clutter Reduction */}
+      {/* Interactive Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-2 p-2 bg-slate-950/80 rounded-xl border border-slate-800 text-xs">
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-[10px] uppercase font-bold text-slate-400 mr-1 flex items-center gap-1">
@@ -107,6 +119,7 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
           ref={imgRef}
           src={resolvedImageUrl}
           alt="Classroom Capture"
+          onLoad={() => setDimensionsTrigger((prev) => prev + 1)}
           className="w-full h-auto object-contain max-h-[520px] block mx-auto select-none"
         />
 
@@ -126,10 +139,13 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
             const scaleX = img.clientWidth / (img.naturalWidth || img.clientWidth || 1);
             const scaleY = img.clientHeight / (img.naturalHeight || img.clientHeight || 1);
 
-            const left = (box.x ?? 0) * scaleX;
-            const top = (box.y ?? 0) * scaleY;
-            const width = Math.max(10, (box.w ?? 20) * scaleX);
-            const height = Math.max(10, (box.h ?? 20) * scaleY);
+            // Account for horizontal/vertical offsets when image is centered (mx-auto / object-contain)
+            const left = img.offsetLeft + (box.x ?? 0) * scaleX;
+            const top = img.offsetTop + (box.y ?? 0) * scaleY;
+            const boxW = box.w ?? box.width ?? 20;
+            const boxH = box.h ?? box.height ?? 20;
+            const width = Math.max(10, boxW * scaleX);
+            const height = Math.max(10, boxH * scaleY);
 
             const isSelected = selectedStudentId && student_id === selectedStudentId;
             const isHovered = hoveredIndex === idx;

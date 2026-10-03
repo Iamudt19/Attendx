@@ -48,16 +48,33 @@ async def analyze_classroom_photo(
     if not uploaded_files:
         raise HTTPException(status_code=400, detail="No classroom photo uploaded. Please stage at least one photo.")
 
-    # Read image contents and save files
+    # Read image contents, normalize EXIF orientation, and save files
     images_bytes_list = []
     image_urls = []
+    import io
+    from PIL import Image, ImageOps
+
     for f in uploaded_files:
         content = await f.read()
         if not content or len(content) == 0:
             continue
-        images_bytes_list.append(content)
-        ext = os.path.splitext(f.filename)[1] if f.filename else ".jpg"
-        saved_rel = storage_service.save_bytes(content, ext=ext, subfolder="classroom_photos")
+
+        # Transpose image to upright orientation based on EXIF
+        try:
+            pil_img = Image.open(io.BytesIO(content))
+            pil_transposed = ImageOps.exif_transpose(pil_img)
+            # Re-encode as clean upright JPEG
+            buf = io.BytesIO()
+            if pil_transposed.mode != 'RGB':
+                pil_transposed = pil_transposed.convert('RGB')
+            pil_transposed.save(buf, format='JPEG', quality=95)
+            normalized_content = buf.getvalue()
+        except Exception as e:
+            print(f"Image EXIF normalization fallback: {e}")
+            normalized_content = content
+
+        images_bytes_list.append(normalized_content)
+        saved_rel = storage_service.save_bytes(normalized_content, ext=".jpg", subfolder="classroom_photos")
         image_urls.append(f"/storage/{saved_rel}")
 
     if not images_bytes_list:
