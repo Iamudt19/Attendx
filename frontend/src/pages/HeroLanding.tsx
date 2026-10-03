@@ -14,7 +14,12 @@ import {
   X,
   Play,
   Layers,
-  GraduationCap
+  GraduationCap,
+  Lock,
+  Cpu,
+  Database,
+  Building2,
+  Check
 } from 'lucide-react';
 
 interface CaseStory {
@@ -134,7 +139,12 @@ export const HeroLanding: React.FC = () => {
   const navigate = useNavigate();
   const [activeStoryIndex, setActiveStoryIndex] = useState(0);
   const [email, setEmail] = useState('');
+  
+  // Modals state
   const [showDemoModal, setShowDemoModal] = useState(false);
+  const [showHowItWorksModal, setShowHowItWorksModal] = useState(false);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
   const [showResourcesMenu, setShowResourcesMenu] = useState(false);
   const [showPlatformMenu, setShowPlatformMenu] = useState(false);
   const [liveMeshOverlay, setLiveMeshOverlay] = useState(true);
@@ -156,6 +166,13 @@ export const HeroLanding: React.FC = () => {
       setShowDemoModal(true);
     } else {
       navigate('/login');
+    }
+  };
+
+  const scrollToSection = (sectionId: string) => {
+    const el = document.getElementById(sectionId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
@@ -192,7 +209,10 @@ export const HeroLanding: React.FC = () => {
               {showPlatformMenu && (
                 <div className="absolute top-full left-0 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 p-3 flex flex-col gap-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                   <div 
-                    onClick={() => navigate('/login')}
+                    onClick={() => {
+                      setShowPlatformMenu(false);
+                      navigate('/login');
+                    }}
                     className="p-3 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors"
                   >
                     <div className="font-semibold text-slate-900 text-sm flex items-center gap-2">
@@ -201,7 +221,10 @@ export const HeroLanding: React.FC = () => {
                     <p className="text-xs text-slate-500 mt-1">Simultaneous recognition of up to 200 faces per frame.</p>
                   </div>
                   <div 
-                    onClick={() => navigate('/admin')}
+                    onClick={() => {
+                      setShowPlatformMenu(false);
+                      navigate('/admin');
+                    }}
                     className="p-3 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors"
                   >
                     <div className="font-semibold text-slate-900 text-sm flex items-center gap-2">
@@ -210,7 +233,10 @@ export const HeroLanding: React.FC = () => {
                     <p className="text-xs text-slate-500 mt-1">Multi-campus roster sync, role controls & SIS integration.</p>
                   </div>
                   <div 
-                    onClick={() => navigate('/student/login')}
+                    onClick={() => {
+                      setShowPlatformMenu(false);
+                      navigate('/student/login');
+                    }}
                     className="p-3 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors"
                   >
                     <div className="font-semibold text-slate-900 text-sm flex items-center gap-2">
@@ -233,34 +259,49 @@ export const HeroLanding: React.FC = () => {
               </button>
               {showResourcesMenu && (
                 <div className="absolute top-full left-0 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 p-3 flex flex-col gap-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                  <a 
-                    href="#how-it-works"
-                    className="p-2.5 rounded-xl hover:bg-slate-50 text-slate-800 text-sm font-medium transition-colors block"
+                  <button 
+                    onClick={() => {
+                      setShowResourcesMenu(false);
+                      setShowHowItWorksModal(true);
+                    }}
+                    className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 text-slate-800 text-sm font-medium transition-colors block"
                   >
                     How AttendX Works
-                  </a>
-                  <a 
-                    href="#case-studies"
-                    className="p-2.5 rounded-xl hover:bg-slate-50 text-slate-800 text-sm font-medium transition-colors block"
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setShowResourcesMenu(false);
+                      scrollToSection('case-studies-section');
+                    }}
+                    className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 text-slate-800 text-sm font-medium transition-colors block"
                   >
                     University Case Studies
-                  </a>
-                  <a 
-                    href="#security"
-                    className="p-2.5 rounded-xl hover:bg-slate-50 text-slate-800 text-sm font-medium transition-colors block"
+                  </button>
+                  <button 
+                    onClick={() => {
+                      setShowResourcesMenu(false);
+                      setShowPrivacyModal(true);
+                    }}
+                    className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 text-slate-800 text-sm font-medium transition-colors block"
                   >
                     Biometric Privacy & GDPR
-                  </a>
+                  </button>
                 </div>
               )}
             </div>
 
-            <a href="#case-studies" className="hover:text-slate-950 transition-colors">
+            <button 
+              onClick={() => scrollToSection('case-studies-section')} 
+              className="hover:text-slate-950 transition-colors"
+            >
               Customers
-            </a>
-            <a href="#pricing" className="hover:text-slate-950 transition-colors">
+            </button>
+            <button 
+              onClick={() => setShowPricingModal(true)} 
+              className="hover:text-slate-950 transition-colors"
+            >
               Pricing
-            </a>
+            </button>
           </nav>
 
           {/* Right Action Buttons */}
@@ -319,7 +360,10 @@ export const HeroLanding: React.FC = () => {
         </div>
 
         {/* Hero Visual Canvas Showcase Frame */}
-        <div className="w-full rounded-[28px] border border-slate-200/80 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)] overflow-hidden bg-slate-950 relative min-h-[460px] md:min-h-[580px] flex flex-col justify-end">
+        <div 
+          id="case-studies-section"
+          className="w-full rounded-[28px] border border-slate-200/80 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)] overflow-hidden bg-slate-950 relative min-h-[460px] md:min-h-[580px] flex flex-col justify-end"
+        >
           {/* Scenic Background Image */}
           <div className="absolute inset-0 z-0 overflow-hidden">
             <img 
@@ -546,14 +590,20 @@ export const HeroLanding: React.FC = () => {
             <span>© 2026 AttendX AI Inc. All rights reserved.</span>
           </div>
           <div className="flex items-center gap-6">
-            <a href="#privacy" className="hover:text-slate-900 transition-colors">Privacy Policy</a>
-            <a href="#terms" className="hover:text-slate-900 transition-colors">Terms of Service</a>
-            <a href="#security" className="hover:text-slate-900 transition-colors">Security</a>
+            <button onClick={() => setShowPrivacyModal(true)} className="hover:text-slate-900 transition-colors">
+              Privacy Policy
+            </button>
+            <button onClick={() => setShowHowItWorksModal(true)} className="hover:text-slate-900 transition-colors">
+              Documentation
+            </button>
+            <button onClick={() => setShowPrivacyModal(true)} className="hover:text-slate-900 transition-colors">
+              Biometric Security
+            </button>
           </div>
         </div>
       </footer>
 
-      {/* Demo Modal */}
+      {/* ── Demo Modal ── */}
       {showDemoModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-3xl max-w-md w-full p-7 shadow-2xl border border-slate-100 relative">
@@ -564,62 +614,277 @@ export const HeroLanding: React.FC = () => {
               <X className="w-4 h-4" />
             </button>
 
-            {demoSubmitted ? (
-              <div className="text-center py-6 space-y-4">
-                <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
-                  <CheckCircle2 className="w-8 h-8" />
-                </div>
-                <h3 className="font-serif text-2xl font-normal text-slate-900">Demo Access Granted</h3>
-                <p className="text-sm text-slate-600">
-                  We've initialized a live test workspace for <strong>{email || 'your institution'}</strong>.
+            <div className="space-y-4">
+              <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-serif text-2xl font-normal text-slate-900">Experience AttendX Live</h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  Try the multi-face classroom recognition engine or log into your campus portal.
                 </p>
+              </div>
+
+              <div className="space-y-3 pt-2">
                 <button
                   onClick={() => {
                     setShowDemoModal(false);
                     navigate('/login');
                   }}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition-colors"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2"
                 >
-                  Proceed to Login / Register
+                  <span>Launch Teacher / Admin App</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShowDemoModal(false);
+                    navigate('/student/login');
+                  }}
+                  className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2"
+                >
+                  <GraduationCap className="w-4 h-4 text-blue-600" />
+                  <span>Open Student Portal</span>
                 </button>
               </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
-                  <Sparkles className="w-6 h-6" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── "How AttendX Works" Modal ── */}
+      {showHowItWorksModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-8 shadow-2xl border border-slate-100 relative text-slate-900 max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setShowHowItWorksModal(false)}
+              className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-bold">
+                <Layers className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-serif text-2xl font-normal">How AttendX Works</h3>
+                <p className="text-xs text-slate-500">Autonomous 3-Stage Biometric Attendance Pipeline</p>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <div className="flex gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
+                  1
                 </div>
                 <div>
-                  <h3 className="font-serif text-2xl font-normal text-slate-900">Experience AttendX Live</h3>
-                  <p className="text-sm text-slate-500 mt-1">
-                    Try the multi-face classroom recognition engine or log into your campus portal.
+                  <h4 className="font-bold text-sm text-slate-900">Multi-Angle Classroom Capture</h4>
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                    Educator snaps 1 to 4 wide-angle photos of the classroom or triggers live webcam scanning. The system handles varying focal lengths, side-profiles, and lecture hall lighting.
                   </p>
                 </div>
+              </div>
 
-                <div className="space-y-3 pt-2">
-                  <button
-                    onClick={() => {
-                      setShowDemoModal(false);
-                      navigate('/login');
-                    }}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3.5 rounded-xl transition-all shadow-md shadow-blue-600/20 flex items-center justify-center gap-2"
-                  >
-                    <span>Launch Teacher / Admin App</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setShowDemoModal(false);
-                      navigate('/student/login');
-                    }}
-                    className="w-full bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2"
-                  >
-                    <GraduationCap className="w-4 h-4 text-blue-600" />
-                    <span>Open Student Portal</span>
-                  </button>
+              <div className="flex gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
+                  2
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-slate-900">YuNet Localization + SFace 512-D Embeddings</h4>
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                    Our ONNX-powered lightweight neural vision pipeline detects up to 200 faces simultaneously, crops & aligns landmarks, and computes mathematically unique 512-dimensional biometric feature vectors in sub-20ms.
+                  </p>
                 </div>
               </div>
-            )}
+
+              <div className="flex gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shrink-0">
+                  3
+                </div>
+                <div>
+                  <h4 className="font-bold text-sm text-slate-900">Instant Roster Matching & SIS Ledger Export</h4>
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                    Feature vectors are matched against registered student embeddings using cosine similarity. Attendance is locked in PostgreSQL, available for review in the Audit Queue, and exported to Excel with one click.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 pt-4 border-t border-slate-100 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowHowItWorksModal(false);
+                  navigate('/login');
+                }}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-5 py-2.5 rounded-xl transition-all"
+              >
+                Try Live Scanner Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Biometric Privacy & GDPR Modal ── */}
+      {showPrivacyModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-8 shadow-2xl border border-slate-100 relative text-slate-900 max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setShowPrivacyModal(false)}
+              className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center font-bold">
+                <Lock className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-serif text-2xl font-normal">Biometric Privacy & Compliance</h3>
+                <p className="text-xs text-slate-500">FERPA, GDPR & Zero-Knowledge Mathematical Safeguards</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 text-sm text-slate-600 leading-relaxed">
+              <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-100">
+                <h4 className="font-bold text-slate-900 flex items-center gap-2 mb-1">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  Zero Raw Image Retention
+                </h4>
+                <p className="text-xs text-slate-600">
+                  AttendX does not store raw student facial images in the database. During registration, faces are immediately translated into one-way 512-dimensional numerical vectors that cannot be reverse-engineered back into pictures.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-blue-50/50 border border-blue-100">
+                <h4 className="font-bold text-slate-900 flex items-center gap-2 mb-1">
+                  <ShieldCheck className="w-4 h-4 text-blue-600" />
+                  AES-256 Encryption at Rest & in Transit
+                </h4>
+                <p className="text-xs text-slate-600">
+                  All vector embeddings and academic records are encrypted using TLS 1.3 in transit and AES-256 at rest across Supabase isolated tenant shards.
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100">
+                <h4 className="font-bold text-slate-900 flex items-center gap-2 mb-1">
+                  <Building2 className="w-4 h-4 text-indigo-600" />
+                  FERPA & Institutional Sovereignty
+                </h4>
+                <p className="text-xs text-slate-600">
+                  Student biometric data remains under complete ownership of your university. Admins can permanently purge face vectors or export audit histories at any time.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 pt-4 border-t border-slate-100 flex justify-end">
+              <button
+                onClick={() => setShowPrivacyModal(false)}
+                className="bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold px-5 py-2.5 rounded-xl transition-all"
+              >
+                Close Privacy Dossier
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Institutional Pricing Modal ── */}
+      {showPricingModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl max-w-4xl w-full p-8 shadow-2xl border border-slate-100 relative text-slate-900 max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setShowPricingModal(false)}
+              className="absolute top-5 right-5 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="text-center max-w-xl mx-auto mb-8">
+              <h3 className="font-serif text-3xl font-normal">Transparent Academic Pricing</h3>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                From individual professors to university-wide multi-campus rollouts.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Starter */}
+              <div className="p-6 rounded-2xl border border-slate-200 flex flex-col justify-between hover:border-blue-500 transition-colors">
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Starter Tier</div>
+                  <div className="text-3xl font-extrabold text-slate-900 mt-2">$0</div>
+                  <p className="text-xs text-slate-500 mt-1">Free forever for educators</p>
+                  <ul className="mt-6 space-y-3 text-xs text-slate-600">
+                    <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-blue-600" /> Up to 150 students</li>
+                    <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-blue-600" /> Multi-photo classroom review</li>
+                    <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-blue-600" /> Excel (.xlsx) downloads</li>
+                  </ul>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowPricingModal(false);
+                    navigate('/login');
+                  }}
+                  className="mt-6 w-full bg-slate-100 hover:bg-slate-200 text-slate-900 font-semibold py-2.5 rounded-xl text-xs transition-colors"
+                >
+                  Start Free
+                </button>
+              </div>
+
+              {/* Department */}
+              <div className="p-6 rounded-2xl border-2 border-blue-600 bg-blue-50/20 flex flex-col justify-between relative shadow-md">
+                <div className="absolute -top-3 right-5 bg-blue-600 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                  Popular
+                </div>
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-blue-600">Department</div>
+                  <div className="text-3xl font-extrabold text-slate-900 mt-2">$290<span className="text-xs font-normal text-slate-500">/mo</span></div>
+                  <p className="text-xs text-slate-500 mt-1">For academic departments</p>
+                  <ul className="mt-6 space-y-3 text-xs text-slate-700">
+                    <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-blue-600" /> Up to 2,500 students</li>
+                    <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-blue-600" /> Live Vision Node Edge streaming</li>
+                    <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-blue-600" /> Multi-teacher role authorization</li>
+                    <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-blue-600" /> Priority neural model updates</li>
+                  </ul>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowPricingModal(false);
+                    navigate('/login');
+                  }}
+                  className="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 rounded-xl text-xs transition-colors shadow-md shadow-blue-600/20"
+                >
+                  Upgrade Department
+                </button>
+              </div>
+
+              {/* Enterprise */}
+              <div className="p-6 rounded-2xl border border-slate-200 flex flex-col justify-between hover:border-blue-500 transition-colors">
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-400">Campus Enterprise</div>
+                  <div className="text-3xl font-extrabold text-slate-900 mt-2">Custom</div>
+                  <p className="text-xs text-slate-500 mt-1">Full university deployment</p>
+                  <ul className="mt-6 space-y-3 text-xs text-slate-600">
+                    <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-blue-600" /> Unlimited students & auditoriums</li>
+                    <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-blue-600" /> Native Canvas & Blackboard SIS API</li>
+                    <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-blue-600" /> Custom dedicated edge hardware</li>
+                    <li className="flex items-center gap-2"><Check className="w-3.5 h-3.5 text-blue-600" /> 24/7 SLA & dedicated engineer</li>
+                  </ul>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowPricingModal(false);
+                    setShowDemoModal(true);
+                  }}
+                  className="mt-6 w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-2.5 rounded-xl text-xs transition-colors"
+                >
+                  Contact Enterprise Sales
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

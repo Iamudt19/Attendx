@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Sidebar } from './components/Sidebar';
 import { Login } from './pages/Login';
@@ -17,7 +17,6 @@ import { User, AttendanceAnalysisResponse } from './types';
 import { Analytics } from '@vercel/analytics/react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { HeroLanding } from './pages/HeroLanding';
-import { ThemeProvider } from './context/ThemeContext';
 
 // ── Admin Portal Root ─────────────────────────────────────────────────────────
 const AdminPortalRoot: React.FC = () => <AdminPortal />;
@@ -25,8 +24,47 @@ const AdminPortalRoot: React.FC = () => <AdminPortal />;
 // ── Student Portal Root ───────────────────────────────────────────────────────
 const StudentPortalRoot: React.FC = () => <StudentPortal />;
 
-// ── Teacher / Admin Protected App ─────────────────────────────────────────────
-const TeacherPortalApp: React.FC = () => {
+// ── Teacher / Admin Shell Layout ──────────────────────────────────────────────
+interface TeacherLayoutProps {
+  user: User | null;
+  loading: boolean;
+  onLogout: () => void;
+  onLoginSuccess: (userData: User, token: string) => void;
+}
+
+const TeacherLayout: React.FC<TeacherLayoutProps> = ({
+  user,
+  loading,
+  onLogout,
+  onLoginSuccess
+}) => {
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400 text-sm font-mono animate-pulse">
+        Initializing AttendX Neural Engine...
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login onLoginSuccess={onLoginSuccess} />;
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+      <Navbar user={user} onLogout={onLogout} />
+      <div className="flex flex-1">
+        <Sidebar user={user} />
+        <main className="flex-1 p-6 overflow-y-auto max-w-7xl mx-auto w-full">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+};
+
+// ── Main App Root ─────────────────────────────────────────────────────────────
+export const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -62,26 +100,31 @@ const TeacherPortalApp: React.FC = () => {
     setUser(userData);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400 text-sm font-mono animate-pulse">
-        Initializing AttendX Engine...
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Login onLoginSuccess={handleLoginSuccess} />;
-  }
-
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      <Navbar user={user} onLogout={handleLogout} />
-      <div className="flex flex-1">
-        <Sidebar user={user} />
-        <main className="flex-1 p-6 overflow-y-auto max-w-7xl mx-auto w-full">
-          <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+    <ErrorBoundary>
+      <BrowserRouter>
+        <Analytics />
+        <Routes>
+          {/* Public Landing & Hero Pages */}
+          <Route path="/" element={<HeroLanding />} />
+          <Route path="/landing" element={<HeroLanding />} />
+
+          {/* Admin & Student Portals */}
+          <Route path="/admin/*" element={<AdminPortalRoot />} />
+          <Route path="/student/*" element={<StudentPortalRoot />} />
+
+          {/* Teacher / Admin Authenticated Shell Routes */}
+          <Route
+            element={
+              <TeacherLayout
+                user={user}
+                loading={loading}
+                onLogout={handleLogout}
+                onLoginSuccess={handleLoginSuccess}
+              />
+            }
+          >
+            <Route path="/login" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard user={user} />} />
             <Route
               path="/take-attendance"
@@ -107,44 +150,10 @@ const TeacherPortalApp: React.FC = () => {
             <Route path="/students" element={<Students />} />
             <Route path="/students/:studentId" element={<StudentDetail />} />
             <Route path="/classes" element={<Classes />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </main>
-      </div>
-    </div>
-  );
-};
-
-// ── App Root: Top Level Routes ────────────────────────────────────────────────
-export const App: React.FC = () => {
-  return (
-    <ErrorBoundary>
-      <BrowserRouter>
-        <Analytics />
-        <Routes>
-          {/* Landing / Hero Page */}
-          <Route path="/" element={<HeroLanding />} />
-          <Route path="/landing" element={<HeroLanding />} />
-          
-          {/* Direct Login Route */}
-          <Route path="/login" element={<TeacherPortalApp />} />
-
-          {/* Admin Portal Routes */}
-          <Route path="/admin/*" element={<AdminPortalRoot />} />
-
-          {/* Student Portal Routes */}
-          <Route path="/student/*" element={<StudentPortalRoot />} />
-
-          {/* Teacher / Admin Authenticated Routes */}
-          <Route path="/dashboard/*" element={<TeacherPortalApp />} />
-          <Route path="/take-attendance/*" element={<TeacherPortalApp />} />
-          <Route path="/review-attendance/*" element={<TeacherPortalApp />} />
-          <Route path="/history/*" element={<TeacherPortalApp />} />
-          <Route path="/students/*" element={<TeacherPortalApp />} />
-          <Route path="/classes/*" element={<TeacherPortalApp />} />
+          </Route>
 
           {/* Fallback */}
-          <Route path="*" element={<HeroLanding />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </ErrorBoundary>
