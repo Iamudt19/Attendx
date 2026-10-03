@@ -141,6 +141,7 @@ const CASE_STORIES: CaseStory[] = [
 
 export const HeroLanding: React.FC = () => {
   const navigate = useNavigate();
+  const { toggleTheme, isDark } = useTheme();
   const [activeStoryIndex, setActiveStoryIndex] = useState(0);
   const [email, setEmail] = useState('');
   
@@ -181,66 +182,66 @@ export const HeroLanding: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FBFBFB] text-[#111827] font-sans flex flex-col selection:bg-blue-600 selection:text-white">
+    <div className={`min-h-screen font-sans flex flex-col selection:bg-blue-600 selection:text-white transition-colors duration-300 ${isDark ? 'bg-[#09090b] text-[#f8fafc]' : 'bg-[#FBFBFB] text-[#111827]'}`}>
       {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-50 bg-[#FBFBFB]/90 backdrop-blur-md border-b border-slate-100">
+      <header className={`sticky top-0 z-50 backdrop-blur-md border-b transition-colors duration-300 ${isDark ? 'bg-[#09090b]/90 border-slate-800/80 text-slate-100' : 'bg-[#FBFBFB]/90 border-slate-100 text-slate-900'}`}>
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           {/* Brand Logo */}
           <div 
             onClick={() => navigate('/')} 
             className="flex items-center gap-2.5 cursor-pointer group"
           >
-            <Logo size="md" variant="light" showTagline />
+            <Logo size="md" variant="auto" showTagline />
           </div>
 
           {/* Navigation Links */}
-          <nav className="hidden md:flex items-center gap-8 text-[15px] font-medium text-slate-600">
+          <nav className={`hidden md:flex items-center gap-8 text-[15px] font-medium transition-colors ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
             {/* Platform Dropdown */}
             <div 
               className="relative"
               onMouseEnter={() => setShowPlatformMenu(true)}
               onMouseLeave={() => setShowPlatformMenu(false)}
             >
-              <button className="flex items-center gap-1 hover:text-slate-950 transition-colors py-2">
+              <button className={`flex items-center gap-1 transition-colors py-2 ${isDark ? 'hover:text-white' : 'hover:text-slate-950'}`}>
                 Platform <ChevronDown className="w-4 h-4 opacity-70" />
               </button>
               {showPlatformMenu && (
-                <div className="absolute top-full left-0 w-72 bg-white rounded-2xl shadow-xl border border-slate-100 p-3 flex flex-col gap-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className={`absolute top-full left-0 w-72 rounded-2xl shadow-xl border p-3 flex flex-col gap-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150 ${isDark ? 'bg-[#121215] border-slate-800 text-slate-100 shadow-black/50' : 'bg-white border-slate-100 text-slate-900 shadow-slate-200/50'}`}>
                   <div 
                     onClick={() => {
                       setShowPlatformMenu(false);
                       navigate('/login');
                     }}
-                    className="p-3 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors"
+                    className={`p-3 rounded-xl cursor-pointer transition-colors ${isDark ? 'hover:bg-slate-800/60' : 'hover:bg-slate-50'}`}
                   >
-                    <div className="font-semibold text-slate-900 text-sm flex items-center gap-2">
-                      <Scan className="w-4 h-4 text-blue-600" /> Multi-Face Neural Engine
+                    <div className={`font-semibold text-sm flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                      <Scan className="w-4 h-4 text-blue-500" /> Multi-Face Neural Engine
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">Simultaneous recognition of up to 200 faces per frame.</p>
+                    <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Simultaneous recognition of up to 200 faces per frame.</p>
                   </div>
                   <div 
                     onClick={() => {
                       setShowPlatformMenu(false);
                       navigate('/admin');
                     }}
-                    className="p-3 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors"
+                    className={`p-3 rounded-xl cursor-pointer transition-colors ${isDark ? 'hover:bg-slate-800/60' : 'hover:bg-slate-50'}`}
                   >
-                    <div className="font-semibold text-slate-900 text-sm flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-blue-600" /> Institutional Admin Portal
+                    <div className={`font-semibold text-sm flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                      <ShieldCheck className="w-4 h-4 text-blue-500" /> Institutional Admin Portal
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">Multi-campus roster sync, role controls & SIS integration.</p>
+                    <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Multi-campus roster sync, role controls & SIS integration.</p>
                   </div>
                   <div 
                     onClick={() => {
                       setShowPlatformMenu(false);
                       navigate('/student/login');
                     }}
-                    className="p-3 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors"
+                    className={`p-3 rounded-xl cursor-pointer transition-colors ${isDark ? 'hover:bg-slate-800/60' : 'hover:bg-slate-50'}`}
                   >
-                    <div className="font-semibold text-slate-900 text-sm flex items-center gap-2">
-                      <GraduationCap className="w-4 h-4 text-blue-600" /> Student Attendance Portal
+                    <div className={`font-semibold text-sm flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                      <GraduationCap className="w-4 h-4 text-blue-500" /> Student Attendance Portal
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">Personal attendance histories, percentage thresholds & alerts.</p>
+                    <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Personal attendance histories, percentage thresholds & alerts.</p>
                   </div>
                 </div>
               )}
@@ -252,17 +253,17 @@ export const HeroLanding: React.FC = () => {
               onMouseEnter={() => setShowResourcesMenu(true)}
               onMouseLeave={() => setShowResourcesMenu(false)}
             >
-              <button className="flex items-center gap-1 hover:text-slate-950 transition-colors py-2">
+              <button className={`flex items-center gap-1 transition-colors py-2 ${isDark ? 'hover:text-white' : 'hover:text-slate-950'}`}>
                 Resources <ChevronDown className="w-4 h-4 opacity-70" />
               </button>
               {showResourcesMenu && (
-                <div className="absolute top-full left-0 w-64 bg-white rounded-2xl shadow-xl border border-slate-100 p-3 flex flex-col gap-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className={`absolute top-full left-0 w-64 rounded-2xl shadow-xl border p-3 flex flex-col gap-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150 ${isDark ? 'bg-[#121215] border-slate-800 text-slate-100 shadow-black/50' : 'bg-white border-slate-100 text-slate-900 shadow-slate-200/50'}`}>
                   <button 
                     onClick={() => {
                       setShowResourcesMenu(false);
                       setShowHowItWorksModal(true);
                     }}
-                    className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 text-slate-800 text-sm font-medium transition-colors block"
+                    className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition-colors block ${isDark ? 'text-slate-200 hover:bg-slate-800/60' : 'text-slate-800 hover:bg-slate-50'}`}
                   >
                     How AttendX Works
                   </button>
@@ -271,7 +272,7 @@ export const HeroLanding: React.FC = () => {
                       setShowResourcesMenu(false);
                       scrollToSection('case-studies-section');
                     }}
-                    className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 text-slate-800 text-sm font-medium transition-colors block"
+                    className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition-colors block ${isDark ? 'text-slate-200 hover:bg-slate-800/60' : 'text-slate-800 hover:bg-slate-50'}`}
                   >
                     University Case Studies
                   </button>
@@ -280,7 +281,7 @@ export const HeroLanding: React.FC = () => {
                       setShowResourcesMenu(false);
                       setShowPrivacyModal(true);
                     }}
-                    className="w-full text-left p-2.5 rounded-xl hover:bg-slate-50 text-slate-800 text-sm font-medium transition-colors block"
+                    className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition-colors block ${isDark ? 'text-slate-200 hover:bg-slate-800/60' : 'text-slate-800 hover:bg-slate-50'}`}
                   >
                     Biometric Privacy & GDPR
                   </button>
@@ -290,13 +291,13 @@ export const HeroLanding: React.FC = () => {
 
             <button 
               onClick={() => scrollToSection('case-studies-section')} 
-              className="hover:text-slate-950 transition-colors"
+              className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-slate-950'}`}
             >
               Customers
             </button>
             <button 
               onClick={() => setShowPricingModal(true)} 
-              className="hover:text-slate-950 transition-colors"
+              className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-slate-950'}`}
             >
               Pricing
             </button>
@@ -304,35 +305,28 @@ export const HeroLanding: React.FC = () => {
 
           {/* Right Action Buttons */}
           <div className="flex items-center gap-3">
-            {/* Theme Toggle */}
-            {(() => {
-              let tTheme: { toggleTheme: () => void; isDark: boolean } | null = null;
-              try { tTheme = useTheme(); } catch {}
-              if (!tTheme) return null;
-              const { toggleTheme, isDark } = tTheme;
-              return (
-                <button
-                  onClick={toggleTheme}
-                  id="hero-theme-toggle"
-                  title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-                  className={`relative w-[52px] h-7 rounded-full border transition-all duration-300 flex items-center px-0.5 ${
-                    isDark
-                      ? 'bg-slate-700 border-slate-600 hover:border-slate-400'
-                      : 'bg-amber-50 border-amber-200 hover:border-amber-400'
-                  }`}
-                >
-                  <Sun className={`absolute left-1.5 w-3.5 h-3.5 transition-all duration-300 ${isDark ? 'text-slate-500 opacity-40' : 'text-amber-500 opacity-100'}`} />
-                  <Moon className={`absolute right-1.5 w-3.5 h-3.5 transition-all duration-300 ${isDark ? 'text-blue-400 opacity-100' : 'text-slate-400 opacity-40'}`} />
-                  <span className={`w-5 h-5 rounded-full shadow-md transition-all duration-300 ${
-                    isDark ? 'translate-x-6 bg-slate-900 border border-blue-500/50' : 'translate-x-0 bg-white border border-amber-300'
-                  }`} />
-                </button>
-              );
-            })()}
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              id="hero-theme-toggle"
+              type="button"
+              title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              className={`relative w-[52px] h-7 rounded-full border transition-all duration-300 flex items-center px-0.5 ${
+                isDark
+                  ? 'bg-slate-800 border-slate-700 hover:border-slate-500 shadow-inner'
+                  : 'bg-amber-50 border-amber-200 hover:border-amber-400 shadow-inner'
+              }`}
+            >
+              <Sun className={`absolute left-1.5 w-3.5 h-3.5 transition-all duration-300 ${isDark ? 'text-slate-500 opacity-40' : 'text-amber-500 opacity-100'}`} />
+              <Moon className={`absolute right-1.5 w-3.5 h-3.5 transition-all duration-300 ${isDark ? 'text-blue-400 opacity-100' : 'text-slate-400 opacity-40'}`} />
+              <span className={`w-5 h-5 rounded-full shadow-md transition-all duration-300 ${
+                isDark ? 'translate-x-6 bg-slate-900 border border-blue-500/50' : 'translate-x-0 bg-white border border-amber-300'
+              }`} />
+            </button>
 
             <button
               onClick={() => navigate('/login')}
-              className="text-[15px] font-semibold text-slate-700 hover:text-slate-950 transition-colors px-3 py-2"
+              className={`text-[15px] font-semibold transition-colors px-3 py-2 ${isDark ? 'text-slate-300 hover:text-white' : 'text-slate-700 hover:text-slate-950'}`}
             >
               Login
             </button>
@@ -350,12 +344,12 @@ export const HeroLanding: React.FC = () => {
       <main className="flex-1 max-w-7xl mx-auto w-full px-6 pt-12 md:pt-20 pb-16 flex flex-col items-center">
         {/* Editorial Serif Hero Headlines */}
         <div className="text-center max-w-4xl mx-auto space-y-4">
-          <h1 className="font-serif text-5xl sm:text-6xl md:text-7xl lg:text-[80px] leading-[1.08] tracking-[-0.03em] text-[#111827] font-normal">
+          <h1 className={`font-serif text-5xl sm:text-6xl md:text-7xl lg:text-[80px] leading-[1.08] tracking-[-0.03em] font-normal transition-colors ${isDark ? 'text-white' : 'text-[#111827]'}`}>
             AI attendance teachers love.<br />
             <span className="italic font-serif">Accuracy you can prove.</span>
           </h1>
 
-          <p className="text-base sm:text-lg md:text-[19px] text-slate-600 max-w-2xl mx-auto leading-relaxed pt-2 font-normal">
+          <p className={`text-base sm:text-lg md:text-[19px] max-w-2xl mx-auto leading-relaxed pt-2 font-normal transition-colors ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
             The AI attendance platform that helps academic teams own every roll call, 
             from multi-face instant detection to audit-ready analytics.
           </p>

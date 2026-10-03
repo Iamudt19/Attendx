@@ -14,12 +14,7 @@ export const Logo: React.FC<LogoProps> = ({
   showTagline = false,
   className = "",
 }) => {
-  let isDark = true;
-  try {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    const ctx = useTheme();
-    isDark = ctx.isDark;
-  } catch {}
+  const { isDark } = useTheme();
 
   const sizeConfig = {
     sm: { height: 22 },
