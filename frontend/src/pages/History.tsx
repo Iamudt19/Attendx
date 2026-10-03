@@ -2,10 +2,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { 
   History as HistoryIcon, FileSpreadsheet,
-  Eye, X, RefreshCw, Calendar, CheckCircle2, AlertTriangle, Users, Layers, ArrowRight
+  Eye, X, RefreshCw, Calendar, CheckCircle2, AlertTriangle, AlertCircle, Users, Layers, ArrowRight
 } from 'lucide-react';
 import { AttendanceService, ClassService, SubjectService } from '../services/api';
 import { AttendanceSessionOut, ClassItem, SubjectItem } from '../types';
+import { extractErrorMessage } from '../utils/error';
 
 export const History: React.FC = () => {
   const location = useLocation();
@@ -24,6 +25,7 @@ export const History: React.FC = () => {
   const [editableRecords, setEditableRecords] = useState<any[]>([]);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editSuccessMsg, setEditSuccessMsg] = useState<string | null>(null);
+  const [editErrorMsg, setEditErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     const initFilters = async () => {
@@ -94,24 +96,27 @@ export const History: React.FC = () => {
   const handleSaveSessionEdit = async () => {
     if (!detailSession) return;
     setIsSavingEdit(true);
+    setEditErrorMsg(null);
     try {
+      const recordsToUpdate = editableRecords.map((r) => ({
+        student_id: r.student_id,
+        status: r.status,
+        confidence: r.confidence ?? 1.0,
+        verification_status: r.verification_status ?? 'TEACHER_VERIFIED'
+      }));
+
       const updated = await AttendanceService.updateSessionRecords(
         detailSession.id,
-        editableRecords.map((r) => ({
-          student_id: r.student_id,
-          status: r.status,
-          confidence: r.confidence ?? 1.0,
-          verification_status: r.verification_status ?? 'TEACHER_VERIFIED'
-        }))
+        recordsToUpdate
       );
       setDetailSession(updated);
       setEditableRecords(updated.records ? JSON.parse(JSON.stringify(updated.records)) : []);
-      setEditSuccessMsg("Attendance records updated & synced successfully!");
+      setEditSuccessMsg("Attendance records updated & synced to database successfully.");
       fetchSessions(true);
-      setTimeout(() => setEditSuccessMsg(null), 3000);
-    } catch (err) {
+      setTimeout(() => setEditSuccessMsg(null), 3500);
+    } catch (err: any) {
       console.error("Failed to update session records", err);
-      alert("Failed to save changes. Please try again.");
+      setEditErrorMsg(extractErrorMessage(err, "Failed to persist changes to database. Please check connection."));
     } finally {
       setIsSavingEdit(false);
     }
@@ -341,15 +346,21 @@ export const History: React.FC = () => {
                 {detailSession.date} at {detailSession.start_time} • Click any student to toggle Present / Absent status
               </p>
               {editSuccessMsg && (
-                <div className="mt-2 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-1.5 rounded-xl flex items-center gap-1.5 animate-in fade-in">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
+                <div className="mt-2 text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-3 py-2 rounded-lg flex items-center gap-2 animate-in fade-in">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
                   <span>{editSuccessMsg}</span>
+                </div>
+              )}
+              {editErrorMsg && (
+                <div className="mt-2 text-xs font-medium text-rose-600 dark:text-rose-400 bg-rose-500/10 border border-rose-500/30 px-3 py-2 rounded-lg flex items-center gap-2 animate-in fade-in">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{editErrorMsg}</span>
                 </div>
               )}
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-              <div className="text-[10px] font-mono uppercase tracking-wider text-[#86948a] font-bold">
+              <div className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-secondary)] font-bold">
                 Student Attendance Records ({editableRecords.length})
               </div>
               {editableRecords.length > 0 ? (
@@ -359,17 +370,17 @@ export const History: React.FC = () => {
                     <div
                       key={i}
                       onClick={() => handleToggleRecordStatus(i)}
-                      className="p-3 bg-[#1c1b1d] hover:bg-[#222125] cursor-pointer rounded-xl border border-[#3c4a42]/30 flex items-center justify-between text-xs transition-colors group"
+                      className="p-3 bg-[var(--bg-surface)] hover:bg-[var(--bg-inset)] cursor-pointer rounded-lg border border-[var(--border-color)] flex items-center justify-between text-xs transition-colors group"
                     >
                       <div>
-                        <div className="font-semibold text-white group-hover:text-emerald-300 transition-colors">
+                        <div className="font-semibold text-[var(--text-primary)] group-hover:text-blue-600 transition-colors">
                           {rec.student_name || `Student #${rec.student_id}`}
                         </div>
-                        <div className="text-[10px] font-mono text-[#86948a]">Roll: {rec.roll_number || 'N/A'}</div>
+                        <div className="text-[10px] font-mono text-[var(--text-muted)]">Roll: {rec.roll_number || 'N/A'}</div>
                       </div>
                       <div className="flex items-center gap-3">
                         {rec.confidence != null && (
-                          <span className="font-mono text-[11px] text-[#86948a]">
+                          <span className="font-mono text-[11px] text-[var(--text-muted)]">
                             Conf: {(rec.confidence * 100).toFixed(0)}%
                           </span>
                         )}
