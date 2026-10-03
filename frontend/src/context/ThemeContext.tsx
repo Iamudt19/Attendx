@@ -27,13 +27,20 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   useEffect(() => {
     const root = document.documentElement;
+    const body = document.body;
+
     if (theme === "light") {
-      root.classList.add("light-mode");
-      root.classList.remove("dark-mode");
+      root.classList.add("light", "light-mode");
+      root.classList.remove("dark", "dark-mode");
+      body.classList.add("light", "light-mode");
+      body.classList.remove("dark", "dark-mode");
     } else {
-      root.classList.add("dark-mode");
-      root.classList.remove("light-mode");
+      root.classList.add("dark", "dark-mode");
+      root.classList.remove("light", "light-mode");
+      body.classList.add("dark", "dark-mode");
+      body.classList.remove("light", "light-mode");
     }
+
     try {
       localStorage.setItem("attendx_theme", theme);
     } catch {}

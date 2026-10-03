@@ -20,12 +20,12 @@ export const Sidebar: React.FC<SidebarProps> = () => {
   const [showNodeModal, setShowNodeModal] = useState(false);
   const location = useLocation();
 
-  const navItems = [
+  const navItems: Array<{ label: string; path: string; icon: string; badge?: string }> = [
     { label: 'Overview', path: '/dashboard', icon: 'dashboard' },
     { label: 'Attendance Canvas', path: '/take-attendance', icon: 'center_focus_strong' },
     { label: 'Student Roster', path: '/students', icon: 'groups' },
     { label: 'Reports & Exports', path: '/history', icon: 'query_stats' },
-    { label: 'Audit Queue', path: '/review-attendance', icon: 'verified_user', badge: '3' },
+    { label: 'Audit Queue', path: '/review-attendance', icon: 'verified_user' },
     { label: 'Academic Classes', path: '/classes', icon: 'menu_book' },
   ];
 

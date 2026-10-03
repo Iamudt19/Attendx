@@ -117,15 +117,113 @@ export const StudentService = {
 
 export const AttendanceService = {
   analyzePhotos: async (classId: number, subjectId: number, files: File[]): Promise<AttendanceAnalysisResponse> => {
-    const formData = new FormData();
-    formData.append('class_id', classId.toString());
-    formData.append('subject_id', subjectId.toString());
-    
-    // Append each file to 'files'
-    files.forEach((file) => formData.append('files', file));
+    if (files.length <= 1) {
+      const formData = new FormData();
+      formData.append('class_id', classId.toString());
+      formData.append('subject_id', subjectId.toString());
+      if (files.length === 1) {
+        formData.append('files', files[0]);
+      }
+      const res = await api.post('/attendance/analyze', formData);
+      return res.data;
+    }
 
-    const res = await api.post('/attendance/analyze', formData);
-    return res.data;
+    // Parallel multi-photo requests: process all photos concurrently
+    const promises = files.map(async (file) => {
+      const formData = new FormData();
+      formData.append('class_id', classId.toString());
+      formData.append('subject_id', subjectId.toString());
+      formData.append('files', file);
+      const res = await api.post('/attendance/analyze', formData);
+      return res.data as AttendanceAnalysisResponse;
+    });
+
+    const results = await Promise.all(promises);
+
+    const allImageUrls: string[] = [];
+    const allRecognizedFaces: any[] = [];
+    const studentMatchMap: Record<number, { match_score: number; status: string; verification_status: string }> = {};
+    let totalDetected = 0;
+
+    results.forEach((res, imgIdx) => {
+      if (res.image_urls && res.image_urls.length > 0) {
+        allImageUrls.push(...res.image_urls);
+      } else if (res.image_url) {
+        allImageUrls.push(res.image_url);
+      }
+      totalDetected += res.total_detected_faces || 0;
+
+      (res.recognized_faces || []).forEach((face) => {
+        const faceCopy = { ...face, image_index: imgIdx };
+        allRecognizedFaces.push(faceCopy);
+
+        if (faceCopy.student_id != null) {
+          const sid = faceCopy.student_id;
+          const score = faceCopy.match_score ?? faceCopy.confidence ?? 0;
+          const status = faceCopy.status ?? 'NEEDS_REVIEW';
+          const vStatus = faceCopy.verification_status ?? 'AUTO';
+
+          if (!studentMatchMap[sid] || score > studentMatchMap[sid].match_score) {
+            studentMatchMap[sid] = {
+              match_score: score,
+              status: status,
+              verification_status: vStatus
+            };
+          }
+        }
+      });
+    });
+
+    // Base proposed attendance from the first result template
+    const baseProposals = results[0]?.proposed_attendance || [];
+    let presentCount = 0;
+    let reviewCount = 0;
+    let absentCount = 0;
+
+    const mergedProposed = baseProposals.map((student) => {
+      const sId = student.student_db_id;
+      if (studentMatchMap[sId]) {
+        const match = studentMatchMap[sId];
+        const finalStatus: 'PRESENT' | 'ABSENT' = (match.status === 'PRESENT' || match.status === 'NEEDS_REVIEW') ? 'PRESENT' : 'ABSENT';
+        const vStatus = match.verification_status;
+
+        if (match.status === 'PRESENT') {
+          presentCount++;
+        } else if (match.status === 'NEEDS_REVIEW') {
+          reviewCount++;
+        } else {
+          absentCount++;
+        }
+
+        return {
+          ...student,
+          status: finalStatus,
+          match_score: match.match_score,
+          confidence: match.match_score,
+          verification_status: vStatus
+        };
+      } else {
+        absentCount++;
+        return {
+          ...student,
+          status: 'ABSENT' as const,
+          match_score: 0,
+          confidence: 0,
+          verification_status: 'AUTO'
+        };
+      }
+    });
+
+    return {
+      image_url: allImageUrls[0] || '',
+      image_urls: allImageUrls,
+      total_detected_faces: totalDetected,
+      recognized_faces: allRecognizedFaces,
+      proposed_attendance: mergedProposed,
+      present_count: presentCount,
+      absent_count: absentCount,
+      needs_review_count: reviewCount
+    };
   },
   analyzePhoto: async (classId: number, subjectId: number, file: File): Promise<AttendanceAnalysisResponse> => {
     return AttendanceService.analyzePhotos(classId, subjectId, [file]);

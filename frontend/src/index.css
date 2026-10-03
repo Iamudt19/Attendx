@@ -4,7 +4,7 @@
 
 @layer base {
   /* Default Dark Mode */
-  :root {
+  :root, html.dark, html.dark-mode {
     --bg-main: #09090b;
     --bg-surface: #121215;
     --bg-inset: #18181c;
@@ -16,13 +16,13 @@
   }
 
   /* Stark Pristine Light Mode */
-  html.light {
+  html.light, html.light-mode {
     --bg-main: #ffffff;
     --bg-surface: #f8fafc;
     --bg-inset: #f1f5f9;
     --border-color: rgba(0, 0, 0, 0.08);
     --text-primary: #0f172a;
-    --text-secondary: #64748b;
+    --text-secondary: #475569;
     --accent-emerald: #059669;
     --accent-indigo: #4f46e5;
   }
@@ -35,6 +35,92 @@
     transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     min-height: 100vh;
   }
+}
+
+/* Light mode global component overrides for site-wide consistency */
+html.light body,
+html.light-mode body {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html.light .bg-slate-950,
+html.light-mode .bg-slate-950,
+html.light .bg-slate-900,
+html.light-mode .bg-slate-900,
+html.light .bg-[#070A0F],
+html.light-mode .bg-[#070A0F],
+html.light .bg-[#09090b],
+html.light-mode .bg-[#09090b],
+html.light .bg-[#0e0e10],
+html.light-mode .bg-[#0e0e10],
+html.light .bg-[#131315],
+html.light-mode .bg-[#131315] {
+  background-color: var(--bg-main) !important;
+  color: var(--text-primary) !important;
+}
+
+html.light .bg-[#0D121C],
+html.light-mode .bg-[#0D121C],
+html.light .bg-[#1c1b1d],
+html.light-mode .bg-[#1c1b1d],
+html.light .bg-[#121215],
+html.light-mode .bg-[#121215],
+html.light .bg-slate-900\/80,
+html.light-mode .bg-slate-900\/80,
+html.light .bg-slate-950\/80,
+html.light-mode .bg-slate-950\/80 {
+  background-color: var(--bg-surface) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+html.light .bg-[#080C14],
+html.light-mode .bg-[#080C14],
+html.light .bg-[#18181c],
+html.light-mode .bg-[#18181c],
+html.light .bg-[#201f22],
+html.light-mode .bg-[#201f22],
+html.light .bg-[#1c1b1d]\/50,
+html.light-mode .bg-[#1c1b1d]\/50,
+html.light .bg-slate-900\/50,
+html.light-mode .bg-slate-900\/50 {
+  background-color: var(--bg-inset) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+html.light .text-slate-100,
+html.light-mode .text-slate-100,
+html.light .text-slate-200,
+html.light-mode .text-slate-200,
+html.light .text-white,
+html.light-mode .text-white,
+html.light .text-[#e5e1e4],
+html.light-mode .text-[#e5e1e4] {
+  color: var(--text-primary) !important;
+}
+
+html.light .text-slate-400,
+html.light-mode .text-slate-400,
+html.light .text-slate-500,
+html.light-mode .text-slate-500,
+html.light .text-[#86948a],
+html.light-mode .text-[#86948a],
+html.light .text-[#bbcabf],
+html.light-mode .text-[#bbcabf] {
+  color: var(--text-secondary) !important;
+}
+
+html.light .border-slate-800,
+html.light-mode .border-slate-800,
+html.light .border-white\/10,
+html.light-mode .border-white\/10,
+html.light .border-white\/\[0\.08\],
+html.light-mode .border-white\/\[0\.08\],
+html.light .border-\[\#3c4a42\]\/30,
+html.light-mode .border-\[\#3c4a42\]\/30 {
+  border-color: var(--border-color) !important;
 }
 
 /* Classy Architectural Surfaces */
