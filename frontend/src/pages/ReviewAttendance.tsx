@@ -45,50 +45,9 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
   const [activePhotoIndex, setActivePhotoIndex] = useState<number>(0);
 
   // 2. Proposed attendance list
-  const initialProposed: AttendanceProposalItem[] = analysisResult?.proposed_attendance && analysisResult.proposed_attendance.length > 0
-    ? analysisResult.proposed_attendance
-    : [
-        { student_db_id: 1, student_id: 'STU001', name: 'Rahul Sharma', roll_number: '2026CSE01', status: 'PRESENT', confidence: 0.94, verification_status: 'AUTO' },
-        { student_db_id: 2, student_id: 'STU002', name: 'Amit Patel', roll_number: '2026CSE02', status: 'PRESENT', confidence: 0.88, verification_status: 'AUTO' },
-        { student_db_id: 3, student_id: 'STU003', name: 'Priya Verma', roll_number: '2026CSE03', status: 'PRESENT', confidence: 0.72, verification_status: 'NEEDS_REVIEW' },
-        { student_db_id: 4, student_id: 'STU004', name: 'Sneha Rao', roll_number: '2026CSE04', status: 'ABSENT', confidence: 0.0, verification_status: 'AUTO' },
-        { student_db_id: 26, student_id: 'UDIT01', name: 'Udit', roll_number: '2026CSE00', status: 'PRESENT', confidence: 0.96, verification_status: 'AUTO' },
-      ];
+  const initialProposed: AttendanceProposalItem[] = analysisResult?.proposed_attendance ?? [];
 
-  const initialFaces: RecognizedFace[] = analysisResult?.recognized_faces && analysisResult.recognized_faces.length > 0
-    ? analysisResult.recognized_faces
-    : [
-        {
-          box: { x: 140, y: 120, w: 100, h: 100, width: 100, height: 100 },
-          student_id: 1,
-          name: 'Rahul Sharma',
-          confidence: 0.94,
-          match_score: 0.94,
-          status: 'PRESENT',
-          image_index: 0,
-          verification_status: 'AUTO'
-        },
-        {
-          box: { x: 320, y: 160, w: 90, h: 90, width: 90, height: 90 },
-          student_id: 26,
-          name: 'Udit',
-          confidence: 0.96,
-          match_score: 0.96,
-          status: 'PRESENT',
-          image_index: 0,
-          verification_status: 'AUTO'
-        },
-        {
-          box: { x: 500, y: 200, w: 95, h: 95, width: 95, height: 95 },
-          student_id: 3,
-          name: 'Priya Verma',
-          confidence: 0.72,
-          match_score: 0.72,
-          status: 'NEEDS_REVIEW',
-          image_index: 0,
-          verification_status: 'NEEDS_REVIEW'
-        }
-      ];
+  const initialFaces: RecognizedFace[] = analysisResult?.recognized_faces ?? [];
 
   const [proposedList, setProposedList] = useState<AttendanceProposalItem[]>(initialProposed);
   const [faces, setFaces] = useState<RecognizedFace[]>(initialFaces);

@@ -55,7 +55,7 @@ class FaceDetector:
                     yunet_path,
                     "",
                     (320, 320),
-                    0.5,    # score_threshold
+                    0.25,   # score_threshold (capture distant / group faces)
                     0.3,    # nms_threshold
                     5000    # top_k
                 )
@@ -107,7 +107,7 @@ class FaceDetector:
         for face in faces:
             score = float(face[14])
             # Calibrated score threshold: filter out wall art / textures, preserve real faces
-            if score < 0.38:
+            if score < 0.30:
                 continue
 
             # Scale coordinates back to original full image space
