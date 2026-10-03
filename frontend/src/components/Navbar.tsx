@@ -181,23 +181,23 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button 
             onClick={() => setShowNewSessionModal(true)}
-            className="inline-flex items-center gap-1.5 px-2.5 sm:px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-md shadow-indigo-600/20 active:scale-95 transition-all" 
+            className="btn-primary text-xs px-3.5 py-2 flex items-center gap-1.5 shadow-sm active:scale-95 transition-all" 
             type="button"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">New Session</span>
           </button>
 
           {user && (
-            <div className="flex items-center gap-1.5 sm:gap-2.5 pl-0.5">
-              <div className="w-8 h-8 rounded-xl bg-indigo-600/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 flex items-center justify-center font-bold text-xs font-mono">
+            <div className="flex items-center gap-2 pl-1 border-l border-[var(--border-color)]">
+              <div className="w-8 h-8 rounded-lg bg-[var(--bg-inset)] border border-[var(--border-color)] text-[var(--text-primary)] flex items-center justify-center font-bold text-xs font-mono">
                 {user.name.charAt(0)}
               </div>
               <div className="hidden md:flex flex-col text-left">
                 <span className="text-xs text-[var(--text-primary)] font-semibold leading-tight">{user.name}</span>
-                <span className="text-[10px] text-[var(--text-secondary)] font-mono leading-tight flex items-center gap-1">
+                <span className="text-[10px] text-[var(--text-muted)] font-mono leading-tight flex items-center gap-1">
                   {user.role === 'ADMIN' ? (
-                    <span className="text-amber-500 font-medium flex items-center gap-0.5"><Shield className="w-2.5 h-2.5" /> ADMIN</span>
+                    <span className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-0.5"><Shield className="w-2.5 h-2.5" /> ADMIN</span>
                   ) : (
                     <span>FACULTY</span>
                   )}
@@ -206,7 +206,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
               <button
                 onClick={onLogout}
-                className="p-2 text-[var(--text-secondary)] hover:text-rose-500 hover:bg-rose-500/10 rounded-xl transition-colors"
+                className="p-1.5 text-[var(--text-muted)] hover:text-rose-500 hover:bg-rose-500/10 rounded-md transition-colors"
                 title="Sign Out"
                 type="button"
               >
