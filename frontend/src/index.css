@@ -3,19 +3,19 @@
 @tailwind utilities;
 
 @layer base {
-  /* Default Dark Mode */
+  /* Sleek Pure Black Glassmorphic Dark Mode */
   :root, html.dark, html.dark-mode {
-    --bg-main: #09090b;
-    --bg-surface: #121215;
-    --bg-inset: #18181c;
+    --bg-main: #000000;
+    --bg-surface: #08080a;
+    --bg-inset: #101014;
     --border-color: rgba(255, 255, 255, 0.08);
-    --text-primary: #f8fafc;
+    --text-primary: #ffffff;
     --text-secondary: #94a3b8;
     --accent-emerald: #10b981;
     --accent-indigo: #6366f1;
   }
 
-  /* Stark Pristine Light Mode */
+  /* Crisp Pristine Light Mode */
   html.light, html.light-mode {
     --bg-main: #ffffff;
     --bg-surface: #f8fafc;
@@ -32,7 +32,7 @@
     color: var(--text-primary);
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     letter-spacing: -0.015em;
-    transition: background-color 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: background-color 0.3s ease, color 0.3s ease;
     min-height: 100vh;
   }
 }
@@ -45,10 +45,6 @@ html.light-mode body {
 }
 
 /* Light mode backgrounds & surfaces */
-html.light [class*="bg-slate-950"],
-html.light-mode [class*="bg-slate-950"],
-html.light [class*="bg-slate-900"],
-html.light-mode [class*="bg-slate-900"],
 html.light [class*="bg-[#070A0F]"],
 html.light-mode [class*="bg-[#070A0F]"],
 html.light [class*="bg-[#09090b]"],
@@ -90,34 +86,37 @@ html.light-mode [class*="bg-[#2a2a2c]"] {
   border-color: #cbd5e1 !important;
 }
 
-/* Light mode primary typography (headings, titles, metric values) */
-html.light h1,
-html.light h2,
-html.light h3,
-html.light h4,
-html.light [class*="text-white"],
-html.light [class*="text-slate-100"],
-html.light [class*="text-slate-200"],
-html.light [class*="text-slate-300"],
-html.light [class*="text-slate-50"],
-html.light [class*="text-[#e5e1e4]"],
-html.light-mode [class*="text-white"],
-html.light-mode [class*="text-slate-100"],
-html.light-mode [class*="text-slate-200"],
-html.light-mode [class*="text-[#e5e1e4]"] {
-  color: #0f172a !important;
+/* Glassmorphism Design System */
+.glass-card {
+  background: rgba(10, 10, 14, 0.78);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 40px -10px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
-/* Light mode secondary / muted typography */
-html.light [class*="text-slate-400"],
-html.light-mode [class*="text-slate-400"],
-html.light [class*="text-slate-500"],
-html.light-mode [class*="text-slate-500"],
-html.light [class*="text-[#86948a]"],
-html.light-mode [class*="text-[#86948a]"],
-html.light [class*="text-[#bbcabf]"],
-html.light-mode [class*="text-[#bbcabf]"] {
-  color: #475569 !important;
+html.light .glass-card,
+html.light-mode .glass-card {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05);
+}
+
+.glass-panel {
+  background: rgba(6, 6, 8, 0.88);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+html.light .glass-panel,
+html.light-mode .glass-panel {
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 /* Light mode borders */
@@ -129,35 +128,33 @@ html.light-mode [class*="border-[#3c4a42]"] {
 }
 
 /* Maintain crisp white text inside solid colored buttons / badges */
-html.light button[class*="bg-blue-600"],
-html.light button[class*="bg-[#2563EB]"],
-html.light button[class*="bg-emerald-500"],
-html.light button[class*="bg-emerald-600"],
-html.light button[class*="bg-rose-500"],
-html.light button[class*="bg-rose-600"],
-html.light button[class*="bg-indigo-600"],
-html.light button[class*="bg-slate-900"],
-html.light button[class*="bg-black"],
-html.light button[class*="bg-gradient-to-r"],
-html.light button[class*="bg-blue-600"] *,
-html.light button[class*="bg-[#2563EB]"] *,
-html.light button[class*="bg-emerald-500"] *,
-html.light button[class*="bg-emerald-600"] *,
-html.light button[class*="bg-rose-500"] *,
-html.light button[class*="bg-rose-600"] *,
-html.light button[class*="bg-slate-900"] *,
-html.light button[class*="bg-black"] *,
-html.light button[class*="bg-gradient-to-r"] *,
-html.light .badge-solid,
-html.light .badge-solid * {
+button[class*="bg-blue-600"],
+button[class*="bg-[#2563EB]"],
+button[class*="bg-emerald-500"],
+button[class*="bg-emerald-600"],
+button[class*="bg-rose-500"],
+button[class*="bg-rose-600"],
+button[class*="bg-indigo-600"],
+button[class*="bg-slate-900"],
+button[class*="bg-black"],
+button[class*="bg-blue-600"] *,
+button[class*="bg-[#2563EB]"] *,
+button[class*="bg-emerald-500"] *,
+button[class*="bg-emerald-600"] *,
+button[class*="bg-rose-500"] *,
+button[class*="bg-rose-600"] *,
+button[class*="bg-slate-900"] *,
+button[class*="bg-black"] *,
+.badge-solid,
+.badge-solid * {
   color: #ffffff !important;
 }
 
 /* Ensure readable dark text on fluorescent green/lime buttons */
-html.light button[class*="bg-[#00E599]"],
-html.light button[class*="bg-[#00FF66]"],
-html.light button[class*="bg-[#00E599]"] *,
-html.light button[class*="bg-[#00FF66]"] * {
+button[class*="bg-[#00E599]"],
+button[class*="bg-[#00FF66]"],
+button[class*="bg-[#00E599]"] *,
+button[class*="bg-[#00FF66]"] * {
   color: #002213 !important;
 }
 

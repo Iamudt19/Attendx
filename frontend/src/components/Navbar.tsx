@@ -7,6 +7,7 @@ import {
 import { User, ClassItem } from '../types';
 import { ClassService } from '../services/api';
 import { Logo } from './Logo';
+import { ThemeToggle } from './ThemeToggle';
 
 interface NavbarProps {
   user: User | null;
@@ -172,22 +173,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Search className="w-4.5 h-4.5" />
           </button>
 
-          {/* Theme Toggle Button */}
-          {toggleTheme && (
-            <button
-              onClick={toggleTheme}
-              id="theme-toggle-btn"
-              title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              className={`relative p-2 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-primary)] hover:border-indigo-500/40 transition-all duration-300 shadow-sm`}
-              type="button"
-            >
-              {isDark ? (
-                <Sun className="w-4 h-4 text-amber-400" />
-              ) : (
-                <Moon className="w-4 h-4 text-indigo-600" />
-              )}
-            </button>
-          )}
+          {/* Theme Toggle Slider Switch */}
+          <ThemeToggle variant="slider" size="sm" />
 
           <button 
             onClick={() => setShowNewSessionModal(true)}

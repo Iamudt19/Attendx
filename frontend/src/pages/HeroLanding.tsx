@@ -24,6 +24,7 @@ import {
   Moon
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
+import { ThemeToggle } from '../components/ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
 
 interface CaseStory {
@@ -182,9 +183,9 @@ export const HeroLanding: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen font-sans flex flex-col selection:bg-blue-600 selection:text-white transition-colors duration-300 ${isDark ? 'bg-[#09090b] text-[#f8fafc]' : 'bg-[#FBFBFB] text-[#111827]'}`}>
+    <div className={`min-h-screen font-sans flex flex-col selection:bg-blue-600 selection:text-white transition-colors duration-300 ${isDark ? 'bg-black text-white' : 'bg-[#FBFBFB] text-[#111827]'}`}>
       {/* Top Navigation Bar */}
-      <header className={`sticky top-0 z-50 backdrop-blur-md border-b transition-colors duration-300 ${isDark ? 'bg-[#09090b]/90 border-slate-800/80 text-slate-100' : 'bg-[#FBFBFB]/90 border-slate-100 text-slate-900'}`}>
+      <header className={`sticky top-0 z-50 backdrop-blur-xl border-b transition-colors duration-300 ${isDark ? 'bg-black/80 border-white/[0.08] text-white' : 'bg-[#FBFBFB]/90 border-slate-200/80 text-slate-900'}`}>
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           {/* Brand Logo */}
           <div 
@@ -195,7 +196,7 @@ export const HeroLanding: React.FC = () => {
           </div>
 
           {/* Navigation Links */}
-          <nav className={`hidden md:flex items-center gap-8 text-[15px] font-medium transition-colors ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+          <nav className={`hidden md:flex items-center gap-8 text-[15px] font-medium transition-colors ${isDark ? 'text-zinc-300' : 'text-slate-600'}`}>
             {/* Platform Dropdown */}
             <div 
               className="relative"
@@ -206,42 +207,42 @@ export const HeroLanding: React.FC = () => {
                 Platform <ChevronDown className="w-4 h-4 opacity-70" />
               </button>
               {showPlatformMenu && (
-                <div className={`absolute top-full left-0 w-72 rounded-2xl shadow-xl border p-3 flex flex-col gap-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150 ${isDark ? 'bg-[#121215] border-slate-800 text-slate-100 shadow-black/50' : 'bg-white border-slate-100 text-slate-900 shadow-slate-200/50'}`}>
+                <div className={`absolute top-full left-0 w-72 rounded-2xl shadow-2xl border p-3 flex flex-col gap-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150 ${isDark ? 'glass-panel text-white shadow-black/80' : 'bg-white border-slate-100 text-slate-900 shadow-slate-200/50'}`}>
                   <div 
                     onClick={() => {
                       setShowPlatformMenu(false);
                       navigate('/login');
                     }}
-                    className={`p-3 rounded-xl cursor-pointer transition-colors ${isDark ? 'hover:bg-slate-800/60' : 'hover:bg-slate-50'}`}
+                    className={`p-3 rounded-xl cursor-pointer transition-colors ${isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-slate-50'}`}
                   >
                     <div className={`font-semibold text-sm flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                       <Scan className="w-4 h-4 text-blue-500" /> Multi-Face Neural Engine
                     </div>
-                    <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Simultaneous recognition of up to 200 faces per frame.</p>
+                    <p className={`text-xs mt-1 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Simultaneous recognition of up to 200 faces per frame.</p>
                   </div>
                   <div 
                     onClick={() => {
                       setShowPlatformMenu(false);
                       navigate('/admin');
                     }}
-                    className={`p-3 rounded-xl cursor-pointer transition-colors ${isDark ? 'hover:bg-slate-800/60' : 'hover:bg-slate-50'}`}
+                    className={`p-3 rounded-xl cursor-pointer transition-colors ${isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-slate-50'}`}
                   >
                     <div className={`font-semibold text-sm flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                       <ShieldCheck className="w-4 h-4 text-blue-500" /> Institutional Admin Portal
                     </div>
-                    <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Multi-campus roster sync, role controls & SIS integration.</p>
+                    <p className={`text-xs mt-1 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Multi-campus roster sync, role controls & SIS integration.</p>
                   </div>
                   <div 
                     onClick={() => {
                       setShowPlatformMenu(false);
                       navigate('/student/login');
                     }}
-                    className={`p-3 rounded-xl cursor-pointer transition-colors ${isDark ? 'hover:bg-slate-800/60' : 'hover:bg-slate-50'}`}
+                    className={`p-3 rounded-xl cursor-pointer transition-colors ${isDark ? 'hover:bg-white/[0.06]' : 'hover:bg-slate-50'}`}
                   >
                     <div className={`font-semibold text-sm flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                       <GraduationCap className="w-4 h-4 text-blue-500" /> Student Attendance Portal
                     </div>
-                    <p className={`text-xs mt-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Personal attendance histories, percentage thresholds & alerts.</p>
+                    <p className={`text-xs mt-1 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Personal attendance histories, percentage thresholds & alerts.</p>
                   </div>
                 </div>
               )}
@@ -257,13 +258,13 @@ export const HeroLanding: React.FC = () => {
                 Resources <ChevronDown className="w-4 h-4 opacity-70" />
               </button>
               {showResourcesMenu && (
-                <div className={`absolute top-full left-0 w-64 rounded-2xl shadow-xl border p-3 flex flex-col gap-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150 ${isDark ? 'bg-[#121215] border-slate-800 text-slate-100 shadow-black/50' : 'bg-white border-slate-100 text-slate-900 shadow-slate-200/50'}`}>
+                <div className={`absolute top-full left-0 w-64 rounded-2xl shadow-2xl border p-3 flex flex-col gap-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150 ${isDark ? 'glass-panel text-white shadow-black/80' : 'bg-white border-slate-100 text-slate-900 shadow-slate-200/50'}`}>
                   <button 
                     onClick={() => {
                       setShowResourcesMenu(false);
                       setShowHowItWorksModal(true);
                     }}
-                    className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition-colors block ${isDark ? 'text-slate-200 hover:bg-slate-800/60' : 'text-slate-800 hover:bg-slate-50'}`}
+                    className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition-colors block ${isDark ? 'text-zinc-200 hover:bg-white/[0.06]' : 'text-slate-800 hover:bg-slate-50'}`}
                   >
                     How AttendX Works
                   </button>
@@ -272,7 +273,7 @@ export const HeroLanding: React.FC = () => {
                       setShowResourcesMenu(false);
                       scrollToSection('case-studies-section');
                     }}
-                    className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition-colors block ${isDark ? 'text-slate-200 hover:bg-slate-800/60' : 'text-slate-800 hover:bg-slate-50'}`}
+                    className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition-colors block ${isDark ? 'text-zinc-200 hover:bg-white/[0.06]' : 'text-slate-800 hover:bg-slate-50'}`}
                   >
                     University Case Studies
                   </button>
@@ -281,7 +282,7 @@ export const HeroLanding: React.FC = () => {
                       setShowResourcesMenu(false);
                       setShowPrivacyModal(true);
                     }}
-                    className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition-colors block ${isDark ? 'text-slate-200 hover:bg-slate-800/60' : 'text-slate-800 hover:bg-slate-50'}`}
+                    className={`w-full text-left p-2.5 rounded-xl text-sm font-medium transition-colors block ${isDark ? 'text-zinc-200 hover:bg-white/[0.06]' : 'text-slate-800 hover:bg-slate-50'}`}
                   >
                     Biometric Privacy & GDPR
                   </button>
@@ -305,28 +306,12 @@ export const HeroLanding: React.FC = () => {
 
           {/* Right Action Buttons */}
           <div className="flex items-center gap-3">
-            {/* Theme Toggle Button */}
-            <button
-              onClick={toggleTheme}
-              id="hero-theme-toggle"
-              type="button"
-              title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              className={`relative w-[52px] h-7 rounded-full border transition-all duration-300 flex items-center px-0.5 ${
-                isDark
-                  ? 'bg-slate-800 border-slate-700 hover:border-slate-500 shadow-inner'
-                  : 'bg-amber-50 border-amber-200 hover:border-amber-400 shadow-inner'
-              }`}
-            >
-              <Sun className={`absolute left-1.5 w-3.5 h-3.5 transition-all duration-300 ${isDark ? 'text-slate-500 opacity-40' : 'text-amber-500 opacity-100'}`} />
-              <Moon className={`absolute right-1.5 w-3.5 h-3.5 transition-all duration-300 ${isDark ? 'text-blue-400 opacity-100' : 'text-slate-400 opacity-40'}`} />
-              <span className={`w-5 h-5 rounded-full shadow-md transition-all duration-300 ${
-                isDark ? 'translate-x-6 bg-slate-900 border border-blue-500/50' : 'translate-x-0 bg-white border border-amber-300'
-              }`} />
-            </button>
+            {/* Theme Toggle Slider */}
+            <ThemeToggle variant="slider" size="sm" />
 
             <button
               onClick={() => navigate('/login')}
-              className={`text-[15px] font-semibold transition-colors px-3 py-2 ${isDark ? 'text-slate-300 hover:text-white' : 'text-slate-700 hover:text-slate-950'}`}
+              className={`text-[15px] font-semibold transition-colors px-3 py-2 ${isDark ? 'text-zinc-300 hover:text-white' : 'text-slate-700 hover:text-slate-950'}`}
             >
               Login
             </button>
@@ -463,27 +448,29 @@ export const HeroLanding: React.FC = () => {
 
           {/* Floating Testimonial Card Overlay (Bottom Right) */}
           <div className="relative z-20 m-4 md:m-8 self-end max-w-md w-full">
-            <div className="bg-white/95 backdrop-blur-xl p-6 sm:p-7 rounded-2xl border border-slate-100 shadow-[0_15px_35px_-5px_rgba(0,0,0,0.2)] transition-all duration-300">
-              <p className="font-serif text-[17px] sm:text-[18px] text-slate-900 leading-relaxed italic mb-5">
+            <div className={`p-6 sm:p-7 rounded-2xl transition-all duration-300 ${
+              isDark ? 'glass-card text-white' : 'bg-white/95 backdrop-blur-xl border border-slate-100 shadow-[0_15px_35px_-5px_rgba(0,0,0,0.2)]'
+            }`}>
+              <p className={`font-serif text-[17px] sm:text-[18px] leading-relaxed italic mb-5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                 "{activeStory.quote}"
               </p>
 
-              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+              <div className={`flex items-center justify-between pt-2 border-t ${isDark ? 'border-white/10' : 'border-slate-100'}`}>
                 <div className="flex items-center gap-3">
                   <img 
                     src={activeStory.avatarUrl} 
                     alt={activeStory.author}
-                    className="w-10 h-10 rounded-full object-cover border border-slate-200"
+                    className={`w-10 h-10 rounded-full object-cover border ${isDark ? 'border-white/20' : 'border-slate-200'}`}
                   />
                   <div>
-                    <div className="text-[14px] font-bold text-slate-900">{activeStory.author}</div>
-                    <div className="text-[12px] text-slate-500 font-medium">{activeStory.role}</div>
+                    <div className={`text-[14px] font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{activeStory.author}</div>
+                    <div className={`text-[12px] font-medium ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>{activeStory.role}</div>
                   </div>
                 </div>
 
                 <button 
                   onClick={() => setShowDemoModal(true)}
-                  className="text-[13px] font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 group/link transition-colors"
+                  className="text-[13px] font-semibold text-blue-500 hover:text-blue-400 flex items-center gap-1 group/link transition-colors"
                 >
                   <span>{activeStory.storyLinkText}</span>
                   <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/link:translate-x-1" />
@@ -493,8 +480,10 @@ export const HeroLanding: React.FC = () => {
           </div>
 
           {/* Bottom Dock / Customer Stories Selector Bar */}
-          <div className="relative z-20 w-full bg-white/95 backdrop-blur-md border-t border-slate-200/90 px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="text-[13px] font-semibold text-slate-400 uppercase tracking-wider shrink-0">
+          <div className={`relative z-20 w-full px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 transition-colors ${
+            isDark ? 'bg-black/90 backdrop-blur-md border-t border-white/[0.08]' : 'bg-white/95 backdrop-blur-md border-t border-slate-200/90'
+          }`}>
+            <div className={`text-[13px] font-semibold uppercase tracking-wider shrink-0 ${isDark ? 'text-zinc-400' : 'text-slate-400'}`}>
               Customer stories
             </div>
 
@@ -508,13 +497,13 @@ export const HeroLanding: React.FC = () => {
                     onClick={() => setActiveStoryIndex(index)}
                     className={`px-3.5 py-1.5 rounded-lg text-sm font-bold tracking-tight transition-all duration-200 relative whitespace-nowrap flex items-center gap-1.5 ${
                       isActive 
-                        ? 'text-slate-950 bg-slate-100/80 shadow-sm' 
-                        : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
+                        ? isDark ? 'text-white bg-white/10 shadow-sm' : 'text-slate-950 bg-slate-100/80 shadow-sm' 
+                        : isDark ? 'text-zinc-400 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
                     }`}
                   >
                     <span>{story.logoText}</span>
                     {isActive && (
-                      <span className="absolute bottom-[-17px] left-0 right-0 h-[2.5px] bg-slate-950 rounded-full" />
+                      <span className={`absolute bottom-[-17px] left-0 right-0 h-[2.5px] rounded-full ${isDark ? 'bg-white' : 'bg-slate-950'}`} />
                     )}
                   </button>
                 );
@@ -524,43 +513,43 @@ export const HeroLanding: React.FC = () => {
         </div>
 
         {/* Feature Highlights Grid Below Hero */}
-        <section className="w-full mt-24 pt-10 border-t border-slate-200/60">
+        <section className={`w-full mt-24 pt-10 border-t ${isDark ? 'border-white/10' : 'border-slate-200/60'}`}>
           <div className="text-center max-w-2xl mx-auto mb-14">
-            <h2 className="font-serif text-3xl sm:text-4xl text-slate-900 font-normal">
+            <h2 className={`font-serif text-3xl sm:text-4xl font-normal ${isDark ? 'text-white' : 'text-slate-900'}`}>
               Engineered for high-volume classroom intelligence
             </h2>
-            <p className="text-slate-600 mt-2 text-base">
+            <p className={`mt-2 text-base ${isDark ? 'text-zinc-400' : 'text-slate-600'}`}>
               Say goodbye to proxy roll-calls and lost lecture minutes.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white p-8 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-5 font-bold">
+            <div className={`p-8 rounded-2xl transition-all ${isDark ? 'glass-card text-white' : 'bg-white p-8 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md'}`}>
+              <div className="w-12 h-12 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center mb-5 font-bold border border-blue-500/20">
                 <Zap className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Sub-Second Multi-Face Capture</h3>
-              <p className="text-sm text-slate-600 leading-relaxed">
+              <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Sub-Second Multi-Face Capture</h3>
+              <p className={`text-sm leading-relaxed ${isDark ? 'text-zinc-400' : 'text-slate-600'}`}>
                 Capture an entire auditorium in one wide camera shot. AttendX automatically isolates, aligns, and identifies 100+ students concurrently.
               </p>
             </div>
 
-            <div className="bg-white p-8 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-5 font-bold">
+            <div className={`p-8 rounded-2xl transition-all ${isDark ? 'glass-card text-white' : 'bg-white p-8 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md'}`}>
+              <div className="w-12 h-12 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-5 font-bold border border-indigo-500/20">
                 <ShieldCheck className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Anti-Spoofing & Liveness Proof</h3>
-              <p className="text-sm text-slate-600 leading-relaxed">
+              <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Anti-Spoofing & Liveness Proof</h3>
+              <p className={`text-sm leading-relaxed ${isDark ? 'text-zinc-400' : 'text-slate-600'}`}>
                 Multi-angle 3D facial geometry prevents photo and video playback spoofing, guaranteeing 100% audit-proof roll calls.
               </p>
             </div>
 
-            <div className="bg-white p-8 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-5 font-bold">
+            <div className={`p-8 rounded-2xl transition-all ${isDark ? 'glass-card text-white' : 'bg-white p-8 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow-md'}`}>
+              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mb-5 font-bold border border-emerald-500/20">
                 <BarChart3 className="w-6 h-6" />
               </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">Instant SIS & Roster Sync</h3>
-              <p className="text-sm text-slate-600 leading-relaxed">
+              <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>Instant SIS & Roster Sync</h3>
+              <p className={`text-sm leading-relaxed ${isDark ? 'text-zinc-400' : 'text-slate-600'}`}>
                 Direct export to Banner, Canvas, Blackboard, or CSV. Students track their own attendance thresholds via personal portal login.
               </p>
             </div>
@@ -568,15 +557,17 @@ export const HeroLanding: React.FC = () => {
         </section>
 
         {/* Quick Portal Access Section */}
-        <section className="w-full mt-20 bg-gradient-to-r from-slate-900 to-slate-950 text-white rounded-3xl p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-8 shadow-xl">
+        <section className={`w-full mt-20 rounded-3xl p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl transition-all ${
+          isDark ? 'glass-card border border-white/10 text-white' : 'bg-gradient-to-r from-slate-900 to-slate-950 text-white'
+        }`}>
           <div className="space-y-2 max-w-xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-400 text-xs font-semibold border border-blue-500/30">
               <Sparkles className="w-3.5 h-3.5" /> Instant Launch
             </div>
-            <h3 className="font-serif text-3xl font-normal tracking-tight">
+            <h3 className="font-serif text-3xl font-normal tracking-tight text-white">
               Ready to modernize your classroom attendance?
             </h3>
-            <p className="text-slate-400 text-sm sm:text-base">
+            <p className="text-zinc-300 text-sm sm:text-base">
               Get started with AttendX today. Create a teacher account or explore the student attendance experience.
             </p>
           </div>
@@ -591,7 +582,9 @@ export const HeroLanding: React.FC = () => {
             </button>
             <button
               onClick={() => navigate('/student/login')}
-              className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-sm px-6 py-3.5 rounded-xl border border-slate-700 transition-all flex items-center gap-2"
+              className={`font-semibold text-sm px-6 py-3.5 rounded-xl border transition-all flex items-center gap-2 ${
+                isDark ? 'bg-white/10 hover:bg-white/15 text-white border-white/15' : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+              }`}
             >
               <GraduationCap className="w-4 h-4 text-blue-400" />
               <span>Student Portal</span>
@@ -601,20 +594,22 @@ export const HeroLanding: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-12">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500">
+      <footer className={`border-t py-12 transition-colors ${
+        isDark ? 'bg-black border-white/10 text-zinc-400' : 'bg-white border-slate-200 text-slate-500'
+      }`}>
+        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-900">AttendX</span>
+            <span className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>AttendX</span>
             <span>© 2026 AttendX AI Inc. All rights reserved.</span>
           </div>
           <div className="flex items-center gap-6">
-            <button onClick={() => setShowPrivacyModal(true)} className="hover:text-slate-900 transition-colors">
+            <button onClick={() => setShowPrivacyModal(true)} className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`}>
               Privacy Policy
             </button>
-            <button onClick={() => setShowHowItWorksModal(true)} className="hover:text-slate-900 transition-colors">
+            <button onClick={() => setShowHowItWorksModal(true)} className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`}>
               Documentation
             </button>
-            <button onClick={() => setShowPrivacyModal(true)} className="hover:text-slate-900 transition-colors">
+            <button onClick={() => setShowPrivacyModal(true)} className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`}>
               Biometric Security
             </button>
           </div>

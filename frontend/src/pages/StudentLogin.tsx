@@ -5,6 +5,8 @@ import { StudentPortalService } from '../services/api';
 import { StudentUser, StudentPublicClass } from '../types';
 import { extractErrorMessage } from '../utils/error';
 import { Logo } from '../components/Logo';
+import { ThemeToggle } from '../components/ThemeToggle';
+import { useTheme } from '../context/ThemeContext';
 
 interface StudentLoginProps {
   onLoginSuccess: (student: StudentUser) => void;
@@ -14,6 +16,7 @@ type AuthTab = 'login' | 'register';
 
 export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) => {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const [activeTab, setActiveTab] = useState<AuthTab>('login');
 
   // Login state
@@ -116,26 +119,41 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
   };
 
   return (
-    <div className="min-h-screen bg-[#FBFBFB] text-[#111827] flex flex-col justify-between selection:bg-blue-600 selection:text-white font-sans">
+    <div className={`min-h-screen font-sans flex flex-col justify-between selection:bg-blue-600 selection:text-white transition-colors duration-300 ${
+      isDark ? 'bg-black text-white' : 'bg-[#FBFBFB] text-[#111827]'
+    }`}>
       {/* Top Simple Header */}
-      <header className="w-full max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+      <header className={`w-full max-w-7xl mx-auto px-6 h-20 flex items-center justify-between border-b transition-colors ${
+        isDark ? 'border-white/[0.08] bg-black/60 backdrop-blur-xl' : 'border-slate-200/80 bg-white/60 backdrop-blur-xl'
+      }`}>
         <div 
           onClick={() => navigate('/')} 
           className="flex items-center gap-2.5 cursor-pointer group"
         >
-          <Logo size="md" variant="light" showTagline />
+          <Logo size="md" variant="auto" showTagline />
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Theme Toggle Slider */}
+          <ThemeToggle variant="slider" size="sm" />
+
           <button
             onClick={() => navigate('/login')}
-            className="text-sm font-semibold text-slate-600 hover:text-slate-950 flex items-center gap-1.5 transition-colors px-3 py-2 rounded-lg hover:bg-slate-100/60"
+            className={`text-sm font-semibold flex items-center gap-1.5 transition-colors px-3 py-2 rounded-xl border ${
+              isDark 
+                ? 'bg-white/5 hover:bg-white/10 border-white/10 text-zinc-200 hover:text-white' 
+                : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700 hover:text-slate-950'
+            }`}
           >
             <span>Teacher Portal</span>
           </button>
           <button
             onClick={() => navigate('/')}
-            className="text-sm font-semibold text-slate-600 hover:text-slate-950 flex items-center gap-1 transition-colors px-3 py-2 rounded-lg hover:bg-slate-100/60"
+            className={`text-sm font-semibold flex items-center gap-1 transition-colors px-3 py-2 rounded-xl border ${
+              isDark 
+                ? 'bg-white/5 hover:bg-white/10 border-white/10 text-zinc-300 hover:text-white' 
+                : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-950'
+            }`}
           >
             <ChevronLeft className="w-4 h-4" />
             <span>Home</span>
@@ -162,42 +180,56 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
           </div>
 
           {/* Tab Switcher */}
-          <div className="bg-slate-100/80 p-1 rounded-xl flex gap-1 border border-slate-200/60">
+          <div className={`p-1 rounded-2xl flex gap-1 border ${
+            isDark ? 'bg-zinc-950/80 border-white/10' : 'bg-slate-100/80 border-slate-200/60'
+          }`}>
             <button
               onClick={() => switchTab('login')}
-              className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+              className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
                 activeTab === 'login'
-                  ? 'bg-white text-slate-950 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-800'
+                  ? isDark 
+                    ? 'bg-zinc-800 text-white shadow-md border border-white/15' 
+                    : 'bg-white text-slate-950 shadow-sm'
+                  : isDark 
+                    ? 'text-zinc-400 hover:text-white' 
+                    : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              <LogIn className="w-3.5 h-3.5 text-blue-600" />
+              <LogIn className="w-3.5 h-3.5 text-blue-500" />
               <span>Sign In</span>
             </button>
             <button
               onClick={() => switchTab('register')}
-              className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+              className={`flex-1 py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
                 activeTab === 'register'
-                  ? 'bg-white text-slate-950 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-800'
+                  ? isDark 
+                    ? 'bg-zinc-800 text-white shadow-md border border-white/15' 
+                    : 'bg-white text-slate-950 shadow-sm'
+                  : isDark 
+                    ? 'text-zinc-400 hover:text-white' 
+                    : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              <UserPlus className="w-3.5 h-3.5 text-blue-600" />
+              <UserPlus className="w-3.5 h-3.5 text-blue-500" />
               <span>Self-Enroll</span>
             </button>
           </div>
 
-          {/* Main Card */}
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-7 sm:p-8 shadow-[0_10px_30px_-5px_rgba(0,0,0,0.05)]">
+          {/* Main Card with Pure Glassmorphism in Dark Mode */}
+          <div className={`rounded-3xl p-7 sm:p-8 transition-all ${
+            isDark 
+              ? 'glass-card border border-white/10 text-white shadow-[0_25px_60px_rgba(0,0,0,0.8)]' 
+              : 'bg-white border border-slate-200/90 rounded-2xl shadow-[0_10px_30px_-5px_rgba(0,0,0,0.05)] text-slate-900'
+          }`}>
             {error && (
-              <div className="mb-5 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
+              <div className="mb-5 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium">
                 {error}
               </div>
             )}
 
             {successMsg && (
-              <div className="mb-5 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <div className="mb-5 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                 <span>{successMsg}</span>
               </div>
             )}
@@ -205,38 +237,50 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
             {activeTab === 'login' ? (
               <form onSubmit={handleLogin} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${
+                    isDark ? 'text-zinc-300' : 'text-slate-700'
+                  }`}>
                     Student ID
                   </label>
                   <div className="relative">
-                    <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                    <User className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3.5" />
                     <input
                       type="text"
                       required
                       value={studentId}
                       onChange={(e) => setStudentId(e.target.value)}
                       placeholder="e.g. STU001"
-                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                      className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none ${
+                        isDark 
+                          ? 'bg-black/60 border border-white/15 text-white placeholder-zinc-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20' 
+                          : 'bg-slate-50/50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
+                      }`}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${
+                    isDark ? 'text-zinc-300' : 'text-slate-700'
+                  }`}>
                     Password
                   </label>
                   <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+                    <Lock className="w-4 h-4 text-zinc-400 absolute left-3.5 top-3.5" />
                     <input
                       type="password"
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Default: your Student ID"
-                      className="w-full pl-10 pr-4 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                      className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none ${
+                        isDark 
+                          ? 'bg-black/60 border border-white/15 text-white placeholder-zinc-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20' 
+                          : 'bg-slate-50/50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
+                      }`}
                     />
                   </div>
-                  <p className="mt-1.5 text-[11px] text-slate-500">
+                  <p className={`mt-1.5 text-[11px] ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>
                     First time logging in? Your initial password is your Student ID.
                   </p>
                 </div>
@@ -244,7 +288,7 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold py-3 px-4 rounded-xl text-sm transition-all duration-150 active:scale-[0.99] shadow-sm hover:shadow flex items-center justify-center gap-2 mt-2 disabled:opacity-60"
+                  className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold py-3 px-4 rounded-xl text-sm transition-all duration-150 active:scale-[0.99] shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 mt-2 disabled:opacity-60"
                 >
                   {loading ? (
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -257,32 +301,27 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
                 </button>
 
                 {/* Quick Student Autofill */}
-                <div className="pt-4 border-t border-slate-100">
-                  <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider text-center mb-2.5">
+                <div className={`pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-100'}`}>
+                  <div className={`text-[11px] font-semibold uppercase tracking-wider text-center mb-2.5 ${
+                    isDark ? 'text-zinc-400' : 'text-slate-400'
+                  }`}>
                     Quick Student Profiles
                   </div>
                   <div className="grid grid-cols-3 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => fillQuickStudent('STU001')}
-                      className="text-xs font-semibold py-2 px-2 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-100 text-slate-700 transition-colors"
-                    >
-                      Rahul (STU001)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => fillQuickStudent('STU002')}
-                      className="text-xs font-semibold py-2 px-2 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-100 text-slate-700 transition-colors"
-                    >
-                      Amit (STU002)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => fillQuickStudent('STU003')}
-                      className="text-xs font-semibold py-2 px-2 rounded-lg border border-slate-200 bg-slate-50/70 hover:bg-slate-100 text-slate-700 transition-colors"
-                    >
-                      Priya (STU003)
-                    </button>
+                    {['STU001', 'STU002', 'STU003'].map((id) => (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => fillQuickStudent(id)}
+                        className={`text-xs font-semibold py-2 px-2 rounded-xl border transition-colors ${
+                          isDark 
+                            ? 'border-white/10 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white' 
+                            : 'border-slate-200 bg-slate-50/70 hover:bg-slate-100 text-slate-700'
+                        }`}
+                      >
+                        {id}
+                      </button>
+                    ))}
                   </div>
                 </div>
               </form>
@@ -290,7 +329,9 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
               <form onSubmit={handleRegister} className="space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${
+                      isDark ? 'text-zinc-300' : 'text-slate-700'
+                    }`}>
                       Student ID
                     </label>
                     <input
@@ -299,11 +340,17 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
                       value={regStudentId}
                       onChange={(e) => setRegStudentId(e.target.value)}
                       placeholder="e.g. STU099"
-                      className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                      className={`w-full px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none ${
+                        isDark 
+                          ? 'bg-black/60 border border-white/15 text-white placeholder-zinc-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20' 
+                          : 'bg-slate-50/50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
+                      }`}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${
+                      isDark ? 'text-zinc-300' : 'text-slate-700'
+                    }`}>
                       Roll Number
                     </label>
                     <input
@@ -312,13 +359,19 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
                       value={regRollNumber}
                       onChange={(e) => setRegRollNumber(e.target.value)}
                       placeholder="2026CSE99"
-                      className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                      className={`w-full px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none ${
+                        isDark 
+                          ? 'bg-black/60 border border-white/15 text-white placeholder-zinc-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20' 
+                          : 'bg-slate-50/50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
+                      }`}
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${
+                    isDark ? 'text-zinc-300' : 'text-slate-700'
+                  }`}>
                     Full Name
                   </label>
                   <input
@@ -327,19 +380,29 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
                     value={regName}
                     onChange={(e) => setRegName(e.target.value)}
                     placeholder="Full Student Name"
-                    className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none ${
+                      isDark 
+                        ? 'bg-black/60 border border-white/15 text-white placeholder-zinc-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20' 
+                        : 'bg-slate-50/50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
+                    }`}
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${
+                    isDark ? 'text-zinc-300' : 'text-slate-700'
+                  }`}>
                     Assigned Class / Cohort
                   </label>
                   <select
                     value={regClassId}
                     onChange={(e) => setRegClassId(Number(e.target.value))}
                     required
-                    className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none ${
+                      isDark 
+                        ? 'bg-black/80 border border-white/15 text-white focus:border-blue-500' 
+                        : 'bg-slate-50/50 border border-slate-200 text-slate-900 focus:border-blue-500'
+                    }`}
                   >
                     {classesLoading ? (
                       <option>Loading classrooms...</option>
@@ -356,7 +419,9 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${
+                    isDark ? 'text-zinc-300' : 'text-slate-700'
+                  }`}>
                     Email Address (Optional)
                   </label>
                   <input
@@ -364,13 +429,19 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
                     value={regEmail}
                     onChange={(e) => setRegEmail(e.target.value)}
                     placeholder="student@university.edu"
-                    className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none ${
+                      isDark 
+                        ? 'bg-black/60 border border-white/15 text-white placeholder-zinc-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20' 
+                        : 'bg-slate-50/50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
+                    }`}
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${
+                      isDark ? 'text-zinc-300' : 'text-slate-700'
+                    }`}>
                       Password
                     </label>
                     <input
@@ -378,11 +449,17 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
                       placeholder="Optional"
-                      className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                      className={`w-full px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none ${
+                        isDark 
+                          ? 'bg-black/60 border border-white/15 text-white placeholder-zinc-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20' 
+                          : 'bg-slate-50/50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
+                      }`}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                    <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${
+                      isDark ? 'text-zinc-300' : 'text-slate-700'
+                    }`}>
                       Confirm
                     </label>
                     <input
@@ -390,7 +467,11 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
                       value={regConfirmPassword}
                       onChange={(e) => setRegConfirmPassword(e.target.value)}
                       placeholder="Optional"
-                      className="w-full px-3.5 py-2.5 bg-slate-50/50 border border-slate-200 rounded-xl text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+                      className={`w-full px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none ${
+                        isDark 
+                          ? 'bg-black/60 border border-white/15 text-white placeholder-zinc-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20' 
+                          : 'bg-slate-50/50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
+                      }`}
                     />
                   </div>
                 </div>
@@ -398,7 +479,7 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold py-3 px-4 rounded-xl text-sm transition-all duration-150 active:scale-[0.99] shadow-sm hover:shadow flex items-center justify-center gap-2 mt-2 disabled:opacity-60"
+                  className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold py-3 px-4 rounded-xl text-sm transition-all duration-150 active:scale-[0.99] shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 mt-2 disabled:opacity-60"
                 >
                   {loading ? (
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -416,12 +497,14 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
       </main>
 
       {/* Footer */}
-      <footer className="py-6 border-t border-slate-200/80 bg-white">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500">
-          <div>AttendX Biometric Enrollment · Student Privacy Protected</div>
+      <footer className={`py-6 border-t transition-colors ${
+        isDark ? 'border-white/10 bg-black text-zinc-500' : 'border-slate-200/80 bg-white text-slate-500'
+      }`}>
+        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+          <div>AttendX AI Campus Attendance · Enterprise Biometric Security</div>
           <div className="flex gap-4">
-            <span className="hover:text-slate-800 cursor-pointer">Privacy Details</span>
-            <span className="hover:text-slate-800 cursor-pointer">Help Center</span>
+            <span className={`cursor-pointer transition-colors ${isDark ? 'hover:text-white' : 'hover:text-slate-800'}`}>Security Compliance</span>
+            <span className={`cursor-pointer transition-colors ${isDark ? 'hover:text-white' : 'hover:text-slate-800'}`}>Support</span>
           </div>
         </div>
       </footer>
