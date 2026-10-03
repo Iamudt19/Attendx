@@ -134,17 +134,31 @@ html.light button[class*="bg-[#2563EB]"],
 html.light button[class*="bg-emerald-500"],
 html.light button[class*="bg-emerald-600"],
 html.light button[class*="bg-rose-500"],
+html.light button[class*="bg-rose-600"],
 html.light button[class*="bg-indigo-600"],
+html.light button[class*="bg-slate-900"],
+html.light button[class*="bg-black"],
 html.light button[class*="bg-gradient-to-r"],
 html.light button[class*="bg-blue-600"] *,
 html.light button[class*="bg-[#2563EB]"] *,
 html.light button[class*="bg-emerald-500"] *,
 html.light button[class*="bg-emerald-600"] *,
 html.light button[class*="bg-rose-500"] *,
+html.light button[class*="bg-rose-600"] *,
+html.light button[class*="bg-slate-900"] *,
+html.light button[class*="bg-black"] *,
 html.light button[class*="bg-gradient-to-r"] *,
 html.light .badge-solid,
 html.light .badge-solid * {
   color: #ffffff !important;
+}
+
+/* Ensure readable dark text on fluorescent green/lime buttons */
+html.light button[class*="bg-[#00E599]"],
+html.light button[class*="bg-[#00FF66]"],
+html.light button[class*="bg-[#00E599]"] *,
+html.light button[class*="bg-[#00FF66]"] * {
+  color: #002213 !important;
 }
 
 /* Classy Architectural Surfaces */

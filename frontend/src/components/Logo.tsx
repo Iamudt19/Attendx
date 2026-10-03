@@ -5,6 +5,8 @@ interface LogoProps {
   size?: "sm" | "md" | "lg" | "xl";
   variant?: "light" | "dark" | "glass" | "auto";
   showTagline?: boolean;
+  showSubtitle?: boolean;
+  interactive?: boolean;
   className?: string;
 }
 
