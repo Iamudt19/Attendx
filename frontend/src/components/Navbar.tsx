@@ -13,7 +13,9 @@ import {
   Users, 
   FileSpreadsheet, 
   Sparkles,
-  ChevronDown
+  ChevronDown,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { User, ClassItem } from '../types';
 import { ClassService } from '../services/api';
@@ -23,9 +25,11 @@ import { Logo } from './Logo';
 interface NavbarProps {
   user: User | null;
   onLogout: () => void;
+  toggleTheme?: () => void;
+  isDark?: boolean;
 }
 
-export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
+export const Navbar: React.FC<NavbarProps> = ({ user, onLogout, toggleTheme, isDark = true }) => {
   const navigate = useNavigate();
   const [showSearchModal, setShowSearchModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -150,8 +154,34 @@ export const Navbar: React.FC<NavbarProps> = ({ user, onLogout }) => {
           </div>
         </div>
 
-        {/* Right User profile & actions */}
+        {/* Right: Theme toggle + New Session + User */}
         <div className="flex items-center gap-2.5">
+          {/* Theme Toggle Button */}
+          {toggleTheme && (
+            <button
+              onClick={toggleTheme}
+              id="theme-toggle-btn"
+              title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              className={`relative w-[52px] h-7 rounded-full border transition-all duration-300 flex items-center px-0.5 ${
+                isDark
+                  ? 'bg-slate-800 border-slate-700 hover:border-slate-500'
+                  : 'bg-amber-50 border-amber-200 hover:border-amber-400'
+              }`}
+            >
+              {/* Track icons */}
+              <Sun className={`absolute left-1.5 w-3.5 h-3.5 transition-all duration-300 ${isDark ? 'text-slate-600 opacity-40' : 'text-amber-500 opacity-100'}`} />
+              <Moon className={`absolute right-1.5 w-3.5 h-3.5 transition-all duration-300 ${isDark ? 'text-blue-400 opacity-100' : 'text-slate-400 opacity-40'}`} />
+              {/* Thumb */}
+              <span
+                className={`w-5 h-5 rounded-full shadow-md transition-all duration-300 flex items-center justify-center ${
+                  isDark
+                    ? 'translate-x-6 bg-slate-900 border border-blue-500/50'
+                    : 'translate-x-0 bg-white border border-amber-300'
+                }`}
+              />
+            </button>
+          )}
+
           <button 
             onClick={() => setShowNewSessionModal(true)}
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold transition-all shadow-sm active:scale-[0.98]" 

@@ -19,9 +19,12 @@ import {
   Cpu,
   Database,
   Building2,
-  Check
+  Check,
+  Sun,
+  Moon
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
+import { useTheme } from '../context/ThemeContext';
 
 interface CaseStory {
   id: string;
@@ -300,7 +303,33 @@ export const HeroLanding: React.FC = () => {
           </nav>
 
           {/* Right Action Buttons */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {/* Theme Toggle */}
+            {(() => {
+              let tTheme: { toggleTheme: () => void; isDark: boolean } | null = null;
+              try { tTheme = useTheme(); } catch {}
+              if (!tTheme) return null;
+              const { toggleTheme, isDark } = tTheme;
+              return (
+                <button
+                  onClick={toggleTheme}
+                  id="hero-theme-toggle"
+                  title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                  className={`relative w-[52px] h-7 rounded-full border transition-all duration-300 flex items-center px-0.5 ${
+                    isDark
+                      ? 'bg-slate-700 border-slate-600 hover:border-slate-400'
+                      : 'bg-amber-50 border-amber-200 hover:border-amber-400'
+                  }`}
+                >
+                  <Sun className={`absolute left-1.5 w-3.5 h-3.5 transition-all duration-300 ${isDark ? 'text-slate-500 opacity-40' : 'text-amber-500 opacity-100'}`} />
+                  <Moon className={`absolute right-1.5 w-3.5 h-3.5 transition-all duration-300 ${isDark ? 'text-blue-400 opacity-100' : 'text-slate-400 opacity-40'}`} />
+                  <span className={`w-5 h-5 rounded-full shadow-md transition-all duration-300 ${
+                    isDark ? 'translate-x-6 bg-slate-900 border border-blue-500/50' : 'translate-x-0 bg-white border border-amber-300'
+                  }`} />
+                </button>
+              );
+            })()}
+
             <button
               onClick={() => navigate('/login')}
               className="text-[15px] font-semibold text-slate-700 hover:text-slate-950 transition-colors px-3 py-2"

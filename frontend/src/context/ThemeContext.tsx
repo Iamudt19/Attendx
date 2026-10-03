@@ -1,52 +1,51 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 
-type Theme = 'dark' | 'light';
+type Theme = "dark" | "light";
 
-interface ThemeContextType {
+interface ThemeContextValue {
   theme: Theme;
   toggleTheme: () => void;
-  isAnimating: boolean;
+  isDark: boolean;
 }
 
-const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+const ThemeContext = createContext<ThemeContextValue>({
+  theme: "dark",
+  toggleTheme: () => {},
+  isDark: true,
+});
+
+export const useTheme = () => useContext(ThemeContext);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>(() => {
-    const saved = localStorage.getItem('attendx_theme') as Theme;
-    return saved || 'dark';
+    try {
+      return (localStorage.getItem("attendx_theme") as Theme) || "dark";
+    } catch {
+      return "dark";
+    }
   });
 
-  const [isAnimating, setIsAnimating] = useState(false);
-
   useEffect(() => {
-    localStorage.setItem('attendx_theme', theme);
     const root = document.documentElement;
-    if (theme === 'light') {
-      root.classList.remove('dark');
-      root.classList.add('light');
+    if (theme === "light") {
+      root.classList.add("light-mode");
+      root.classList.remove("dark-mode");
     } else {
-      root.classList.remove('light');
-      root.classList.add('dark');
+      root.classList.add("dark-mode");
+      root.classList.remove("light-mode");
     }
+    try {
+      localStorage.setItem("attendx_theme", theme);
+    } catch {}
   }, [theme]);
 
-  const toggleTheme = () => {
-    setIsAnimating(true);
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
-    setTimeout(() => setIsAnimating(false), 500);
-  };
+  const toggleTheme = useCallback(() => {
+    setTheme((t) => (t === "dark" ? "light" : "dark"));
+  }, []);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, isAnimating }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, isDark: theme === "dark" }}>
       {children}
     </ThemeContext.Provider>
   );
-};
-
-export const useTheme = (): ThemeContextType => {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
-  return context;
 };

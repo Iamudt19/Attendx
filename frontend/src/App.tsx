@@ -17,6 +17,7 @@ import { User, AttendanceAnalysisResponse } from './types';
 import { Analytics } from '@vercel/analytics/react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { HeroLanding } from './pages/HeroLanding';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 
 // ── Admin Portal Root ─────────────────────────────────────────────────────────
 const AdminPortalRoot: React.FC = () => <AdminPortal />;
@@ -25,6 +26,12 @@ const AdminPortalRoot: React.FC = () => <AdminPortal />;
 const StudentPortalRoot: React.FC = () => <StudentPortal />;
 
 // ── Teacher / Admin Shell Layout ──────────────────────────────────────────────
+// Wrapper that gets toggleTheme from context and passes it to Navbar
+const NavbarWithTheme: React.FC<{ user: User | null; onLogout: () => void }> = ({ user, onLogout }) => {
+  const { toggleTheme, isDark } = useTheme();
+  return <Navbar user={user} onLogout={onLogout} toggleTheme={toggleTheme} isDark={isDark} />;
+};
+
 interface TeacherLayoutProps {
   user: User | null;
   loading: boolean;
@@ -52,7 +59,7 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      <Navbar user={user} onLogout={onLogout} />
+      <NavbarWithTheme user={user} onLogout={onLogout} />
       <div className="flex flex-1">
         <Sidebar user={user} />
         <main className="flex-1 p-6 overflow-y-auto max-w-7xl mx-auto w-full">
@@ -101,9 +108,10 @@ export const App: React.FC = () => {
   };
 
   return (
-    <ErrorBoundary>
-      <BrowserRouter>
-        <Analytics />
+    <ThemeProvider>
+      <ErrorBoundary>
+        <BrowserRouter>
+          <Analytics />
         <Routes>
           {/* Public Landing & Hero Pages */}
           <Route path="/" element={<HeroLanding />} />
@@ -155,7 +163,8 @@ export const App: React.FC = () => {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </BrowserRouter>
-    </ErrorBoundary>
+        </BrowserRouter>
+      </ErrorBoundary>
+    </ThemeProvider>
   );
 };

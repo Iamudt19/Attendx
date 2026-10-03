@@ -10,6 +10,7 @@ import { StudentPortalService } from '../services/api';
 import { StudentUser, ScanAngle, SCAN_ANGLES, ANGLE_LABELS, ANGLE_ICONS, FaceFrameUploadResult, StudentPublicClass } from '../types';
 import { NeuralFaceMeshOverlay } from '../components/NeuralFaceMeshOverlay';
 import { extractErrorMessage } from '../utils/error';
+import { Logo } from '../components/Logo';
 
 interface FaceEnrollmentWizardProps {
   student: StudentUser;
@@ -334,13 +335,7 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
       <div className="min-h-screen bg-[#FBFBFB] text-[#111827] flex flex-col justify-between selection:bg-blue-600 selection:text-white font-sans">
         <header className="w-full max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <div onClick={() => navigate('/')} className="flex items-center gap-2.5 cursor-pointer group">
-            <div className="w-9 h-9 rounded-xl bg-black text-white flex items-center justify-center font-bold shadow-sm transition-transform group-hover:scale-105">
-              <Camera className="w-5 h-5 text-white" />
-            </div>
-            <div className="flex items-center">
-              <span className="font-extrabold text-2xl tracking-tight text-slate-900">Attend</span>
-              <span className="font-extrabold text-2xl tracking-tight text-blue-600">X</span>
-            </div>
+            <Logo size="md" variant="light" showTagline />
           </div>
 
           <button onClick={onLogout} className="text-xs font-semibold text-slate-500 hover:text-slate-900">
