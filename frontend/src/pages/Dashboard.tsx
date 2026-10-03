@@ -7,17 +7,16 @@ import {
   Users, 
   GraduationCap, 
   CheckCircle2, 
-  AlertTriangle, 
+  AlertCircle, 
   Sparkles, 
   Clock, 
   ArrowRight, 
   BarChart3, 
   ShieldCheck, 
-  Layers, 
   RefreshCw,
-  Eye,
-  Check,
-  Zap
+  ExternalLink,
+  Plus,
+  BookOpen
 } from 'lucide-react';
 import { AttendanceService, ClassService, StudentService } from '../services/api';
 import { AttendanceSessionOut, ClassItem, StudentItem, User } from '../types';
@@ -70,10 +69,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   const handleExportExcel = async (classId?: number) => {
     const targetClassId = classId || (classes.length > 0 ? classes[0].id : 1);
-    showToast('Generating official Excel attendance dossier...');
+    showToast('Preparing Excel attendance report...');
     try {
       await AttendanceService.downloadExcelDirect(targetClassId);
-      showToast('Attendance dossier downloaded successfully!');
+      showToast('Attendance report downloaded successfully!');
     } catch (err) {
       showToast('Export failed. Please check your connection.');
     }
@@ -81,48 +80,55 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      showToast(`Staging ${e.target.files.length} photo(s) for classroom verification...`);
+      showToast(`Staging ${e.target.files.length} photo(s) for attendance scan...`);
       setTimeout(() => {
         navigate('/take-attendance');
-      }, 600);
+      }, 500);
     }
   };
 
   // Metrics Calculations
   const totalStudentsCount = students.length;
-  const verifiedFacesCount = students.filter(s => s.face_registration_complete || (s.embeddings_count && s.embeddings_count > 0)).length;
+  const verifiedFacesCount = students.filter(s => s.face_registration_complete || (s.face_count && s.face_count > 0)).length;
   const totalSessionsCount = sessions.length;
   const avgAttendancePct = sessions.length > 0
     ? Math.round(sessions.reduce((acc, s) => acc + ((s.present_count / (s.total_enrolled || 1)) * 100), 0) / sessions.length)
     : 94;
 
   const filteredSessions = sessions.filter(sess => {
-    if (filter === 'verified') return (sess.verification_rate || 0) >= 90;
-    if (filter === 'audit') return (sess.flags_count || 0) > 0 || (sess.verification_rate || 0) < 90;
+    const rate = sess.total_enrolled > 0 ? (sess.present_count / sess.total_enrolled) * 100 : 0;
+    if (filter === 'verified') return rate >= 90;
+    if (filter === 'audit') return rate < 75;
     return true;
   });
 
   return (
-    <div className="flex flex-col w-full space-y-8 text-slate-100 max-w-7xl mx-auto pb-12">
+    <div className="flex flex-col w-full space-y-8 max-w-7xl mx-auto pb-16 transition-colors">
+      {/* Toast notification */}
+      {toastMessage && (
+        <div className="fixed top-20 right-6 z-50 py-3 px-5 rounded-2xl bg-indigo-600 text-white text-xs font-semibold shadow-xl flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* ── Top Header & Greeting ── */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-slate-800/80">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[var(--border-color)]">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="text-[11px] uppercase tracking-widest text-emerald-400 font-mono font-semibold flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              Live Academic Ledger
+            <span className="text-xs font-medium text-emerald-500 dark:text-emerald-400 flex items-center gap-1.5 font-mono">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              Academic Year 2026–27
             </span>
-            <span className="text-slate-700">•</span>
-            <span className="text-xs text-slate-400 font-mono">Academic Year 2026–27</span>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white flex items-center gap-3">
-            Welcome back, {user?.name || 'Educator'}
-            <span className="text-xs px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-mono font-normal">
+          <h1 className="text-3xl font-bold tracking-tight text-[var(--text-primary)] flex items-center gap-3">
+            Welcome back, {user?.name || 'Professor'}
+            <span className="text-xs px-2.5 py-0.5 rounded-full bg-[var(--bg-inset)] border border-[var(--border-color)] text-[var(--text-secondary)] font-mono font-medium">
               {user?.role || 'TEACHER'}
             </span>
           </h1>
-          <p className="text-sm text-slate-400">
-            Automated deep face recognition pipeline active • Instant multi-angle attendance verification
+          <p className="text-sm text-[var(--text-secondary)]">
+            Classroom roll-call dashboard and biometric attendance records
           </p>
         </div>
 
@@ -131,25 +137,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           <button
             onClick={handleRefresh}
             disabled={refreshing}
-            className="p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all shadow-sm"
+            className="p-2.5 rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--bg-inset)] border border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all shadow-sm"
             title="Refresh Data"
             type="button"
           >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-emerald-400' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-indigo-500' : ''}`} />
           </button>
           
           <button
             onClick={() => handleExportExcel()}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-200 text-xs font-semibold transition-all hover:border-slate-700 shadow-sm"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--bg-inset)] border border-[var(--border-color)] text-[var(--text-primary)] text-xs font-semibold transition-all shadow-sm"
             type="button"
           >
-            <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+            <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
             <span>Export Excel (.XLSX)</span>
           </button>
 
           <button
             onClick={() => navigate('/take-attendance')}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 text-xs font-bold hover:brightness-110 active:scale-[0.99] transition-all shadow-lg shadow-emerald-500/20"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-indigo-600/20 active:scale-95"
             type="button"
           >
             <Camera className="w-4 h-4" />
@@ -158,298 +164,231 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         </div>
       </header>
 
-      {/* ── Key Operational Metrics Cards (Obsidian Glassmorphism) ── */}
+      {/* ── Key Operational Metrics Cards ── */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* Card 1: Total Enrolled */}
-        <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800/80 backdrop-blur-xl hover:border-slate-700/80 transition-all group">
-          <div className="flex items-center justify-between">
-            <span className="text-xs uppercase font-mono tracking-wider text-slate-400">Total Enrolled</span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+        <div className="p-6 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-color)] transition-all shadow-sm hover:shadow-md group">
+          <div className="flex items-center justify-between text-[var(--text-secondary)]">
+            <span className="text-xs uppercase font-semibold tracking-wider">Total Enrolled</span>
+            <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center">
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-white tracking-tight">{totalStudentsCount}</span>
-            <span className="text-xs text-slate-400 font-mono">Students</span>
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-3xl font-extrabold text-[var(--text-primary)] tracking-tight">{totalStudentsCount}</span>
+            <span className="text-xs text-[var(--text-secondary)] font-medium">Students</span>
           </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-slate-400 pt-3 border-t border-slate-800/60">
-            <span>{classes.length} Active Class Sections</span>
-            <span className="text-emerald-400 font-medium">100% Synced</span>
+          <div className="mt-3 flex items-center justify-between text-xs text-[var(--text-secondary)] pt-3 border-t border-[var(--border-color)]">
+            <span>{classes.length} Class Sections</span>
+            <span className="text-emerald-500 font-medium">Active Roster</span>
           </div>
         </div>
 
-        {/* Card 2: Biometric Face Profiles */}
-        <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800/80 backdrop-blur-xl hover:border-slate-700/80 transition-all group">
-          <div className="flex items-center justify-between">
-            <span className="text-xs uppercase font-mono tracking-wider text-slate-400">Face Profiles</span>
-            <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
+        {/* Card 2: Biometric Profiles */}
+        <div className="p-6 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-color)] transition-all shadow-sm hover:shadow-md group">
+          <div className="flex items-center justify-between text-[var(--text-secondary)]">
+            <span className="text-xs uppercase font-semibold tracking-wider">Face Profiles</span>
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
               <ShieldCheck className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-white tracking-tight">{verifiedFacesCount}</span>
-            <span className="text-xs text-slate-400 font-mono">/ {totalStudentsCount} Enrolled</span>
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-3xl font-extrabold text-[var(--text-primary)] tracking-tight">{verifiedFacesCount}</span>
+            <span className="text-xs text-[var(--text-secondary)]">/ {totalStudentsCount} calibrated</span>
           </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-slate-400 pt-3 border-t border-slate-800/60">
-            <span>SFace 128-D Model</span>
-            <span className="text-violet-400 font-medium">Active Vector Pool</span>
+          <div className="mt-3 flex items-center justify-between text-xs text-[var(--text-secondary)] pt-3 border-t border-[var(--border-color)]">
+            <span>Recognition Readiness</span>
+            <span className="text-indigo-500 font-medium">
+              {totalStudentsCount > 0 ? `${Math.round((verifiedFacesCount / totalStudentsCount) * 100)}%` : '0%'}
+            </span>
           </div>
         </div>
 
         {/* Card 3: Average Attendance Rate */}
-        <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800/80 backdrop-blur-xl hover:border-slate-700/80 transition-all group">
-          <div className="flex items-center justify-between">
-            <span className="text-xs uppercase font-mono tracking-wider text-slate-400">Term Attendance</span>
-            <div className="w-9 h-9 rounded-xl bg-teal-500/10 border border-teal-500/20 flex items-center justify-center text-teal-400">
+        <div className="p-6 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-color)] transition-all shadow-sm hover:shadow-md group">
+          <div className="flex items-center justify-between text-[var(--text-secondary)]">
+            <span className="text-xs uppercase font-semibold tracking-wider">Term Attendance</span>
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
               <BarChart3 className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-emerald-400 tracking-tight">{avgAttendancePct}%</span>
-            <span className="text-xs text-emerald-400/80 font-mono">Average</span>
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-3xl font-extrabold text-emerald-500 tracking-tight">{avgAttendancePct}%</span>
+            <span className="text-xs text-[var(--text-secondary)]">Average</span>
           </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-slate-400 pt-3 border-t border-slate-800/60">
+          <div className="mt-3 flex items-center justify-between text-xs text-[var(--text-secondary)] pt-3 border-t border-[var(--border-color)]">
             <span>{totalSessionsCount} Lectures Logged</span>
-            <span className="text-emerald-400 font-medium">Zero Proxy</span>
+            <span className="text-emerald-500 font-medium">Verified</span>
           </div>
         </div>
 
-        {/* Card 4: Neural Pipeline Speed */}
-        <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800/80 backdrop-blur-xl hover:border-slate-700/80 transition-all group">
-          <div className="flex items-center justify-between">
-            <span className="text-xs uppercase font-mono tracking-wider text-slate-400">Pipeline Latency</span>
-            <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
-              <Zap className="w-4 h-4" />
+        {/* Card 4: Total Sessions */}
+        <div className="p-6 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-color)] transition-all shadow-sm hover:shadow-md group">
+          <div className="flex items-center justify-between text-[var(--text-secondary)]">
+            <span className="text-xs uppercase font-semibold tracking-wider">Official Sessions</span>
+            <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
+              <Clock className="w-4 h-4" />
             </div>
           </div>
-          <div className="mt-4 flex items-baseline gap-2">
-            <span className="text-3xl font-bold text-white tracking-tight">1.8<span className="text-lg text-slate-400 font-normal">s</span></span>
-            <span className="text-xs text-emerald-400 font-mono font-medium">YuNet + SFace</span>
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-3xl font-extrabold text-[var(--text-primary)] tracking-tight">{totalSessionsCount}</span>
+            <span className="text-xs text-[var(--text-secondary)]">Recorded</span>
           </div>
-          <div className="mt-3 flex items-center justify-between text-xs text-slate-400 pt-3 border-t border-slate-800/60">
-            <span>ZeroGPU Accelerated</span>
-            <span className="text-emerald-400 font-medium">Online</span>
+          <div className="mt-3 flex items-center justify-between text-xs text-[var(--text-secondary)] pt-3 border-t border-[var(--border-color)]">
+            <span>Latest: {sessions[0]?.date || 'None today'}</span>
+            <span className="text-blue-500 font-medium cursor-pointer" onClick={() => navigate('/history')}>
+              View All
+            </span>
           </div>
         </div>
       </section>
 
-      {/* ── Main Dual Ingestion Actions ── */}
+      {/* ── Main Quick Launch Hub ── */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Method A: High-Res Classroom Photo Upload */}
-        <div className="p-7 rounded-3xl bg-slate-900/50 border border-slate-800/80 backdrop-blur-xl flex flex-col justify-between hover:border-slate-700/80 transition-all shadow-xl relative overflow-hidden group">
-          <div className="space-y-3">
+        {/* Upload Classroom Capture Box */}
+        <div className="p-7 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-color)] flex flex-col justify-between hover:border-indigo-500/40 transition-all shadow-sm group">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-emerald-400 font-semibold px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                Method A • High Resolution Photo
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                Classroom Photo Scanner
               </span>
-              <Camera className="w-5 h-5 text-slate-400 group-hover:text-emerald-400 transition-colors" />
+              <Camera className="w-5 h-5 text-[var(--text-secondary)] group-hover:text-blue-500 transition-colors" />
             </div>
-            <h2 className="text-xl font-bold text-white">Upload Classroom Capture</h2>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Upload single or multi-photo wide-angle shots of the classroom. The AI automatically crops, rotates, aligns, and matches faces against enrolled students.
+            <h2 className="text-lg font-bold text-[var(--text-primary)]">Upload Classroom Capture</h2>
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+              Upload wide-angle photos of the classroom. The facial recognition engine automatically detects, matches, and records attendance for all enrolled students.
             </p>
           </div>
 
-          {/* Drag & Drop Upload Zone */}
-          <div className="mt-6 relative flex flex-col items-center justify-center p-8 rounded-2xl border-2 border-dashed border-slate-700/80 hover:border-emerald-500/60 bg-slate-950/60 hover:bg-slate-950/80 transition-all cursor-pointer text-center group/drop">
-            <input
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={handleFileUpload}
-              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
-            />
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-3 group-hover/drop:scale-110 transition-transform">
-              <Upload className="w-6 h-6" />
-            </div>
-            <p className="text-sm font-semibold text-white">Drop classroom photo(s) here or click to browse</p>
-            <p className="text-xs text-slate-400 mt-1">Supports JPEG, PNG, WEBP, multi-photo angles</p>
-          </div>
-
-          <div className="mt-6 pt-4 border-t border-slate-800/60 flex items-center justify-between">
-            <span className="text-xs text-slate-400">Multi-Angle Fusion Support</span>
-            <button
-              onClick={() => navigate('/take-attendance')}
-              className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold inline-flex items-center gap-1.5 transition-colors"
-              type="button"
-            >
-              <span>Open Scanner Studio</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+          <div className="mt-6">
+            <label className="border-2 border-dashed border-[var(--border-color)] hover:border-indigo-500/50 bg-[var(--bg-inset)] hover:bg-[var(--bg-surface)] rounded-xl p-6 flex flex-col items-center justify-center gap-2 cursor-pointer transition-all">
+              <div className="w-10 h-10 rounded-full bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+                <Upload className="w-5 h-5" />
+              </div>
+              <div className="text-center">
+                <span className="text-xs font-semibold text-[var(--text-primary)]">Click to browse or drop photos</span>
+                <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">Supports multi-angle JPEG, PNG, WEBP</p>
+              </div>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+            </label>
           </div>
         </div>
 
-        {/* Method B: Live Web Camera & Burst Scan */}
-        <div className="p-7 rounded-3xl bg-slate-900/50 border border-slate-800/80 backdrop-blur-xl flex flex-col justify-between hover:border-slate-700/80 transition-all shadow-xl relative overflow-hidden group">
-          <div className="space-y-3">
+        {/* Live Camera Rig */}
+        <div className="p-7 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-color)] flex flex-col justify-between hover:border-indigo-500/40 transition-all shadow-sm group">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[11px] font-mono uppercase tracking-wider text-cyan-400 font-semibold px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20">
-                Method B • Live Camera Scan
+              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                Live Video Feed
               </span>
-              <Sparkles className="w-5 h-5 text-slate-400 group-hover:text-cyan-400 transition-colors" />
+              <Sparkles className="w-5 h-5 text-[var(--text-secondary)] group-hover:text-emerald-500 transition-colors" />
             </div>
-            <h2 className="text-xl font-bold text-white">Live Classroom Webcam Rig</h2>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Capture instant optical frames directly through your laptop or connected classroom camera rig with real-time face landmark mesh tracking.
+            <h2 className="text-lg font-bold text-[var(--text-primary)]">Live Classroom Webcam Rig</h2>
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+              Stream live video frames from your laptop camera or connected lecture webcam with real-time facial landmark detection.
             </p>
           </div>
 
-          {/* Visual Camera Preview Placeholder Card */}
-          <div 
-            onClick={() => navigate('/take-attendance')}
-            className="mt-6 relative rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 aspect-[16/8] flex items-center justify-center cursor-pointer group/cam"
-          >
-            <img 
-              src="/hero-scenic-1.jpg" 
-              alt="Classroom Camera Rig"
-              className="w-full h-full object-cover opacity-40 group-hover/cam:scale-105 transition-transform duration-500"
-              onError={(e) => {
-                e.currentTarget.src = "https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?auto=format&fit=crop&w=800&q=80";
-              }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
-            
-            <div className="absolute top-3 left-3 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900/90 border border-slate-800 text-slate-300">
-                HD Optical Sensor Ready
-              </span>
+          <div className="mt-6 p-6 rounded-xl bg-[var(--bg-inset)] border border-[var(--border-color)] flex flex-col items-center justify-center text-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
+              <Camera className="w-6 h-6" />
             </div>
-
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-              <div className="w-12 h-12 rounded-full bg-slate-900/90 border border-slate-700 flex items-center justify-center text-cyan-400 mb-2 shadow-lg group-hover/cam:scale-110 transition-transform">
-                <Camera className="w-5 h-5" />
-              </div>
-              <span className="text-xs font-bold text-white">Launch Interactive Camera</span>
-              <span className="text-[11px] text-slate-400 mt-0.5">Click to activate video capture stream</span>
+            <div>
+              <p className="text-xs font-semibold text-[var(--text-primary)]">Ready for Interactive Scanning</p>
+              <p className="text-[11px] text-[var(--text-secondary)]">Launch camera stream to scan lecture hall in real-time</p>
             </div>
-          </div>
-
-          <div className="mt-6 pt-4 border-t border-slate-800/60 flex items-center justify-between">
-            <span className="text-xs text-slate-400">Supports 4K / 1080p Optical Feeds</span>
             <button
               onClick={() => navigate('/take-attendance')}
-              className="text-xs text-cyan-400 hover:text-cyan-300 font-semibold inline-flex items-center gap-1.5 transition-colors"
-              type="button"
+              className="mt-1 py-2 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold transition-all shadow-sm active:scale-95"
             >
-              <span>Activate Camera</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              Activate Camera Scanner
             </button>
           </div>
         </div>
       </section>
 
-      {/* ── Split Section: Recent Attendance Ledger (Left) & Classes (Right) ── */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Recent Sessions (8 cols) */}
-        <div className="lg:col-span-8 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* ── Recent Attendance Ledger & Active Classes ── */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left 2 Cols: Recent Sessions */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-white">Recent Attendance Sessions</h2>
-              <p className="text-xs text-slate-400">Authenticated classroom records and AI recognition logs</p>
+              <h3 className="text-base font-bold text-[var(--text-primary)]">Recent Attendance Logs</h3>
+              <p className="text-xs text-[var(--text-secondary)]">Latest recorded sessions across your enrolled classes</p>
             </div>
-
-            {/* Filter Pill Tabs */}
-            <div className="inline-flex items-center p-1 rounded-xl bg-slate-900/90 border border-slate-800 text-xs">
-              <button
-                onClick={() => setFilter('all')}
-                className={`px-3 py-1.5 rounded-lg transition-all text-xs font-medium ${
-                  filter === 'all' ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-400 hover:text-white'
-                }`}
-                type="button"
-              >
-                All Sessions
-              </button>
-              <button
-                onClick={() => setFilter('verified')}
-                className={`px-3 py-1.5 rounded-lg transition-all text-xs font-medium ${
-                  filter === 'verified' ? 'bg-slate-800 text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-white'
-                }`}
-                type="button"
-              >
-                High Accuracy (≥90%)
-              </button>
-              <button
-                onClick={() => setFilter('audit')}
-                className={`px-3 py-1.5 rounded-lg transition-all text-xs font-medium ${
-                  filter === 'audit' ? 'bg-slate-800 text-amber-400 shadow-sm' : 'text-slate-400 hover:text-white'
-                }`}
-                type="button"
-              >
-                Needs Review
-              </button>
-            </div>
+            <button
+              onClick={() => navigate('/history')}
+              className="text-xs font-semibold text-indigo-500 hover:text-indigo-400 flex items-center gap-1 transition-colors"
+            >
+              <span>View Full Archive</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
 
-          {/* Sessions Table Container */}
-          <div className="rounded-2xl border border-slate-800/80 bg-slate-900/40 backdrop-blur-xl overflow-hidden shadow-xl">
-            {filteredSessions.length === 0 ? (
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-2xl overflow-hidden shadow-sm">
+            {loading ? (
+              <div className="p-12 text-center text-xs text-[var(--text-secondary)] font-mono animate-pulse">
+                Loading session logs...
+              </div>
+            ) : sessions.length === 0 ? (
               <div className="p-12 text-center space-y-3">
-                <div className="w-12 h-12 rounded-2xl bg-slate-800/80 border border-slate-700 mx-auto flex items-center justify-center text-slate-400">
-                  <Clock className="w-6 h-6" />
-                </div>
-                <h3 className="text-sm font-semibold text-white">No attendance sessions logged yet</h3>
-                <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                  Take your first classroom attendance photo or camera scan to begin tracking automated records.
+                <Clock className="w-8 h-8 text-[var(--text-secondary)] mx-auto opacity-50" />
+                <p className="text-xs font-medium text-[var(--text-primary)]">No recorded attendance sessions yet</p>
+                <p className="text-[11px] text-[var(--text-secondary)] max-w-sm mx-auto">
+                  Take your first roll call by uploading classroom photos or launching the live camera.
                 </p>
                 <button
                   onClick={() => navigate('/take-attendance')}
-                  className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold transition-all shadow-md"
-                  type="button"
+                  className="mt-2 py-2 px-4 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl transition-all"
                 >
-                  <Camera className="w-3.5 h-3.5" />
-                  <span>Start First Session</span>
+                  Start First Session
                 </button>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-800/80 bg-slate-950/60 text-slate-400 font-mono uppercase text-[10px] tracking-wider">
-                      <th className="py-3.5 px-4 font-semibold">Date & Time</th>
-                      <th className="py-3.5 px-4 font-semibold">Class & Subject</th>
-                      <th className="py-3.5 px-4 font-semibold">Attendance</th>
-                      <th className="py-3.5 px-4 font-semibold">Accuracy</th>
-                      <th className="py-3.5 px-4 text-right font-semibold">Actions</th>
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-[var(--bg-inset)] text-[var(--text-secondary)] font-semibold border-b border-[var(--border-color)]">
+                    <tr>
+                      <th className="py-3 px-4">Date & Time</th>
+                      <th className="py-3 px-4">Class & Section</th>
+                      <th className="py-3 px-4">Subject</th>
+                      <th className="py-3 px-4">Present Ratio</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60">
-                    {filteredSessions.slice(0, 8).map((sess) => {
-                      const present = sess.present_count || 0;
-                      const total = sess.total_enrolled || 1;
-                      const pct = Math.round((present / total) * 100);
+                  <tbody className="divide-y divide-[var(--border-color)]">
+                    {filteredSessions.slice(0, 5).map((sess) => {
+                      const rate = sess.total_enrolled > 0
+                        ? Math.round((sess.present_count / sess.total_enrolled) * 100)
+                        : 0;
                       return (
-                        <tr key={sess.id} className="hover:bg-slate-800/30 transition-colors group">
-                          <td className="py-4 px-4 font-mono text-slate-300">
-                            {sess.date} <span className="text-slate-400 font-normal">• {sess.start_time}</span>
+                        <tr key={sess.id} className="hover:bg-[var(--bg-inset)] transition-colors">
+                          <td className="py-3.5 px-4 font-mono font-medium text-[var(--text-primary)]">
+                            <div>{sess.date}</div>
+                            <div className="text-[10px] text-[var(--text-secondary)]">{sess.start_time}</div>
                           </td>
-                          <td className="py-4 px-4">
-                            <div className="font-semibold text-white">{sess.class_name || 'CSE Section A'}</div>
-                            <div className="text-[11px] text-slate-400 font-mono">{sess.subject_name || sess.subject_code || 'DBMS101'}</div>
+                          <td className="py-3.5 px-4 font-semibold text-[var(--text-primary)]">
+                            {sess.class_name}
                           </td>
-                          <td className="py-4 px-4">
-                            <span className="font-bold text-white">{present}</span>
-                            <span className="text-slate-400 font-normal"> / {total} students</span>
+                          <td className="py-3.5 px-4 text-[var(--text-secondary)]">
+                            {sess.subject_name}
                           </td>
-                          <td className="py-4 px-4">
-                            <div className="flex items-center gap-2">
-                              <div className="w-16 h-1.5 rounded-full bg-slate-800 overflow-hidden">
-                                <div 
-                                  className={`h-full rounded-full ${pct >= 75 ? 'bg-emerald-400' : pct >= 50 ? 'bg-amber-400' : 'bg-rose-400'}`} 
-                                  style={{ width: `${pct}%` }}
-                                ></div>
-                              </div>
-                              <span className="font-mono text-[11px] font-semibold text-slate-300">{pct}%</span>
-                            </div>
+                          <td className="py-3.5 px-4 font-mono">
+                            <span className="font-bold text-[var(--text-primary)]">{sess.present_count}</span>
+                            <span className="text-[var(--text-secondary)]"> / {sess.total_enrolled} ({rate}%)</span>
                           </td>
-                          <td className="py-4 px-4 text-right">
+                          <td className="py-3.5 px-4 text-right">
                             <button
                               onClick={() => navigate('/history')}
-                              className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 inline-flex items-center gap-1 transition-colors"
-                              type="button"
+                              className="py-1 px-2.5 rounded-lg bg-[var(--bg-inset)] hover:bg-indigo-500/10 text-indigo-500 text-[11px] font-semibold border border-[var(--border-color)] hover:border-indigo-500/30 transition-all"
                             >
-                              <span>Inspect</span>
-                              <ArrowRight className="w-3.5 h-3.5" />
+                              Inspect & Edit
                             </button>
                           </td>
                         </tr>
@@ -462,81 +401,51 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           </div>
         </div>
 
-        {/* Right Column: Academic Class Sections (4 cols) */}
-        <div className="lg:col-span-4 space-y-4">
+        {/* Right 1 Col: Class Sections Directory */}
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-bold text-white">Academic Classes</h2>
-              <p className="text-xs text-slate-400">Class sections and enrolled student rosters</p>
+              <h3 className="text-base font-bold text-[var(--text-primary)]">Class Cohorts</h3>
+              <p className="text-xs text-[var(--text-secondary)]">Registered sections</p>
             </div>
             <button
               onClick={() => navigate('/classes')}
-              className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold"
-              type="button"
+              className="text-xs font-semibold text-indigo-500 hover:text-indigo-400 flex items-center gap-1 transition-colors"
             >
-              Manage
+              <span>Manage</span>
+              <ExternalLink className="w-3.5 h-3.5" />
             </button>
           </div>
 
           <div className="space-y-3">
-            {classes.length === 0 ? (
-              <div className="p-6 rounded-2xl bg-slate-900/40 border border-slate-800 text-center text-xs text-slate-400">
-                No classes registered. Go to Classes to add one.
-              </div>
-            ) : (
-              classes.map((cls) => (
-                <div 
-                  key={cls.id}
-                  className="p-5 rounded-2xl bg-slate-900/50 border border-slate-800/80 backdrop-blur-xl hover:border-slate-700 transition-all group flex flex-col justify-between"
-                >
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-base font-bold text-white">{cls.name} {cls.section}</h3>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-mono">
-                          {cls.academic_year}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-400 mt-1">
-                        {students.filter(s => s.class_id === cls.id).length} Enrolled Students
-                      </p>
-                    </div>
-                    <div className="w-8 h-8 rounded-xl bg-slate-800/80 flex items-center justify-center text-slate-400 group-hover:text-emerald-400 transition-colors">
-                      <GraduationCap className="w-4 h-4" />
-                    </div>
+            {classes.slice(0, 4).map((cls) => (
+              <div
+                key={cls.id}
+                className="p-4 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-color)] hover:border-indigo-500/30 transition-all shadow-sm flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-bold text-xs">
+                    <BookOpen className="w-4 h-4" />
                   </div>
-
-                  <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-xs">
-                    <button
-                      onClick={() => navigate('/students')}
-                      className="text-slate-400 hover:text-white transition-colors"
-                      type="button"
-                    >
-                      View Roster
-                    </button>
-                    <button
-                      onClick={() => navigate('/take-attendance')}
-                      className="text-emerald-400 hover:text-emerald-300 font-semibold inline-flex items-center gap-1"
-                      type="button"
-                    >
-                      <span>Take Attendance</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </button>
+                  <div>
+                    <div className="text-xs font-bold text-[var(--text-primary)]">{cls.name}</div>
+                    <div className="text-[11px] text-[var(--text-secondary)]">
+                      Section {cls.section} • {cls.student_count || 0} Students
+                    </div>
                   </div>
                 </div>
-              ))
-            )}
+
+                <button
+                  onClick={() => navigate('/take-attendance')}
+                  className="py-1 px-2.5 rounded-lg bg-[var(--bg-inset)] hover:bg-indigo-600 hover:text-white text-[11px] font-semibold text-[var(--text-primary)] border border-[var(--border-color)] transition-all"
+                >
+                  Scan
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       </section>
-
-      {/* ── Interactive Feedback Toast ── */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-900/95 border border-emerald-500/40 shadow-2xl text-xs font-semibold text-emerald-300 animate-in fade-in slide-in-from-bottom-5 duration-200">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
     </div>
   );
 };
