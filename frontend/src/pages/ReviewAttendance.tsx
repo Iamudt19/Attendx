@@ -17,7 +17,8 @@ import {
   ChevronRight,
   ShieldCheck,
   Zap,
-  Users
+  Users,
+  Camera
 } from 'lucide-react';
 import { AttendanceService } from '../services/api';
 import { AttendanceAnalysisResponse, AttendanceProposalItem, RecognizedFace } from '../types';
@@ -73,6 +74,38 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
   const reviewCount = proposedList.filter(s => s.verification_status === 'NEEDS_REVIEW').length;
   const absentCount = proposedList.filter(s => s.status === 'ABSENT').length;
   const totalCount = proposedList.length;
+  const attendanceRate = totalCount > 0 ? Math.round((presentCount / totalCount) * 100) : 0;
+
+  if (!analysisResult || proposedList.length === 0) {
+    return (
+      <div className="max-w-2xl mx-auto py-16 text-center space-y-6 text-slate-100 animate-in fade-in duration-300">
+        <div className="w-16 h-16 rounded-3xl bg-blue-500/10 text-blue-400 border border-blue-500/20 mx-auto flex items-center justify-center shadow-xl backdrop-blur-xl">
+          <Sparkles className="w-8 h-8" />
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold text-white font-serif">No Active Attendance Session In Review</h1>
+          <p className="text-sm text-zinc-400 max-w-md mx-auto">
+            Take a photo scan or upload classroom pictures in the Attendance Canvas to inspect AI detections, verify proposed rosters, and save official session ledgers.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
+          <button
+            onClick={() => navigate('/take-attendance')}
+            className="px-6 py-3 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs rounded-xl shadow-lg shadow-blue-500/25 transition-all flex items-center gap-2"
+          >
+            <Camera className="w-4 h-4" />
+            <span>Launch Attendance Scanner</span>
+          </button>
+          <button
+            onClick={() => navigate('/history')}
+            className="px-6 py-3 bg-white/5 hover:bg-white/10 text-zinc-200 hover:text-white font-medium text-xs rounded-xl border border-white/10 transition-colors"
+          >
+            <span>View Attendance Ledger</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleToggleStatus = (studentDbId: number) => {
     setProposedList(prev => prev.map(s => {
@@ -185,7 +218,7 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-3">
             Review Attendance Results
             <span className="text-xs px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-mono font-normal">
-              {presentCount} / {totalCount} Present ({Math.round((presentCount / totalCount) * 100)}%)
+              {presentCount} / {totalCount} Present ({attendanceRate}%)
             </span>
           </h1>
           <p className="text-xs text-slate-400">

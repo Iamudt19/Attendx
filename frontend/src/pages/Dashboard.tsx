@@ -70,11 +70,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   const handleExportExcel = async (classId?: number) => {
     const targetClassId = classId || (classes.length > 0 ? classes[0].id : 1);
-    showToast('Generating official Excel (.xlsx) attendance dossier...');
+    showToast('Generating official Excel attendance dossier...');
     try {
-      const url = `${import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace(/\/+$/, '') : ''}/api/export/excel?class_id=${targetClassId}`;
-      window.open(url, '_blank');
-      showToast('Excel report downloaded successfully!');
+      await AttendanceService.downloadExcelDirect(targetClassId);
+      showToast('Attendance dossier downloaded successfully!');
     } catch (err) {
       showToast('Export failed. Please check your connection.');
     }

@@ -276,21 +276,55 @@ export const AttendanceService = {
     return url;
   },
   downloadExcelDirect: async (classId: number, subjectId?: number) => {
-    const res = await api.get('/export/excel', {
-      params: { class_id: classId, subject_id: subjectId },
-      responseType: 'blob'
-    });
-    const blob = new Blob([res.data], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-    });
-    const downloadUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.setAttribute('download', `Attendance_Report_Class_${classId}.xlsx`);
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(downloadUrl);
+    try {
+      const res = await api.get('/export/excel', {
+        params: { class_id: classId, subject_id: subjectId },
+        responseType: 'blob'
+      });
+      const blob = new Blob([res.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.setAttribute('download', `Attendance_Report_Class_${classId}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (primaryErr) {
+      console.warn("Direct binary excel fetch failed, generating client report...", primaryErr);
+      // Fallback: Fetch sessions and build CSV
+      const sessions = await api.get('/attendance/sessions', { params: { class_id: classId, subject_id: subjectId } });
+      const sessList = sessions.data || [];
+      
+      let csvContent = "data:text/csv;charset=utf-8,";
+      csvContent += "Session ID,Class,Subject,Date,Time,Present Count,Absent Count,Total Enrolled,Attendance Rate\n";
+      
+      sessList.forEach((s: any) => {
+        const rate = s.total_enrolled > 0 ? `${Math.round((s.present_count / s.total_enrolled) * 100)}%` : 'N/A';
+        const row = [
+          s.id,
+          `"${s.class_name || 'Class'}"`,
+          `"${s.subject_name || 'Subject'}"`,
+          s.date,
+          s.start_time,
+          s.present_count,
+          s.absent_count,
+          s.total_enrolled,
+          rate
+        ].join(",");
+        csvContent += row + "\n";
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `Attendance_Dossier_Class_${classId}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
   }
 };
 

@@ -256,12 +256,12 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
             {analyzing ? (
               <>
                 <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
-                <span>Running Deep AI Pipeline...</span>
+                <span>Marking Attendance with AI...</span>
               </>
             ) : (
               <>
                 <Sparkles className="w-4 h-4" />
-                <span>Run Facial Recognition ({stagedPhotos.length} Photo{stagedPhotos.length !== 1 ? 's' : ''})</span>
+                <span>Mark Attendance ({stagedPhotos.length} Photo{stagedPhotos.length !== 1 ? 's' : ''})</span>
               </>
             )}
           </button>
