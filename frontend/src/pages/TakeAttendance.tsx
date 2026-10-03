@@ -220,24 +220,24 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
   const selectedSubject = subjects.find(s => s.id === selectedSubjectId);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 py-2 text-slate-100 pb-12">
+    <div className="max-w-6xl mx-auto space-y-6 py-2 text-[var(--text-primary)] pb-12 transition-colors font-sans">
       {/* ── Top Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--border-color)]">
         <div className="space-y-1">
           <button
             onClick={() => navigate('/dashboard')}
-            className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors mb-1"
+            className="inline-flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors mb-1"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back to Dashboard</span>
           </button>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)] flex items-center gap-3">
             Take Classroom Attendance
-            <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono font-semibold">
+            <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-mono font-semibold">
               Deep Neural Scanner
             </span>
           </h1>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-[var(--text-secondary)]">
             Upload or capture multi-angle classroom photographs • Deep face detection & enrollment matching
           </p>
         </div>
@@ -249,7 +249,7 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
             className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-xs transition-all shadow-lg ${
               stagedPhotos.length > 0 && !analyzing
                 ? 'bg-gradient-to-r from-emerald-500 to-teal-400 text-slate-950 hover:brightness-110 active:scale-[0.99] shadow-emerald-500/20'
-                : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+                : 'bg-[var(--bg-inset)] text-[var(--text-muted)] cursor-not-allowed border border-[var(--border-color)]'
             }`}
             type="button"
           >
@@ -269,39 +269,39 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
       </div>
 
       {error && (
-        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-center justify-between gap-3">
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-300 text-xs font-medium flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
             <span>{error}</span>
           </div>
-          <button onClick={() => setError(null)} className="text-rose-400 hover:text-rose-200 font-bold text-xs">
+          <button onClick={() => setError(null)} className="text-rose-500 hover:text-rose-700 font-bold text-xs">
             Dismiss
           </button>
         </div>
       )}
 
       {/* ── Section 1: Session Parameters Cockpit ── */}
-      <div className="p-6 rounded-3xl bg-slate-900/50 border border-slate-800/80 backdrop-blur-xl shadow-xl space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+      <div className="swiss-card p-6 rounded-3xl space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-[var(--border-color)]">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-mono font-bold text-emerald-400">01 //</span>
-            <span className="text-xs font-bold uppercase tracking-wider text-white">Class & Subject Parameters</span>
+            <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">01 //</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">Class & Subject Parameters</span>
           </div>
-          <span className="text-xs text-slate-400 font-mono">Step 1 of 2</span>
+          <span className="text-xs text-[var(--text-secondary)] font-mono">Step 1 of 2</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs font-mono font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-mono font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
               Academic Class Cohort
             </label>
             <select
               value={selectedClassId}
               onChange={(e) => setSelectedClassId(Number(e.target.value))}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white font-medium focus:outline-none focus:border-emerald-500 transition-all"
+              className="w-full bg-[var(--bg-inset)] border border-[var(--border-color)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text-primary)] font-medium focus:outline-none focus:border-emerald-500 transition-all"
             >
               {classes.map((c) => (
-                <option key={c.id} value={c.id} className="bg-slate-900">
+                <option key={c.id} value={c.id}>
                   {c.name} {c.section} ({c.academic_year})
                 </option>
               ))}
@@ -309,16 +309,16 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
           </div>
 
           <div>
-            <label className="block text-xs font-mono font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-mono font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
               Subject / Course
             </label>
             <select
               value={selectedSubjectId}
               onChange={(e) => setSelectedSubjectId(Number(e.target.value))}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white font-medium focus:outline-none focus:border-emerald-500 transition-all"
+              className="w-full bg-[var(--bg-inset)] border border-[var(--border-color)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text-primary)] font-medium focus:outline-none focus:border-emerald-500 transition-all"
             >
               {subjects.map((s) => (
-                <option key={s.id} value={s.id} className="bg-slate-900">
+                <option key={s.id} value={s.id}>
                   {s.code} — {s.name}
                 </option>
               ))}
@@ -326,14 +326,14 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
           </div>
 
           <div>
-            <label className="block text-xs font-mono font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-mono font-semibold text-[var(--text-secondary)] uppercase tracking-wider mb-1.5">
               Lecture Date
             </label>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white font-medium focus:outline-none focus:border-emerald-500 transition-all"
+              className="w-full bg-[var(--bg-inset)] border border-[var(--border-color)] rounded-xl px-3.5 py-2.5 text-xs text-[var(--text-primary)] font-medium focus:outline-none focus:border-emerald-500 transition-all"
             />
           </div>
         </div>
@@ -343,24 +343,24 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Image Ingestion Studio (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="p-6 rounded-3xl bg-slate-900/50 border border-slate-800/80 backdrop-blur-xl shadow-xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="swiss-card p-6 rounded-3xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[var(--border-color)]">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold text-cyan-400">02 //</span>
-                <span className="text-xs font-bold uppercase tracking-wider text-white">Stage Classroom Photos</span>
+                <span className="text-xs font-mono font-bold text-blue-600 dark:text-cyan-400">02 //</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">Stage Classroom Photos</span>
               </div>
               <div className="flex items-center gap-2">
                 {isWebcamActive ? (
                   <button
                     onClick={stopWebcam}
-                    className="text-xs text-rose-400 hover:text-rose-300 font-semibold transition-colors"
+                    className="text-xs text-rose-500 font-semibold transition-colors"
                   >
                     Close Camera
                   </button>
                 ) : (
                   <button
                     onClick={startWebcam}
-                    className="inline-flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300 font-semibold transition-colors"
+                    className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-cyan-400 hover:underline font-semibold transition-colors"
                   >
                     <Camera className="w-3.5 h-3.5" />
                     <span>Open Live Camera</span>
@@ -395,7 +395,7 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
               </div>
             ) : (
               /* Drag & Drop Upload Zone */
-              <div className="relative flex flex-col items-center justify-center p-8 rounded-2xl border-2 border-dashed border-slate-700/80 hover:border-emerald-500/60 bg-slate-950/60 hover:bg-slate-950/90 transition-all cursor-pointer text-center group">
+              <div className="relative flex flex-col items-center justify-center p-8 rounded-2xl border-2 border-dashed border-[var(--border-color)] hover:border-blue-500 bg-[var(--bg-inset)] transition-all cursor-pointer text-center group">
                 <input
                   type="file"
                   multiple
@@ -403,11 +403,11 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
                   onChange={handleFileInputChange}
                   className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
                 />
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 mb-3 group-hover:scale-110 transition-transform">
+                <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-600 dark:text-emerald-400 mb-3 group-hover:scale-110 transition-transform">
                   <Upload className="w-6 h-6" />
                 </div>
-                <p className="text-sm font-semibold text-white">Drop classroom photo(s) here or browse</p>
-                <p className="text-xs text-slate-400 mt-1">Select one or multiple photos (Left, Center, Right Wing)</p>
+                <p className="text-sm font-semibold text-[var(--text-primary)]">Drop classroom photo(s) here or browse</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-1">Select one or multiple photos (Left, Center, Right Wing)</p>
               </div>
             )}
           </div>
@@ -415,16 +415,16 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
 
         {/* Right Column: Staged Photos Gallery (5 cols) */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="p-6 rounded-3xl bg-slate-900/50 border border-slate-800/80 backdrop-blur-xl shadow-xl flex flex-col h-full">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <span className="text-xs font-bold text-white uppercase tracking-wider font-mono flex items-center gap-2">
-                <Layers className="w-4 h-4 text-emerald-400" />
+          <div className="swiss-card p-6 rounded-3xl flex flex-col h-full">
+            <div className="flex items-center justify-between pb-3 border-b border-[var(--border-color)]">
+              <span className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider font-mono flex items-center gap-2">
+                <Layers className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                 Staged Photos ({stagedPhotos.length})
               </span>
               {stagedPhotos.length > 0 && (
                 <button
                   onClick={clearAllPhotos}
-                  className="text-xs text-rose-400 hover:text-rose-300 font-semibold transition-colors"
+                  className="text-xs text-rose-500 font-semibold transition-colors hover:underline"
                 >
                   Clear All
                 </button>
@@ -432,17 +432,17 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
             </div>
 
             {stagedPhotos.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-xs text-slate-400">
-                <Camera className="w-8 h-8 text-slate-600 mb-2" />
-                <p className="font-semibold text-slate-300">No photos staged yet</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">Capture or upload photos to review them here.</p>
+              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-xs text-[var(--text-muted)]">
+                <Camera className="w-8 h-8 text-[var(--text-muted)] mb-2" />
+                <p className="font-semibold text-[var(--text-primary)]">No photos staged yet</p>
+                <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">Capture or upload photos to review them here.</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3 mt-4 overflow-y-auto max-h-[360px] pr-1">
                 {stagedPhotos.map((photo, idx) => (
                   <div
                     key={photo.id}
-                    className="relative rounded-xl overflow-hidden border border-slate-800 bg-slate-950 aspect-[4/3] group shadow-md"
+                    className="relative rounded-xl overflow-hidden border border-[var(--border-color)] bg-[var(--bg-inset)] aspect-[4/3] group shadow-md"
                   >
                     <img
                       src={photo.previewUrl}

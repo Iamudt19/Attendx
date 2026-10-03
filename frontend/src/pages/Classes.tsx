@@ -117,20 +117,20 @@ export const Classes: React.FC = () => {
           {classes.map((cls) => {
             const classSubjects = subjects.filter((s) => s.class_id === cls.id);
             return (
-              <div key={cls.id} className="bg-[#141416] border border-[#3c4a42]/30 rounded-2xl p-6 space-y-4 shadow-xl hover:border-[#4edea3]/40 transition-all">
-                <div className="flex items-center justify-between border-b border-[#3c4a42]/30 pb-3">
+              <div key={cls.id} className="swiss-card rounded-2xl p-6 space-y-4 shadow-xl hover:border-emerald-500/40 transition-all">
+                <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <GraduationCap className="w-5 h-5 text-blue-400" />
-                      <h2 className="text-lg font-bold text-white">
-                        {cls.name} <span className="text-[#4edea3] font-mono text-sm">Section {cls.section}</span>
+                      <GraduationCap className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                      <h2 className="text-lg font-bold text-[var(--text-primary)]">
+                        {cls.name} <span className="text-emerald-600 dark:text-emerald-400 font-mono text-sm">Section {cls.section}</span>
                       </h2>
                     </div>
-                    <p className="text-[11px] text-[#86948a] font-mono mt-0.5">
-                      Session: <span className="font-semibold text-slate-300">{cls.academic_year}</span>
+                    <p className="text-[11px] text-[var(--text-secondary)] font-mono mt-0.5">
+                      Session: <span className="font-semibold text-[var(--text-primary)]">{cls.academic_year}</span>
                     </p>
                   </div>
-                  <div className="px-3 py-1 rounded-full bg-[#1c1b1d] text-[#4edea3] border border-[#3c4a42]/40 text-xs font-mono font-semibold flex items-center gap-1.5 shadow-xs">
+                  <div className="px-3 py-1 rounded-full bg-[var(--bg-inset)] text-emerald-600 dark:text-emerald-400 border border-[var(--border-color)] text-xs font-mono font-semibold flex items-center gap-1.5 shadow-xs">
                     <Users className="w-3.5 h-3.5" />
                     {cls.student_count || 0} Enrolled
                   </div>
@@ -138,21 +138,21 @@ export const Classes: React.FC = () => {
 
                 {/* Enrolled Subjects List */}
                 <div className="space-y-2">
-                  <div className="text-[10px] font-mono font-bold text-[#86948a] uppercase tracking-wider">
+                  <div className="text-[10px] font-mono font-bold text-[var(--text-secondary)] uppercase tracking-wider">
                     Enrolled Courses ({classSubjects.length})
                   </div>
                   {classSubjects.length === 0 ? (
-                    <p className="text-xs text-[#86948a] font-mono italic">No curriculum subjects mapped yet.</p>
+                    <p className="text-xs text-[var(--text-muted)] font-mono italic">No curriculum subjects mapped yet.</p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       {classSubjects.map((sub) => (
                         <div
                           key={sub.id}
-                          className="px-3 py-1.5 rounded-lg bg-[#1c1b1d] border border-[#3c4a42]/40 text-xs text-slate-200 flex items-center gap-2"
+                          className="px-3 py-1.5 rounded-lg bg-[var(--bg-inset)] border border-[var(--border-color)] text-xs text-[var(--text-primary)] flex items-center gap-2"
                         >
-                          <BookOpen className="w-3.5 h-3.5 text-blue-400" />
+                          <BookOpen className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                           <span className="font-semibold">{sub.name}</span>
-                          <span className="text-[10px] font-mono text-[#86948a] bg-[#201f22] px-1.5 py-0.5 rounded border border-[#3c4a42]/30">
+                          <span className="text-[10px] font-mono text-[var(--text-secondary)] bg-[var(--bg-surface)] px-1.5 py-0.5 rounded border border-[var(--border-color)]">
                             {sub.code}
                           </span>
                         </div>
@@ -168,28 +168,28 @@ export const Classes: React.FC = () => {
 
       {/* ── Add Class Modal ── */}
       {showClassModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-[#141416] border border-[#3c4a42]/50 rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl relative text-[#e5e1e4]">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="swiss-card rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl relative text-[var(--text-primary)]">
             <button
               onClick={() => setShowClassModal(false)}
-              className="absolute top-5 right-5 w-8 h-8 rounded-full bg-[#201f22] hover:bg-[#2a2a2c] flex items-center justify-center text-[#86948a] hover:text-white transition-colors"
+              className="absolute top-5 right-5 w-8 h-8 rounded-full bg-[var(--bg-inset)] hover:bg-[var(--bg-surface)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
 
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-500/30 text-blue-400 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-2xl bg-blue-600/20 border border-blue-500/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                 <School className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="font-bold text-lg text-white">Create Academic Class</h3>
-                <p className="text-xs text-[#86948a]">Define new cohort section and academic year</p>
+                <h3 className="font-bold text-lg text-[var(--text-primary)]">Create Academic Class</h3>
+                <p className="text-xs text-[var(--text-secondary)]">Define new cohort section and academic year</p>
               </div>
             </div>
 
             <form onSubmit={handleCreateClass} className="space-y-4">
               <div>
-                <label className="block text-[10px] font-mono uppercase tracking-wider text-[#86948a] mb-1 font-bold">
+                <label className="block text-[10px] font-mono uppercase tracking-wider text-[var(--text-secondary)] mb-1 font-bold">
                   Class Name *
                 </label>
                 <input

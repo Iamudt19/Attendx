@@ -47,7 +47,7 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
 
   if (!resolvedImageUrl) {
     return (
-      <div className="w-full h-56 bg-slate-950/80 rounded-xl border border-slate-800 flex items-center justify-center text-slate-500 text-xs">
+      <div className="w-full h-56 bg-[var(--bg-inset)] rounded-xl border border-[var(--border-color)] flex items-center justify-center text-[var(--text-muted)] text-xs font-mono">
         No classroom photo available
       </div>
     );
@@ -56,10 +56,10 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
   return (
     <div className="space-y-2">
       {/* Interactive Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-2 p-2 bg-slate-950/80 rounded-xl border border-slate-800 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2 p-2 bg-[var(--bg-inset)] rounded-xl border border-[var(--border-color)] text-xs">
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-[10px] uppercase font-bold text-slate-400 mr-1 flex items-center gap-1">
-            <SlidersHorizontal className="w-3 h-3 text-violet-400" />
+          <span className="text-[10px] uppercase font-bold text-[var(--text-secondary)] mr-1 flex items-center gap-1">
+            <SlidersHorizontal className="w-3 h-3 text-blue-600 dark:text-violet-400" />
             Photo Faces:
           </span>
 
@@ -68,11 +68,11 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
             onClick={() => setShowPresent(!showPresent)}
             className={`px-2 py-1 rounded-lg font-bold text-[11px] flex items-center gap-1 transition-all ${
               showPresent
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
-                : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+                ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 shadow-sm'
+                : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
             }`}
           >
-            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+            <CheckCircle2 className="w-3 h-3 text-emerald-500" />
             Present ({presentCount})
           </button>
 
@@ -81,11 +81,11 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
             onClick={() => setShowReview(!showReview)}
             className={`px-2 py-1 rounded-lg font-bold text-[11px] flex items-center gap-1 transition-all ${
               showReview
-                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
-                : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+                ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/40 shadow-sm'
+                : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
             }`}
           >
-            <AlertTriangle className="w-3 h-3 text-amber-400" />
+            <AlertTriangle className="w-3 h-3 text-amber-500" />
             Review ({reviewCount})
           </button>
 
@@ -94,11 +94,11 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
             onClick={() => setShowUnknown(!showUnknown)}
             className={`px-2 py-1 rounded-lg font-bold text-[11px] flex items-center gap-1 transition-all ${
               showUnknown
-                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-sm'
-                : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+                ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-500/40 shadow-sm'
+                : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-color)]'
             }`}
           >
-            <HelpCircle className="w-3 h-3 text-rose-400" />
+            <HelpCircle className="w-3 h-3 text-rose-500" />
             Unknowns ({unknownCount})
           </button>
         </div>
@@ -106,15 +106,15 @@ export const BoundingBoxCanvas: React.FC<BoundingBoxCanvasProps> = ({
         <button
           type="button"
           onClick={() => setAlwaysShowLabels(!alwaysShowLabels)}
-          className="text-[11px] text-slate-400 hover:text-slate-200 flex items-center gap-1 px-2 py-1 rounded bg-slate-900 border border-slate-800 transition-colors"
+          className="text-[11px] text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1 px-2 py-1 rounded bg-[var(--bg-surface)] border border-[var(--border-color)] transition-colors"
         >
-          {alwaysShowLabels ? <Eye className="w-3 h-3 text-violet-400" /> : <EyeOff className="w-3 h-3 text-slate-400" />}
+          {alwaysShowLabels ? <Eye className="w-3 h-3 text-blue-600 dark:text-violet-400" /> : <EyeOff className="w-3 h-3 text-[var(--text-muted)]" />}
           {alwaysShowLabels ? 'Labels: Always' : 'Labels: Hover'}
         </button>
       </div>
 
       {/* Main Image Canvas with tight wrapper */}
-      <div ref={containerRef} className="relative w-full overflow-hidden rounded-xl border border-slate-800 bg-black/60 shadow-2xl flex items-center justify-center">
+      <div ref={containerRef} className="relative w-full overflow-hidden rounded-xl border border-[var(--border-color)] bg-slate-950/90 shadow-2xl flex items-center justify-center">
         <div className="relative inline-block max-w-full">
           <img
             ref={imgRef}

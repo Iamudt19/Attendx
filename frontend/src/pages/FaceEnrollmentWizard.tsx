@@ -8,9 +8,11 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { StudentPortalService } from '../services/api';
 import { StudentUser, ScanAngle, SCAN_ANGLES, ANGLE_LABELS, ANGLE_ICONS, FaceFrameUploadResult, StudentPublicClass } from '../types';
-import { NeuralFaceMeshOverlay } from '../components/NeuralFaceMeshOverlay';
 import { extractErrorMessage } from '../utils/error';
 import { Logo } from '../components/Logo';
+import { ThemeToggle } from '../components/ThemeToggle';
+import { useTheme } from '../context/ThemeContext';
+import { NeuralFaceMeshOverlay } from '../components/NeuralFaceMeshOverlay';
 
 interface FaceEnrollmentWizardProps {
   student: StudentUser;
@@ -101,6 +103,7 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
   const [frameStatus, setFrameStatus] = useState<FrameStatus>('idle');
   const [lastResult, setLastResult] = useState<FaceFrameUploadResult | null>(null);
   const [isWebcamActive, setIsWebcamActive] = useState(false);
+  const { isDark } = useTheme();
   const [webcamError, setWebcamError] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
 
@@ -332,27 +335,39 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
   // ── Render: Intro ───────────────────────────────────────────────────────────
   if (phase === 'intro') {
     return (
-      <div className="min-h-screen bg-[#FBFBFB] text-[#111827] flex flex-col justify-between selection:bg-blue-600 selection:text-white font-sans">
-        <header className="w-full max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+      <div className={`min-h-screen flex flex-col justify-between selection:bg-blue-600 selection:text-white font-sans transition-colors ${
+        isDark ? 'bg-black text-white' : 'bg-[#FBFBFB] text-[#111827]'
+      }`}>
+        <header className={`w-full max-w-7xl mx-auto px-6 h-20 flex items-center justify-between border-b ${
+          isDark ? 'glass-nav text-white' : 'bg-white border-slate-200/90 text-slate-900'
+        }`}>
           <div onClick={() => navigate('/')} className="flex items-center gap-2.5 cursor-pointer group">
-            <Logo size="md" variant="light" showTagline />
+            <Logo size="md" variant="auto" />
           </div>
 
-          <button onClick={onLogout} className="text-xs font-semibold text-slate-500 hover:text-slate-900">
-            Sign Out
-          </button>
+          <div className="flex items-center gap-3">
+            <ThemeToggle variant="slider" size="sm" />
+            <button 
+              onClick={onLogout} 
+              className={`text-xs font-semibold px-3 py-1.5 rounded-xl transition-colors ${
+                isDark ? 'text-zinc-300 hover:text-white bg-white/5' : 'text-slate-600 hover:text-slate-900 bg-slate-100'
+              }`}
+            >
+              Sign Out
+            </button>
+          </div>
         </header>
 
         <main className="flex-1 flex items-center justify-center px-4 py-12">
           <div className="max-w-lg w-full space-y-6">
             <div className="text-center space-y-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-100 mb-1">
-                <ScanFace className="w-3.5 h-3.5 text-blue-600" /> Biometric Face Onboarding
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-xs font-semibold border border-blue-100 dark:border-blue-800/40 mb-1">
+                <ScanFace className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" /> Biometric Face Onboarding
               </div>
-              <h1 className="font-serif text-4xl text-slate-900 font-normal tracking-tight">Welcome, {student.name}!</h1>
-              <p className="text-sm text-slate-600">Enroll your facial baseline scan for instant classroom recognition.</p>
+              <h1 className="font-serif text-3xl sm:text-4xl text-[var(--text-primary)] font-normal tracking-tight">Welcome, {student.name}!</h1>
+              <p className="text-sm text-[var(--text-secondary)]">Enroll your facial baseline scan for instant classroom recognition.</p>
               {assignedClassName && (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 border border-blue-100 rounded-full text-blue-700 text-xs font-semibold mt-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-800/40 rounded-full text-blue-700 dark:text-blue-300 text-xs font-semibold mt-2">
                   <School className="w-3.5 h-3.5" />
                   <span>Enrolled Cohort: {assignedClassName}</span>
                 </div>
@@ -360,18 +375,18 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
             </div>
 
             {/* Steps preview */}
-            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-3">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">5 Guided Baseline Angles</p>
+            <div className="swiss-card border rounded-2xl p-6 shadow-sm space-y-3">
+              <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2">5 Guided Baseline Angles</p>
               {SCAN_ANGLES.map((angle, i) => (
                 <div key={angle} className="flex items-center gap-3 py-1.5">
-                  <div className="w-7 h-7 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-xs font-bold text-blue-600 shrink-0">
+                  <div className="w-7 h-7 rounded-full bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-800/40 flex items-center justify-center text-xs font-bold text-blue-600 dark:text-blue-400 shrink-0">
                     {i + 1}
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-slate-900">
+                    <p className="text-sm font-bold text-[var(--text-primary)]">
                       {ANGLE_ICONS[angle as ScanAngle]} {ANGLE_LABELS[angle as ScanAngle]}
                     </p>
-                    <p className="text-xs text-slate-500">{ANGLE_INSTRUCTIONS[angle as ScanAngle]}</p>
+                    <p className="text-xs text-[var(--text-secondary)]">{ANGLE_INSTRUCTIONS[angle as ScanAngle]}</p>
                   </div>
                 </div>
               ))}
@@ -380,7 +395,7 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={onLogout}
-                className="py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition-colors"
+                className="py-3 px-4 bg-[var(--bg-inset)] hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] font-semibold text-xs rounded-xl border border-[var(--border-color)] transition-colors"
               >
                 Sign Out
               </button>

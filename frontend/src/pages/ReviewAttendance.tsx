@@ -78,13 +78,13 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
 
   if (!analysisResult || proposedList.length === 0) {
     return (
-      <div className="max-w-2xl mx-auto py-16 text-center space-y-6 text-slate-100 animate-in fade-in duration-300">
-        <div className="w-16 h-16 rounded-3xl bg-blue-500/10 text-blue-400 border border-blue-500/20 mx-auto flex items-center justify-center shadow-xl backdrop-blur-xl">
+      <div className="max-w-2xl mx-auto py-16 text-center space-y-6 text-[var(--text-primary)] animate-in fade-in duration-300">
+        <div className="w-16 h-16 rounded-3xl bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 mx-auto flex items-center justify-center shadow-xl backdrop-blur-xl">
           <Sparkles className="w-8 h-8" />
         </div>
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-white font-serif">No Active Attendance Session In Review</h1>
-          <p className="text-sm text-zinc-400 max-w-md mx-auto">
+          <h1 className="text-3xl font-bold text-[var(--text-primary)] font-serif">No Active Attendance Session In Review</h1>
+          <p className="text-sm text-[var(--text-secondary)] max-w-md mx-auto">
             Take a photo scan or upload classroom pictures in the Attendance Canvas to inspect AI detections, verify proposed rosters, and save official session ledgers.
           </p>
         </div>
@@ -98,7 +98,7 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
           </button>
           <button
             onClick={() => navigate('/history')}
-            className="px-6 py-3 bg-white/5 hover:bg-white/10 text-zinc-200 hover:text-white font-medium text-xs rounded-xl border border-white/10 transition-colors"
+            className="px-6 py-3 bg-[var(--bg-surface)] hover:bg-[var(--bg-inset)] text-[var(--text-primary)] font-medium text-xs rounded-xl border border-[var(--border-color)] transition-colors"
           >
             <span>View Attendance Ledger</span>
           </button>
@@ -168,20 +168,20 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
 
   if (saveSuccess) {
     return (
-      <div className="max-w-2xl mx-auto py-16 text-center space-y-6 text-slate-100 animate-in fade-in duration-300">
-        <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 mx-auto flex items-center justify-center shadow-lg">
+      <div className="max-w-2xl mx-auto py-16 text-center space-y-6 text-[var(--text-primary)] animate-in fade-in duration-300">
+        <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 mx-auto flex items-center justify-center shadow-lg">
           <CheckCircle2 className="w-8 h-8" />
         </div>
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-white">Attendance Ledger Finalized!</h1>
-          <p className="text-sm text-slate-400 max-w-md mx-auto">
+          <h1 className="text-3xl font-bold text-[var(--text-primary)]">Attendance Ledger Finalized!</h1>
+          <p className="text-sm text-[var(--text-secondary)] max-w-md mx-auto">
             All records cryptographically signed and stored in Supabase PostgreSQL with 128-D biometric vector active learning updates.
           </p>
         </div>
         <div className="flex items-center justify-center gap-4 pt-4">
           <button
             onClick={() => navigate('/history')}
-            className="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs rounded-xl border border-slate-700 transition-colors shadow-sm"
+            className="px-5 py-2.5 bg-[var(--bg-surface)] hover:bg-[var(--bg-inset)] text-[var(--text-primary)] font-medium text-xs rounded-xl border border-[var(--border-color)] transition-colors shadow-sm"
           >
             View History Ledger
           </button>
@@ -204,24 +204,24 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
   });
 
   return (
-    <div className="flex flex-col w-full space-y-6 text-slate-100 max-w-7xl mx-auto pb-12">
+    <div className="flex flex-col w-full space-y-6 text-[var(--text-primary)] max-w-7xl mx-auto pb-12 transition-colors font-sans">
       {/* ── Top Header & Actions ── */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-[var(--border-color)]">
         <div className="space-y-1">
           <button
             onClick={() => navigate('/take-attendance')}
-            className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors mb-1"
+            className="inline-flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors mb-1"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Back to Capture</span>
           </button>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--text-primary)] flex items-center gap-3">
             Review Attendance Results
-            <span className="text-xs px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 font-mono font-normal">
+            <span className="text-xs px-2.5 py-1 rounded-full bg-[var(--bg-surface)] border border-[var(--border-color)] text-[var(--text-secondary)] font-mono font-normal">
               {presentCount} / {totalCount} Present ({attendanceRate}%)
             </span>
           </h1>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-[var(--text-secondary)]">
             Interactive bounding box audit • Confirm AI proposals or click a student to toggle status
           </p>
         </div>
@@ -231,10 +231,10 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
           {reviewCount > 0 && (
             <button
               onClick={handleApproveAllReview}
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-semibold transition-colors"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30 text-xs font-semibold transition-colors"
               type="button"
             >
-              <CheckCircle2 className="w-4 h-4 text-amber-400" />
+              <CheckCircle2 className="w-4 h-4 text-amber-500" />
               <span>Approve All Review Flags ({reviewCount})</span>
             </button>
           )}
@@ -252,17 +252,17 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
       </div>
 
       {error && (
-        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-center gap-3">
-          <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-300 text-xs font-medium flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 text-rose-500 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       {/* ── Multi-Photo Selector Tabs (if more than 1 photo) ── */}
       {imageUrls.length > 1 && (
-        <div className="flex items-center gap-2 p-2 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-xl overflow-x-auto">
-          <span className="text-xs font-mono uppercase tracking-wider text-slate-400 px-3 font-semibold flex items-center gap-1.5 shrink-0">
-            <Layers className="w-3.5 h-3.5 text-cyan-400" />
+        <div className="swiss-card flex items-center gap-2 p-2 rounded-2xl overflow-x-auto">
+          <span className="text-xs font-mono uppercase tracking-wider text-[var(--text-secondary)] px-3 font-semibold flex items-center gap-1.5 shrink-0">
+            <Layers className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
             Classroom Sections ({imageUrls.length} Photos):
           </span>
           {imageUrls.map((url, idx) => {
@@ -275,12 +275,12 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
                 className={`px-3.5 py-1.5 rounded-xl font-mono text-xs font-semibold flex items-center gap-2 transition-all shrink-0 ${
                   isActive
                     ? 'bg-emerald-500 text-slate-950 shadow-md'
-                    : 'bg-slate-800/80 text-slate-300 hover:text-white hover:bg-slate-700'
+                    : 'bg-[var(--bg-inset)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                 }`}
                 type="button"
               >
                 <span>Photo #{idx + 1}</span>
-                <span className={`px-1.5 py-0.5 rounded text-[10px] ${isActive ? 'bg-slate-950/20 text-slate-950' : 'bg-slate-900 text-slate-400'}`}>
+                <span className={`px-1.5 py-0.5 rounded text-[10px] ${isActive ? 'bg-slate-950/20 text-slate-950' : 'bg-[var(--bg-surface)] text-[var(--text-muted)]'}`}>
                   {photoFaceCount} Faces
                 </span>
               </button>
@@ -293,7 +293,7 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Column: Visual AI Bounding Box Canvas (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="p-4 rounded-3xl bg-slate-900/50 border border-slate-800/80 backdrop-blur-xl shadow-xl">
+          <div className="swiss-card p-4 rounded-3xl">
             <BoundingBoxCanvas
               imageUrl={imageUrls[activePhotoIndex] || imageUrls[0]}
               recognizedFaces={activePhotoFaces}
@@ -309,34 +309,34 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
 
         {/* Right Column: Student Attendance Ledger & Overrides (5 cols) */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="p-5 rounded-3xl bg-slate-900/50 border border-slate-800/80 backdrop-blur-xl shadow-xl flex flex-col h-full max-h-[750px]">
+          <div className="swiss-card p-5 rounded-3xl flex flex-col h-full max-h-[750px]">
             {/* Filter Pills */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-              <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+            <div className="flex items-center justify-between pb-4 border-b border-[var(--border-color)]">
+              <span className="text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider font-mono">
                 Student Roster ({filteredStudents.length})
               </span>
-              <div className="inline-flex items-center p-1 rounded-xl bg-slate-950 border border-slate-800 text-[11px]">
+              <div className="inline-flex items-center p-1 rounded-xl bg-[var(--bg-inset)] border border-[var(--border-color)] text-[11px]">
                 <button
                   onClick={() => setStatusFilter('all')}
-                  className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'all' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400'}`}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'all' ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] font-bold shadow-xs' : 'text-[var(--text-secondary)]'}`}
                 >
                   All ({totalCount})
                 </button>
                 <button
                   onClick={() => setStatusFilter('present')}
-                  className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'present' ? 'bg-emerald-500/20 text-emerald-300 font-bold' : 'text-slate-400'}`}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'present' ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 font-bold' : 'text-[var(--text-secondary)]'}`}
                 >
                   Present ({presentCount})
                 </button>
                 <button
                   onClick={() => setStatusFilter('review')}
-                  className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'review' ? 'bg-amber-500/20 text-amber-300 font-bold' : 'text-slate-400'}`}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'review' ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 font-bold' : 'text-[var(--text-secondary)]'}`}
                 >
                   Review ({reviewCount})
                 </button>
                 <button
                   onClick={() => setStatusFilter('absent')}
-                  className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'absent' ? 'bg-rose-500/20 text-rose-300 font-bold' : 'text-slate-400'}`}
+                  className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'absent' ? 'bg-rose-500/20 text-rose-700 dark:text-rose-300 font-bold' : 'text-[var(--text-secondary)]'}`}
                 >
                   Absent ({absentCount})
                 </button>
@@ -344,7 +344,7 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
             </div>
 
             {/* Scrollable Students List */}
-            <div className="flex-1 overflow-y-auto divide-y divide-slate-800/60 pr-1 mt-2 space-y-1">
+            <div className="flex-1 overflow-y-auto divide-y divide-[var(--border-color)] pr-1 mt-2 space-y-1">
               {filteredStudents.map((stu) => {
                 const isSelected = selectedStudentId === stu.student_db_id;
                 const isPresent = stu.status === 'PRESENT';
@@ -356,31 +356,31 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
                     onClick={() => setSelectedStudentId(stu.student_db_id)}
                     className={`p-3 rounded-2xl flex items-center justify-between gap-3 cursor-pointer transition-all ${
                       isSelected
-                        ? 'bg-slate-800/90 border border-emerald-500/40 shadow-md'
-                        : 'hover:bg-slate-800/40 border border-transparent'
+                        ? 'bg-[var(--bg-inset)] border border-emerald-500/50 shadow-sm'
+                        : 'hover:bg-[var(--bg-inset)] border border-transparent'
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
                         isPresent
-                          ? isReview ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          : 'bg-slate-800 text-slate-500 border border-slate-700'
+                          ? isReview ? 'bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30' : 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'
+                          : 'bg-[var(--bg-inset)] text-[var(--text-muted)] border border-[var(--border-color)]'
                       }`}>
                         {stu.name.substring(0, 2).toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <div className="text-xs font-semibold text-white truncate flex items-center gap-2">
+                        <div className="text-xs font-semibold text-[var(--text-primary)] truncate flex items-center gap-2">
                           <span>{stu.name}</span>
                           {stu.student_id === 'UDIT01' && (
-                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono">
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-700 dark:text-cyan-300 border border-blue-500/30 font-mono">
                               You
                             </span>
                           )}
                         </div>
-                        <div className="text-[11px] text-slate-400 font-mono flex items-center gap-2">
+                        <div className="text-[11px] text-[var(--text-secondary)] font-mono flex items-center gap-2">
                           <span>{stu.roll_number}</span>
                           {stu.confidence > 0 && (
-                            <span className={`text-[10px] font-semibold ${stu.confidence >= 0.75 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                            <span className={`text-[10px] font-semibold ${stu.confidence >= 0.75 ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
                               {Math.round(stu.confidence * 100)}% match
                             </span>
                           )}
@@ -398,9 +398,9 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shrink-0 ${
                         isPresent
                           ? isReview
-                            ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40'
-                            : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40'
-                          : 'bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700'
+                            ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-800 dark:text-amber-300 border border-amber-500/40'
+                            : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-800 dark:text-emerald-300 border border-emerald-500/40'
+                          : 'bg-[var(--bg-inset)] hover:bg-[var(--bg-surface)] text-[var(--text-secondary)] border border-[var(--border-color)]'
                       }`}
                     >
                       {isPresent ? (
@@ -422,8 +422,8 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
 
       {/* ── Toast Message ── */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl bg-slate-900/95 border border-emerald-500/40 shadow-2xl text-xs font-semibold text-emerald-300 animate-in fade-in slide-in-from-bottom-5 duration-200">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl bg-[var(--bg-surface)] border border-emerald-500/40 shadow-2xl text-xs font-semibold text-emerald-600 dark:text-emerald-300 animate-in fade-in slide-in-from-bottom-5 duration-200">
+          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
           <span>{toastMessage}</span>
         </div>
       )}

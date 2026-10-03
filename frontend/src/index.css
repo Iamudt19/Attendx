@@ -22,15 +22,15 @@
   }
 
   /* Swiss Pure Editorial Light */
-  html.light, html.light-mode {
+  html.light, html.light-mode, body.light, body.light-mode {
     --bg-main: #f8fafc;
     --bg-surface: #ffffff;
     --bg-inset: #f1f5f9;
     --border-color: #e2e8f0;
     --border-light: #cbd5e1;
-    --text-primary: #09090b;
-    --text-secondary: #52525b;
-    --text-muted: #a1a1aa;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
     --accent-primary: #2563eb;
     --accent-hover: #1d4ed8;
     --accent-success: #059669;
@@ -49,6 +49,7 @@
     min-height: 100vh;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
+    transition: background-color 0.2s ease, color 0.2s ease;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -74,7 +75,7 @@ html.custom-cursor-active [role="button"] {
   cursor: none !important;
 }
 
-/* Swiss Hairline Grid & Panels */
+/* Swiss Hairline Grid & Card Systems */
 .swiss-border {
   border: 1px solid var(--border-color);
 }
@@ -87,19 +88,57 @@ html.custom-cursor-active [role="button"] {
   border-top: 1px solid var(--border-color);
 }
 
-.swiss-card {
+.swiss-card,
+.surface-card {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-color);
-  transition: border-color 0.15s ease;
+  color: var(--text-primary);
+  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.swiss-card:hover {
+.swiss-card:hover,
+.surface-card:hover {
   border-color: var(--border-light);
 }
 
-.swiss-inset {
+.swiss-inset,
+.surface-elevated {
   background-color: var(--bg-inset);
   border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+/* Explicit Light Mode Override for Cards & Panels */
+html.light .swiss-card,
+html.light-mode .swiss-card,
+html.light .glass-card,
+html.light-mode .glass-card,
+html.light .surface-card,
+html.light-mode .surface-card {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+}
+
+html.light .swiss-card:hover,
+html.light-mode .swiss-card:hover,
+html.light .glass-card:hover,
+html.light-mode .glass-card:hover {
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 8px 25px -4px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+}
+
+html.light .swiss-inset,
+html.light-mode .swiss-inset,
+html.light .glass-panel,
+html.light-mode .glass-panel,
+html.light .surface-elevated,
+html.light-mode .surface-elevated {
+  background-color: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
 }
 
 /* Solid Buttons & Badges Typography Safeguard */

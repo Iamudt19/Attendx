@@ -10,11 +10,14 @@ import { AuthService, ClassService, StudentService, SubjectService, api } from '
 import { ClassItem, StudentItem, SubjectItem } from '../types';
 import { extractErrorMessage } from '../utils/error';
 import { Logo } from '../components/Logo';
+import { ThemeToggle } from '../components/ThemeToggle';
+import { useTheme } from '../context/ThemeContext';
 
 type AdminTab = 'overview' | 'classes' | 'students' | 'subjects' | 'diagnostics';
 
 export const AdminPortal: React.FC = () => {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
 
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
@@ -253,19 +256,28 @@ export const AdminPortal: React.FC = () => {
   // ── RENDER 1: MASTER PASSWORD LOCK SCREEN ──────────────────────────────────
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-[#FBFBFB] text-[#111827] flex flex-col justify-between selection:bg-blue-600 selection:text-white font-sans">
-        <header className="w-full max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+      <div className={`min-h-screen flex flex-col justify-between selection:bg-blue-600 selection:text-white font-sans transition-colors ${
+        isDark ? 'bg-black text-white' : 'bg-[#FBFBFB] text-[#111827]'
+      }`}>
+        <header className={`w-full max-w-7xl mx-auto px-6 h-20 flex items-center justify-between border-b ${
+          isDark ? 'glass-nav text-white' : 'bg-white border-slate-200/90 text-slate-900'
+        }`}>
           <div onClick={() => navigate('/')} className="flex items-center gap-2.5 cursor-pointer group">
-            <Logo size="md" variant="light" showTagline />
+            <Logo size="md" variant="auto" />
           </div>
 
-          <button
-            onClick={() => navigate('/login')}
-            className="text-sm font-semibold text-slate-600 hover:text-slate-950 flex items-center gap-1 transition-colors px-3 py-2 rounded-lg hover:bg-slate-100/60"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span>Faculty Login</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <ThemeToggle variant="slider" size="sm" />
+            <button
+              onClick={() => navigate('/login')}
+              className={`text-sm font-semibold flex items-center gap-1 transition-colors px-3 py-2 rounded-xl ${
+                isDark ? 'text-zinc-300 hover:text-white hover:bg-white/5' : 'text-slate-600 hover:text-slate-950 hover:bg-slate-100'
+              }`}
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Faculty Login</span>
+            </button>
+          </div>
         </header>
 
         <main className="flex-1 flex items-center justify-center px-4 py-12">
@@ -368,13 +380,15 @@ export const AdminPortal: React.FC = () => {
 
   // ── RENDER 2: UNLOCKED ADMIN CONSOLE ─────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-[#FBFBFB] text-[#111827] flex flex-col font-sans selection:bg-blue-600 selection:text-white">
+    <div className={`min-h-screen flex flex-col font-sans selection:bg-blue-600 selection:text-white transition-colors ${
+      isDark ? 'bg-black text-white' : 'bg-[#FBFBFB] text-[#111827]'
+    }`}>
       {/* Toast Notification */}
       {actionMessage && (
         <div className={`fixed top-4 right-4 z-50 py-3 px-5 rounded-2xl border shadow-xl text-xs font-semibold flex items-center gap-2.5 animate-in fade-in slide-in-from-top-2 ${
           actionMessage.type === 'success'
-            ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-            : 'bg-rose-50 border-rose-200 text-rose-800'
+            ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+            : 'bg-rose-50 text-rose-800 border-rose-200'
         }`}>
           {actionMessage.type === 'success' ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <AlertCircle className="w-4 h-4 text-rose-600" />}
           <span>{actionMessage.text}</span>
@@ -382,16 +396,19 @@ export const AdminPortal: React.FC = () => {
       )}
 
       {/* Top Header */}
-      <header className="border-b border-slate-200/90 bg-white sticky top-0 z-40">
+      <header className={`border-b sticky top-0 z-40 transition-colors ${
+        isDark ? 'glass-nav text-white' : 'bg-white border-slate-200/90 text-slate-900'
+      }`}>
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
-            <Logo size="sm" variant="light" />
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100 font-mono">
+            <Logo size="sm" variant="auto" />
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800/40 font-mono">
               INSTITUTIONAL ADMIN
             </span>
           </div>
 
           <div className="flex items-center gap-3">
+            <ThemeToggle variant="slider" size="sm" />
             <button
               onClick={() => navigate('/history')}
               className="hidden sm:inline-flex py-1.5 px-3 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold rounded-xl border border-blue-200 transition-colors"

@@ -125,18 +125,18 @@ export const Students: React.FC = () => {
   );
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto py-2 text-[#e5e1e4]">
+    <div className="space-y-6 max-w-7xl mx-auto py-2 text-[var(--text-primary)] transition-colors font-sans">
       {/* ── Title & Actions ── */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-[#3c4a42]/30">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-[var(--border-color)]">
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1c1b1d] border border-[#3c4a42]/40 text-[#4edea3] text-[11px] font-mono font-semibold uppercase tracking-wider mb-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#4edea3] animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--bg-inset)] border border-[var(--border-color)] text-emerald-600 dark:text-emerald-400 text-[11px] font-mono font-semibold uppercase tracking-wider mb-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             Roster & Vector Database
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] tracking-tight flex items-center gap-2">
             Student Directory & Biometric Profiles
           </h1>
-          <p className="text-xs text-[#86948a] font-mono mt-0.5">
+          <p className="text-xs text-[var(--text-secondary)] font-mono mt-0.5">
             Register student profiles, verify multi-angle SFace reference embeddings, and monitor attendance thresholds.
           </p>
         </div>
@@ -144,10 +144,10 @@ export const Students: React.FC = () => {
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => fetchStudents()}
-            className="p-2.5 bg-[#1c1b1d] hover:bg-[#252427] text-[#bbcabf] rounded-xl border border-[#3c4a42]/40 transition-colors"
+            className="p-2.5 bg-[var(--bg-surface)] hover:bg-[var(--bg-inset)] text-[var(--text-secondary)] rounded-xl border border-[var(--border-color)] transition-colors"
             title="Refresh list"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-[#4edea3]' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-emerald-500' : ''}`} />
           </button>
           <button
             onClick={() => setShowAddModal(true)}
@@ -160,15 +160,15 @@ export const Students: React.FC = () => {
       </div>
 
       {/* ── Filters & Search ── */}
-      <div className="bg-[#141416] border border-[#3c4a42]/30 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row gap-4 shadow-xl">
+      <div className="swiss-card rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row gap-4 shadow-xl">
         <div className="flex-1 relative">
-          <Search className="w-4 h-4 text-[#86948a] absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by student name, roll number, or institutional ID..."
-            className="w-full bg-[#1c1b1d] border border-[#3c4a42]/40 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-[#86948a] focus:outline-none focus:border-[#4edea3]"
+            className="w-full bg-[var(--bg-inset)] border border-[var(--border-color)] rounded-xl pl-10 pr-4 py-2 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-blue-500"
           />
         </div>
 
@@ -176,7 +176,7 @@ export const Students: React.FC = () => {
           <select
             value={selectedClassId || ''}
             onChange={(e) => setSelectedClassId(e.target.value ? Number(e.target.value) : undefined)}
-            className="w-full bg-[#1c1b1d] border border-[#3c4a42]/40 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-[#4edea3] font-medium"
+            className="w-full bg-[var(--bg-inset)] border border-[var(--border-color)] rounded-xl px-3.5 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-blue-500 font-medium"
           >
             <option value="">All Classrooms</option>
             {classes.map((c) => (
@@ -189,11 +189,11 @@ export const Students: React.FC = () => {
       </div>
 
       {/* ── Student Roster Table ── */}
-      <div className="bg-[#141416] border border-[#3c4a42]/30 rounded-2xl overflow-hidden shadow-xl">
+      <div className="swiss-card rounded-2xl overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-[#3c4a42]/30 bg-[#1c1b1d]/80 text-[#86948a] font-mono uppercase text-[10px] tracking-wider">
+              <tr className="border-b border-[var(--border-color)] bg-[var(--bg-inset)] text-[var(--text-secondary)] font-mono uppercase text-[10px] tracking-wider">
                 <th className="py-3.5 px-4">Student Profile</th>
                 <th className="py-3.5 px-4">Institutional ID</th>
                 <th className="py-3.5 px-4">Class & Section</th>
@@ -202,17 +202,17 @@ export const Students: React.FC = () => {
                 <th className="py-3.5 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#3c4a42]/20">
+            <tbody className="divide-y divide-[var(--border-color)]">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-[#86948a] font-mono">
-                    <div className="w-6 h-6 border-2 border-[#4edea3] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                  <td colSpan={6} className="py-12 text-center text-[var(--text-muted)] font-mono">
+                    <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
                     Loading student directory...
                   </td>
                 </tr>
               ) : filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-[#86948a] font-mono">
+                  <td colSpan={6} className="py-12 text-center text-[var(--text-muted)] font-mono">
                     No students found matching current query.
                   </td>
                 </tr>
@@ -221,27 +221,27 @@ export const Students: React.FC = () => {
                   const hasFace = st.face_registration_complete || (st.embeddings_count && st.embeddings_count > 0);
                   const attRatio = st.attendance_percentage || 100;
                   return (
-                    <tr key={st.id} className="hover:bg-[#1c1b1d]/60 transition-colors group">
+                    <tr key={st.id} className="hover:bg-[var(--bg-inset)] transition-colors group">
                       <td className="py-3.5 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-[#201f22] border border-[#3c4a42]/40 text-[#4edea3] flex items-center justify-center font-bold text-xs font-mono">
+                          <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold text-xs font-mono">
                             {st.name.charAt(0)}
                           </div>
                           <div>
-                            <div className="font-semibold text-white group-hover:text-[#4edea3] transition-colors">
+                            <div className="font-semibold text-[var(--text-primary)] group-hover:text-blue-600 transition-colors">
                               {st.name}
                             </div>
-                            <div className="text-[10px] text-[#86948a] font-mono">Roll: {st.roll_number}</div>
+                            <div className="text-[10px] text-[var(--text-secondary)] font-mono">Roll: {st.roll_number}</div>
                           </div>
                         </div>
                       </td>
 
-                      <td className="py-3.5 px-4 font-mono text-slate-300">
+                      <td className="py-3.5 px-4 font-mono text-[var(--text-secondary)]">
                         {st.student_id}
                       </td>
 
                       <td className="py-3.5 px-4">
-                        <span className="px-2 py-0.5 rounded bg-[#201f22] border border-[#3c4a42]/40 text-[#e5e1e4] font-medium font-mono text-[11px]">
+                        <span className="px-2 py-0.5 rounded bg-[var(--bg-inset)] border border-[var(--border-color)] text-[var(--text-primary)] font-medium font-mono text-[11px]">
                           {classes.find(c => c.id === st.class_id)
                             ? `${classes.find(c => c.id === st.class_id)?.name} ${classes.find(c => c.id === st.class_id)?.section}`
                             : `Class #${st.class_id}`}
@@ -250,12 +250,12 @@ export const Students: React.FC = () => {
 
                       <td className="py-3.5 px-4 text-center">
                         {hasFace ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-mono">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-mono">
                             <ShieldCheck className="w-3 h-3" />
                             <span>Enrolled ({st.embeddings_count || 6} vectors)</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-mono">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 text-[10px] font-mono">
                             <AlertCircle className="w-3 h-3" />
                             <span>Pending Scan</span>
                           </span>
@@ -263,7 +263,7 @@ export const Students: React.FC = () => {
                       </td>
 
                       <td className="py-3.5 px-4 text-center font-mono">
-                        <span className={`font-bold ${attRatio >= 85 ? 'text-emerald-400' : attRatio >= 75 ? 'text-amber-400' : 'text-rose-400'}`}>
+                        <span className={`font-bold ${attRatio >= 85 ? 'text-emerald-600 dark:text-emerald-400' : attRatio >= 75 ? 'text-amber-600 dark:text-amber-400' : 'text-rose-600 dark:text-rose-400'}`}>
                           {attRatio}%
                         </span>
                       </td>
@@ -272,7 +272,7 @@ export const Students: React.FC = () => {
                         <div className="flex items-center justify-end gap-2">
                           <button
                             onClick={() => navigate(`/students/${st.id}`)}
-                            className="px-3 py-1.5 rounded-lg bg-[#201f22] hover:bg-[#2a2a2c] text-[#4edea3] border border-[#3c4a42]/40 text-xs font-semibold inline-flex items-center gap-1.5 transition-all"
+                            className="px-3 py-1.5 rounded-lg bg-[var(--bg-inset)] hover:bg-[var(--bg-surface)] text-blue-600 dark:text-emerald-400 border border-[var(--border-color)] text-xs font-semibold inline-flex items-center gap-1.5 transition-all"
                           >
                             <Eye className="w-3.5 h-3.5" />
                             <span>Inspect</span>
@@ -281,7 +281,7 @@ export const Students: React.FC = () => {
                           {hasFace && (
                             <button
                               onClick={() => handleDeleteFaceData(st.id, st.name)}
-                              className="p-1.5 rounded-lg text-[#86948a] hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                              className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-rose-600 hover:bg-rose-500/10 transition-colors"
                               title="Purge Biometrics"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -300,8 +300,8 @@ export const Students: React.FC = () => {
 
       {/* ── Add Student Modal ── */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-[#141416] border border-[#3c4a42]/50 rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl relative text-[#e5e1e4]">
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="swiss-card rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl relative text-[var(--text-primary)]">
             <button
               onClick={() => setShowAddModal(false)}
               className="absolute top-5 right-5 w-8 h-8 rounded-full bg-[#201f22] hover:bg-[#2a2a2c] flex items-center justify-center text-[#86948a] hover:text-white transition-colors"
