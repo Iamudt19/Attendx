@@ -6,12 +6,16 @@ interface ThemeContextValue {
   theme: Theme;
   toggleTheme: () => void;
   isDark: boolean;
+  cursorEnabled: boolean;
+  toggleCursor: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
   theme: "dark",
   toggleTheme: () => {},
   isDark: true,
+  cursorEnabled: true,
+  toggleCursor: () => {},
 });
 
 export const useTheme = () => useContext(ThemeContext);
@@ -22,6 +26,17 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return (localStorage.getItem("attendx_theme") as Theme) || "dark";
     } catch {
       return "dark";
+    }
+  });
+
+  const [cursorEnabled, setCursorEnabled] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem("attendx_cursor");
+      if (saved !== null) return saved === "true";
+      // Default to enabled on non-touch pointer devices
+      return window.matchMedia ? window.matchMedia("(pointer: fine)").matches : true;
+    } catch {
+      return true;
     }
   });
 
@@ -46,13 +61,32 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     } catch {}
   }, [theme]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem("attendx_cursor", String(cursorEnabled));
+    } catch {}
+  }, [cursorEnabled]);
+
   const toggleTheme = useCallback(() => {
     setTheme((t) => (t === "dark" ? "light" : "dark"));
   }, []);
 
+  const toggleCursor = useCallback(() => {
+    setCursorEnabled((prev) => !prev);
+  }, []);
+
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, isDark: theme === "dark" }}>
+    <ThemeContext.Provider 
+      value={{ 
+        theme, 
+        toggleTheme, 
+        isDark: theme === "dark",
+        cursorEnabled,
+        toggleCursor
+      }}
+    >
       {children}
     </ThemeContext.Provider>
   );
 };
+

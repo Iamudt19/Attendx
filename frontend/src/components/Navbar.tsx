@@ -7,7 +7,7 @@ import {
 import { User, ClassItem } from '../types';
 import { ClassService } from '../services/api';
 import { Logo } from './Logo';
-import { ThemeToggle } from './ThemeToggle';
+import { ThemeToggle, CursorToggle } from './ThemeToggle';
 
 interface NavbarProps {
   user: User | null;
@@ -172,6 +172,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <Search className="w-4.5 h-4.5" />
           </button>
+
+          {/* Custom Animated Cursor Toggle */}
+          <CursorToggle size="sm" />
 
           {/* Theme Toggle Slider Switch */}
           <ThemeToggle variant="slider" size="sm" />

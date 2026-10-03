@@ -21,10 +21,11 @@ import {
   Building2,
   Check,
   Sun,
-  Moon
+  Moon,
+  Menu
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
-import { ThemeToggle } from '../components/ThemeToggle';
+import { ThemeToggle, CursorToggle } from '../components/ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
 
 interface CaseStory {
@@ -146,7 +147,8 @@ export const HeroLanding: React.FC = () => {
   const [activeStoryIndex, setActiveStoryIndex] = useState(0);
   const [email, setEmail] = useState('');
   
-  // Modals state
+  // Modals & Mobile nav state
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showDemoModal, setShowDemoModal] = useState(false);
   const [showHowItWorksModal, setShowHowItWorksModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
@@ -185,18 +187,18 @@ export const HeroLanding: React.FC = () => {
   return (
     <div className={`min-h-screen font-sans flex flex-col selection:bg-blue-600 selection:text-white transition-colors duration-300 ${isDark ? 'bg-black text-white' : 'bg-[#FBFBFB] text-[#111827]'}`}>
       {/* Top Navigation Bar */}
-      <header className={`sticky top-0 z-50 backdrop-blur-xl border-b transition-colors duration-300 ${isDark ? 'bg-black/80 border-white/[0.08] text-white' : 'bg-[#FBFBFB]/90 border-slate-200/80 text-slate-900'}`}>
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+      <header className={`sticky top-0 z-50 backdrop-blur-xl border-b transition-colors duration-300 ${isDark ? 'glass-nav text-white' : 'glass-nav text-slate-900'}`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 sm:h-20 flex items-center justify-between gap-2">
           {/* Brand Logo */}
           <div 
             onClick={() => navigate('/')} 
-            className="flex items-center gap-2.5 cursor-pointer group"
+            className="flex items-center gap-2 cursor-pointer group shrink-0"
           >
-            <Logo size="md" variant="auto" showTagline />
+            <Logo size="md" variant="auto" />
           </div>
 
-          {/* Navigation Links */}
-          <nav className={`hidden md:flex items-center gap-8 text-[15px] font-medium transition-colors ${isDark ? 'text-zinc-300' : 'text-slate-600'}`}>
+          {/* Desktop Navigation Links */}
+          <nav className={`hidden md:flex items-center gap-6 lg:gap-8 text-[15px] font-medium transition-colors ${isDark ? 'text-zinc-300' : 'text-slate-600'}`}>
             {/* Platform Dropdown */}
             <div 
               className="relative"
@@ -304,58 +306,125 @@ export const HeroLanding: React.FC = () => {
             </button>
           </nav>
 
-          {/* Right Action Buttons */}
-          <div className="flex items-center gap-3">
+          {/* Right Action Controls */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Interactive Custom Cursor Toggle */}
+            <CursorToggle size="sm" />
+
             {/* Theme Toggle Slider */}
             <ThemeToggle variant="slider" size="sm" />
 
+            {/* Desktop Auth Actions */}
             <button
               onClick={() => navigate('/login')}
-              className={`text-[15px] font-semibold transition-colors px-3 py-2 ${isDark ? 'text-zinc-300 hover:text-white' : 'text-slate-700 hover:text-slate-950'}`}
+              className={`hidden sm:block text-sm font-semibold transition-colors px-3 py-2 ${isDark ? 'text-zinc-300 hover:text-white' : 'text-slate-700 hover:text-slate-950'}`}
             >
               Login
             </button>
             <button
               onClick={() => navigate('/login')}
-              className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-[15px] font-semibold px-5 py-2.5 rounded-xl shadow-sm hover:shadow transition-all duration-150 active:scale-[0.98]"
+              className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs sm:text-sm font-semibold px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl shadow-sm hover:shadow transition-all duration-150 active:scale-[0.98] whitespace-nowrap"
             >
               Get started
             </button>
+
+            {/* Mobile Hamburger Trigger */}
+            <button
+              onClick={() => setMobileNavOpen(!mobileNavOpen)}
+              className={`md:hidden p-2 rounded-xl border transition-colors ${
+                isDark ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-100 border-slate-200 text-slate-800'
+              }`}
+              aria-label="Toggle Navigation Menu"
+            >
+              {mobileNavOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Navigation Slide-Down Drawer */}
+        {mobileNavOpen && (
+          <div className={`md:hidden border-b p-4 space-y-3 animate-in slide-in-from-top duration-200 ${
+            isDark ? 'glass-panel text-white border-white/10' : 'bg-white text-slate-900 border-slate-200 shadow-xl'
+          }`}>
+            <div className="space-y-1">
+              <button 
+                onClick={() => { setMobileNavOpen(false); navigate('/login'); }} 
+                className="w-full text-left p-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 hover:bg-blue-500/10 hover:text-blue-500 transition-colors"
+              >
+                <Scan className="w-4 h-4 text-blue-500" /> Educator / Teacher Login
+              </button>
+              <button 
+                onClick={() => { setMobileNavOpen(false); navigate('/student/login'); }} 
+                className="w-full text-left p-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 hover:bg-blue-500/10 hover:text-blue-500 transition-colors"
+              >
+                <GraduationCap className="w-4 h-4 text-emerald-500" /> Student Attendance Portal
+              </button>
+              <button 
+                onClick={() => { setMobileNavOpen(false); navigate('/admin'); }} 
+                className="w-full text-left p-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 hover:bg-blue-500/10 hover:text-blue-500 transition-colors"
+              >
+                <ShieldCheck className="w-4 h-4 text-indigo-500" /> Institutional Admin Portal
+              </button>
+              <button 
+                onClick={() => { setMobileNavOpen(false); setShowHowItWorksModal(true); }} 
+                className="w-full text-left p-2.5 rounded-xl text-sm font-medium hover:bg-white/10 transition-colors block"
+              >
+                How AttendX Works
+              </button>
+              <button 
+                onClick={() => { setMobileNavOpen(false); scrollToSection('case-studies-section'); }} 
+                className="w-full text-left p-2.5 rounded-xl text-sm font-medium hover:bg-white/10 transition-colors block"
+              >
+                Customer Case Studies
+              </button>
+              <button 
+                onClick={() => { setMobileNavOpen(false); setShowPrivacyModal(true); }} 
+                className="w-full text-left p-2.5 rounded-xl text-sm font-medium hover:bg-white/10 transition-colors block"
+              >
+                Biometric Privacy & GDPR
+              </button>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Main Hero Section */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-6 pt-12 md:pt-20 pb-16 flex flex-col items-center">
+      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 pt-8 sm:pt-16 md:pt-20 pb-16 flex flex-col items-center">
         {/* Editorial Serif Hero Headlines */}
-        <div className="text-center max-w-4xl mx-auto space-y-4">
-          <h1 className={`font-serif text-5xl sm:text-6xl md:text-7xl lg:text-[80px] leading-[1.08] tracking-[-0.03em] font-normal transition-colors ${isDark ? 'text-white' : 'text-[#111827]'}`}>
+        <div className="text-center max-w-4xl mx-auto space-y-3 sm:space-y-4">
+          <h1 className={`font-serif text-3xl sm:text-5xl md:text-6xl lg:text-[76px] leading-[1.12] tracking-[-0.02em] font-normal transition-colors ${isDark ? 'text-white' : 'text-[#111827]'}`}>
             AI attendance teachers love.<br />
             <span className="italic font-serif">Accuracy you can prove.</span>
           </h1>
 
-          <p className={`text-base sm:text-lg md:text-[19px] max-w-2xl mx-auto leading-relaxed pt-2 font-normal transition-colors ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+          <p className={`text-sm sm:text-lg md:text-[19px] max-w-2xl mx-auto leading-relaxed pt-1 sm:pt-2 font-normal transition-colors px-2 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
             The AI attendance platform that helps academic teams own every roll call, 
             from multi-face instant detection to audit-ready analytics.
           </p>
         </div>
 
-        {/* Email Input Bar */}
-        <div className="w-full max-w-md mx-auto mt-8 mb-12">
+        {/* Email Input Bar - Stacked on Mobile, Inline on Desktop */}
+        <div className="w-full max-w-md mx-auto mt-6 sm:mt-8 mb-10 sm:mb-12">
           <form 
             onSubmit={handleStart}
-            className="bg-white rounded-full p-1.5 pl-5 border border-slate-200/90 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.06)] flex items-center justify-between transition-all focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-100"
+            className={`flex flex-col sm:flex-row gap-2 sm:gap-0 p-2 sm:p-1.5 sm:pl-5 rounded-2xl sm:rounded-full border transition-all ${
+              isDark 
+                ? 'glass-card border-white/15 focus-within:border-blue-500' 
+                : 'bg-white border-slate-200/90 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.06)] focus-within:border-blue-500'
+            }`}
           >
             <input 
               type="email" 
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="What's your work email?" 
-              className="bg-transparent border-none outline-none text-[15px] text-slate-800 placeholder-slate-400 w-full pr-3"
+              className={`bg-transparent border-none outline-none text-sm sm:text-[15px] px-3 sm:px-0 py-2 sm:py-0 w-full ${
+                isDark ? 'text-white placeholder-slate-400' : 'text-slate-800 placeholder-slate-400'
+              }`}
             />
             <button
               type="submit"
-              className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-medium text-[14px] px-5 py-2.5 rounded-full whitespace-nowrap transition-all duration-150 active:scale-[0.98] shadow-sm flex items-center gap-1.5"
+              className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs sm:text-[14px] px-5 py-2.5 sm:py-2.5 rounded-xl sm:rounded-full whitespace-nowrap transition-all duration-150 active:scale-[0.98] shadow-sm flex items-center justify-center gap-1.5 w-full sm:w-auto"
             >
               Get started
             </button>
@@ -365,137 +434,140 @@ export const HeroLanding: React.FC = () => {
         {/* Hero Visual Canvas Showcase Frame */}
         <div 
           id="case-studies-section"
-          className="w-full rounded-[28px] border border-slate-200/80 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.08)] overflow-hidden bg-slate-950 relative min-h-[460px] md:min-h-[580px] flex flex-col justify-end"
+          className="w-full rounded-2xl sm:rounded-[28px] border border-slate-200/80 dark:border-white/10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.2)] overflow-hidden bg-slate-950 relative flex flex-col justify-between"
         >
-          {/* Scenic Background Image */}
-          <div className="absolute inset-0 z-0 overflow-hidden">
-            <img 
-              src={activeStory.image} 
-              alt="Lecture Hall Scenic"
-              className="w-full h-full object-cover object-center transition-all duration-700 scale-100 filter brightness-95"
-            />
-            {/* Subtle Gradient Overlays */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 pointer-events-none" />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-transparent to-transparent pointer-events-none" />
-          </div>
-
-          {/* Top Left Live Neural HUD Controls */}
-          <div className="absolute top-5 left-5 z-20 flex flex-wrap items-center gap-2.5">
-            <div className="bg-black/60 backdrop-blur-md border border-white/15 px-3.5 py-1.5 rounded-full text-xs font-semibold text-white flex items-center gap-2 shadow-lg">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>Neural Scanner Live</span>
-              <span className="text-white/40">|</span>
-              <span className="text-emerald-300 font-mono">{activeStory.stats.accuracy}</span>
+          {/* Main Scanner Container Visual Area */}
+          <div className="relative min-h-[300px] sm:min-h-[420px] md:min-h-[520px] w-full overflow-hidden flex flex-col justify-between p-3 sm:p-6">
+            {/* Scenic Background Image */}
+            <div className="absolute inset-0 z-0 overflow-hidden">
+              <img 
+                src={activeStory.image} 
+                alt="Lecture Hall Scenic"
+                className="w-full h-full object-cover object-center transition-all duration-700 filter brightness-95"
+              />
+              {/* Subtle Gradient Overlays */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-black/30 pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-transparent pointer-events-none" />
             </div>
 
-            <button 
-              onClick={() => setLiveMeshOverlay(!liveMeshOverlay)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium border backdrop-blur-md transition-all ${
-                liveMeshOverlay 
-                  ? 'bg-blue-600/80 text-white border-blue-400 shadow-md shadow-blue-500/20' 
-                  : 'bg-black/40 text-white/70 border-white/10 hover:bg-black/60'
-              }`}
-            >
-              {liveMeshOverlay ? 'Hide HUD Mesh' : 'Show HUD Mesh'}
-            </button>
-          </div>
-
-          {/* Simulated Face Detection Bounding Boxes Over Students (Interactive HUD) */}
-          {liveMeshOverlay && (
-            <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden">
-              {/* Box 1 */}
-              <div className="absolute top-[52%] left-[24%] border-2 border-emerald-400/90 rounded-lg p-1 bg-emerald-500/10 shadow-lg backdrop-blur-[1px] animate-pulse">
-                <span className="bg-emerald-500 text-black font-mono font-bold text-[9px] px-1 py-0.5 rounded -top-4 left-0 absolute whitespace-nowrap">
-                  ID: 041 · 99.8%
-                </span>
+            {/* Top Left Live Neural HUD Controls */}
+            <div className="relative z-20 flex flex-wrap items-center gap-2">
+              <div className="bg-black/70 backdrop-blur-md border border-white/15 px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-semibold text-white flex items-center gap-2 shadow-lg">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                <span className="truncate">Neural Scanner Live</span>
+                <span className="text-white/40">|</span>
+                <span className="text-emerald-300 font-mono">{activeStory.stats.accuracy}</span>
               </div>
 
-              {/* Box 2 */}
-              <div className="absolute top-[48%] left-[34%] border-2 border-emerald-400/90 rounded-lg p-1 bg-emerald-500/10 shadow-lg backdrop-blur-[1px]">
-                <span className="bg-emerald-500 text-black font-mono font-bold text-[9px] px-1 py-0.5 rounded -top-4 left-0 absolute whitespace-nowrap">
-                  ID: 119 · 99.4%
-                </span>
-              </div>
-
-              {/* Box 3 */}
-              <div className="absolute top-[62%] left-[46%] border-2 border-emerald-400/90 rounded-lg p-1 bg-emerald-500/10 shadow-lg backdrop-blur-[1px]">
-                <span className="bg-emerald-500 text-black font-mono font-bold text-[9px] px-1 py-0.5 rounded -top-4 left-0 absolute whitespace-nowrap">
-                  ID: 082 · 99.9%
-                </span>
-              </div>
-
-              {/* Box 4 */}
-              <div className="absolute top-[58%] left-[68%] border-2 border-blue-400/90 rounded-lg p-1 bg-blue-500/10 shadow-lg backdrop-blur-[1px]">
-                <span className="bg-blue-500 text-white font-mono font-bold text-[9px] px-1 py-0.5 rounded -top-4 left-0 absolute whitespace-nowrap">
-                  ID: 215 · 98.9%
-                </span>
-              </div>
-
-              {/* Top Right Stats Ribbon */}
-              <div className="hidden lg:flex absolute top-5 right-5 bg-black/70 backdrop-blur-md border border-white/15 rounded-2xl p-3 text-white flex-col gap-1 min-w-[200px] shadow-2xl">
-                <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Detection Benchmark</div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-300">Classroom Depth:</span>
-                  <span className="font-mono text-emerald-400 font-bold">{activeStory.stats.seatsPerScan}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-300">Roll Processing:</span>
-                  <span className="font-mono text-blue-400 font-bold">{activeStory.stats.speedup}</span>
-                </div>
-              </div>
+              <button 
+                onClick={() => setLiveMeshOverlay(!liveMeshOverlay)}
+                className={`px-3 py-1.5 rounded-full text-[11px] sm:text-xs font-medium border backdrop-blur-md transition-all ${
+                  liveMeshOverlay 
+                    ? 'bg-blue-600/80 text-white border-blue-400 shadow-md shadow-blue-500/20' 
+                    : 'bg-black/50 text-white/70 border-white/10 hover:bg-black/70'
+                }`}
+              >
+                {liveMeshOverlay ? 'Hide HUD Mesh' : 'Show HUD Mesh'}
+              </button>
             </div>
-          )}
 
-          {/* Floating Testimonial Card Overlay (Bottom Right) */}
-          <div className="relative z-20 m-4 md:m-8 self-end max-w-md w-full">
-            <div className={`p-6 sm:p-7 rounded-2xl transition-all duration-300 ${
-              isDark ? 'glass-card text-white' : 'bg-white/95 backdrop-blur-xl border border-slate-100 shadow-[0_15px_35px_-5px_rgba(0,0,0,0.2)]'
-            }`}>
-              <p className={`font-serif text-[17px] sm:text-[18px] leading-relaxed italic mb-5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                "{activeStory.quote}"
-              </p>
+            {/* Simulated Face Detection Bounding Boxes Over Students */}
+            {liveMeshOverlay && (
+              <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden">
+                {/* Box 1 */}
+                <div className="absolute top-[48%] left-[18%] sm:left-[24%] border-2 border-emerald-400/90 rounded-lg p-0.5 sm:p-1 bg-emerald-500/10 shadow-lg backdrop-blur-[1px] animate-pulse">
+                  <span className="bg-emerald-500 text-black font-mono font-bold text-[8px] sm:text-[9px] px-1 py-0.5 rounded -top-4 left-0 absolute whitespace-nowrap">
+                    ID: 041 · 99.8%
+                  </span>
+                </div>
 
-              <div className={`flex items-center justify-between pt-2 border-t ${isDark ? 'border-white/10' : 'border-slate-100'}`}>
-                <div className="flex items-center gap-3">
-                  <img 
-                    src={activeStory.avatarUrl} 
-                    alt={activeStory.author}
-                    className={`w-10 h-10 rounded-full object-cover border ${isDark ? 'border-white/20' : 'border-slate-200'}`}
-                  />
-                  <div>
-                    <div className={`text-[14px] font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{activeStory.author}</div>
-                    <div className={`text-[12px] font-medium ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>{activeStory.role}</div>
+                {/* Box 2 */}
+                <div className="absolute top-[44%] left-[34%] border-2 border-emerald-400/90 rounded-lg p-0.5 sm:p-1 bg-emerald-500/10 shadow-lg backdrop-blur-[1px]">
+                  <span className="bg-emerald-500 text-black font-mono font-bold text-[8px] sm:text-[9px] px-1 py-0.5 rounded -top-4 left-0 absolute whitespace-nowrap">
+                    ID: 119 · 99.4%
+                  </span>
+                </div>
+
+                {/* Box 3 */}
+                <div className="absolute top-[58%] left-[48%] border-2 border-emerald-400/90 rounded-lg p-0.5 sm:p-1 bg-emerald-500/10 shadow-lg backdrop-blur-[1px]">
+                  <span className="bg-emerald-500 text-black font-mono font-bold text-[8px] sm:text-[9px] px-1 py-0.5 rounded -top-4 left-0 absolute whitespace-nowrap">
+                    ID: 082 · 99.9%
+                  </span>
+                </div>
+
+                {/* Box 4 */}
+                <div className="absolute top-[52%] left-[70%] border-2 border-blue-400/90 rounded-lg p-0.5 sm:p-1 bg-blue-500/10 shadow-lg backdrop-blur-[1px]">
+                  <span className="bg-blue-500 text-white font-mono font-bold text-[8px] sm:text-[9px] px-1 py-0.5 rounded -top-4 left-0 absolute whitespace-nowrap">
+                    ID: 215 · 98.9%
+                  </span>
+                </div>
+
+                {/* Top Right Stats Ribbon */}
+                <div className="hidden lg:flex absolute top-5 right-5 bg-black/75 backdrop-blur-md border border-white/15 rounded-2xl p-3 text-white flex-col gap-1 min-w-[200px] shadow-2xl">
+                  <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Detection Benchmark</div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-300">Classroom Depth:</span>
+                    <span className="font-mono text-emerald-400 font-bold">{activeStory.stats.seatsPerScan}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-300">Roll Processing:</span>
+                    <span className="font-mono text-blue-400 font-bold">{activeStory.stats.speedup}</span>
                   </div>
                 </div>
+              </div>
+            )}
 
-                <button 
-                  onClick={() => setShowDemoModal(true)}
-                  className="text-[13px] font-semibold text-blue-500 hover:text-blue-400 flex items-center gap-1 group/link transition-colors"
-                >
-                  <span>{activeStory.storyLinkText}</span>
-                  <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/link:translate-x-1" />
-                </button>
+            {/* Testimonial Card - Positioned Responsively below scanner on mobile, floating on desktop */}
+            <div className="relative lg:absolute lg:bottom-6 lg:right-6 z-20 mt-4 lg:mt-0 max-w-md w-full self-end">
+              <div className={`p-4 sm:p-6 rounded-xl sm:rounded-2xl transition-all duration-300 ${
+                isDark ? 'glass-card text-white' : 'bg-white/95 backdrop-blur-xl border border-slate-100 shadow-[0_15px_35px_-5px_rgba(0,0,0,0.2)]'
+              }`}>
+                <p className={`font-serif text-sm sm:text-[17px] leading-relaxed italic mb-4 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                  "{activeStory.quote}"
+                </p>
+
+                <div className={`flex items-center justify-between pt-3 border-t ${isDark ? 'border-white/10' : 'border-slate-100'}`}>
+                  <div className="flex items-center gap-2.5">
+                    <img 
+                      src={activeStory.avatarUrl} 
+                      alt={activeStory.author}
+                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border ${isDark ? 'border-white/20' : 'border-slate-200'}`}
+                    />
+                    <div>
+                      <div className={`text-xs sm:text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{activeStory.author}</div>
+                      <div className={`text-[11px] sm:text-xs font-medium ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>{activeStory.role}</div>
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={() => setShowDemoModal(true)}
+                    className="text-xs sm:text-sm font-semibold text-blue-500 hover:text-blue-400 flex items-center gap-1 group/link transition-colors"
+                  >
+                    <span>{activeStory.storyLinkText}</span>
+                    <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/link:translate-x-1" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Bottom Dock / Customer Stories Selector Bar */}
-          <div className={`relative z-20 w-full px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 transition-colors ${
+          <div className={`relative z-20 w-full px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 transition-colors ${
             isDark ? 'bg-black/90 backdrop-blur-md border-t border-white/[0.08]' : 'bg-white/95 backdrop-blur-md border-t border-slate-200/90'
           }`}>
-            <div className={`text-[13px] font-semibold uppercase tracking-wider shrink-0 ${isDark ? 'text-zinc-400' : 'text-slate-400'}`}>
+            <div className={`text-xs font-semibold uppercase tracking-wider shrink-0 ${isDark ? 'text-zinc-400' : 'text-slate-400'}`}>
               Customer stories
             </div>
 
             {/* Stories Tab Items */}
-            <div className="flex items-center justify-around md:justify-end gap-2 sm:gap-6 w-full overflow-x-auto no-scrollbar py-1">
+            <div className="flex items-center justify-start sm:justify-end gap-2 sm:gap-4 w-full overflow-x-auto no-scrollbar py-1">
               {CASE_STORIES.map((story, index) => {
                 const isActive = activeStoryIndex === index;
                 return (
                   <button
                     key={story.id}
                     onClick={() => setActiveStoryIndex(index)}
-                    className={`px-3.5 py-1.5 rounded-lg text-sm font-bold tracking-tight transition-all duration-200 relative whitespace-nowrap flex items-center gap-1.5 ${
+                    className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold tracking-tight transition-all duration-200 relative whitespace-nowrap flex items-center gap-1.5 ${
                       isActive 
                         ? isDark ? 'text-white bg-white/10 shadow-sm' : 'text-slate-950 bg-slate-100/80 shadow-sm' 
                         : isDark ? 'text-zinc-400 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'
@@ -503,7 +575,7 @@ export const HeroLanding: React.FC = () => {
                   >
                     <span>{story.logoText}</span>
                     {isActive && (
-                      <span className={`absolute bottom-[-17px] left-0 right-0 h-[2.5px] rounded-full ${isDark ? 'bg-white' : 'bg-slate-950'}`} />
+                      <span className={`absolute bottom-[-13px] sm:bottom-[-17px] left-0 right-0 h-[2px] sm:h-[2.5px] rounded-full ${isDark ? 'bg-white' : 'bg-slate-950'}`} />
                     )}
                   </button>
                 );

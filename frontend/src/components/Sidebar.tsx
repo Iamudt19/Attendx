@@ -18,11 +18,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const navItems = [
     { label: 'Overview', path: '/dashboard', icon: LayoutDashboard },
-    { label: 'Attendance Canvas', path: '/take-attendance', icon: Camera },
+    { label: 'Mark Attendance', path: '/take-attendance', icon: Camera },
     { label: 'Student Roster', path: '/students', icon: Users },
-    { label: 'Reports & Exports', path: '/history', icon: BarChart3 },
-    { label: 'Audit Queue', path: '/review-attendance', icon: ShieldCheck, badge: '3' },
-    { label: 'Academic Classes', path: '/classes', icon: BookOpen },
+    { label: 'Attendance Records', path: '/history', icon: BarChart3 },
+    { label: 'Verify Attendance', path: '/review-attendance', icon: ShieldCheck },
+    { label: 'Classes & Sections', path: '/classes', icon: BookOpen },
   ];
 
   const content = (
@@ -43,9 +43,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         </div>
 
-        {/* Workspace Architecture Header */}
-        <div className="px-2 pb-2 text-[10px] uppercase font-bold tracking-widest text-[var(--text-secondary)] opacity-80 font-mono">
-          Workspace Architecture
+        {/* Section Title */}
+        <div className="px-2 pb-2 text-[11px] uppercase font-bold tracking-wider text-[var(--text-secondary)] opacity-70">
+          Navigation
         </div>
 
         <nav className="space-y-1 mt-1">
@@ -57,42 +57,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 to={item.path}
                 onClick={onCloseMobile}
                 className={({ isActive }) =>
-                  `flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-semibold tracking-wide transition-all duration-200 ${
+                  `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-150 ${
                     isActive
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25 scale-[1.01]'
+                      ? 'bg-indigo-600 text-white shadow-sm font-bold'
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface)]'
                   }`
                 }
               >
                 <div className="flex items-center gap-3">
-                  <Icon className="w-4.5 h-4.5" />
-                  <span className="text-xs sm:text-sm">{item.label}</span>
+                  <Icon className="w-4 h-4" />
+                  <span className="text-xs">{item.label}</span>
                 </div>
-                {item.badge && (
-                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-mono font-bold">
-                    {item.badge}
-                  </span>
-                )}
               </NavLink>
             );
           })}
         </nav>
       </div>
 
-      {/* Vision Node Status Widget */}
+      {/* System Status Footer */}
       <div className="pt-4 border-t border-[var(--border-color)] mt-auto">
-        <div className="flex items-center justify-between p-3.5 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-color)] shadow-sm">
-          <div className="flex items-center gap-2.5">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-            </span>
-            <div className="flex flex-col">
-              <span className="text-[11px] text-[var(--text-primary)] font-mono font-bold">Vision Node 01</span>
-              <span className="text-[10px] text-[var(--text-secondary)] font-mono">Synced 99.8%</span>
-            </div>
+        <div className="flex items-center justify-between p-3 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-color)]">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+            <span className="text-xs text-[var(--text-secondary)] font-medium">AttendX Cloud v2.4</span>
           </div>
-          <Sliders className="w-4 h-4 text-[var(--text-secondary)] hover:text-[var(--text-primary)] cursor-pointer" />
+          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+            Online
+          </span>
         </div>
       </div>
     </div>

@@ -18,6 +18,7 @@ import { User, AttendanceAnalysisResponse } from './types';
 import { Analytics } from '@vercel/analytics/react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { CustomCursor } from './components/CustomCursor';
 
 // ── Admin Portal Root ─────────────────────────────────────────────────────────
 const AdminPortalRoot: React.FC = () => <AdminPortal />;
@@ -43,8 +44,8 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[var(--bg-main)] flex items-center justify-center text-[var(--text-secondary)] text-sm font-mono animate-pulse">
-        Initializing AttendX Neural Engine...
+      <div className="min-h-screen bg-[var(--bg-main)] flex items-center justify-center text-[var(--text-secondary)] text-sm font-medium">
+        Loading AttendX...
       </div>
     );
   }
@@ -77,7 +78,7 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({
 };
 
 // ── Main App Root ─────────────────────────────────────────────────────────────
-export const App: React.FC = () => {
+const AppContent: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -114,63 +115,71 @@ export const App: React.FC = () => {
   };
 
   return (
+    <BrowserRouter>
+      <Analytics />
+      <Routes>
+        {/* Public Landing & Hero Pages */}
+        <Route path="/" element={<HeroLanding />} />
+        <Route path="/landing" element={<HeroLanding />} />
+
+        {/* Admin & Student Portals */}
+        <Route path="/admin/*" element={<AdminPortalRoot />} />
+        <Route path="/student/*" element={<StudentPortalRoot />} />
+
+        {/* Teacher / Admin Authenticated Shell Routes */}
+        <Route
+          element={
+            <TeacherLayout
+              user={user}
+              loading={loading}
+              onLogout={handleLogout}
+              onLoginSuccess={handleLoginSuccess}
+            />
+          }
+        >
+          <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard user={user} />} />
+          <Route
+            path="/take-attendance"
+            element={
+              <TakeAttendance
+                onAnalysisComplete={(res, context) => {
+                  setAnalysisResult(res);
+                  setSessionContext(context);
+                }}
+              />
+            }
+          />
+          <Route
+            path="/review-attendance"
+            element={
+              <ReviewAttendance
+                analysisResult={analysisResult}
+                sessionContext={sessionContext}
+              />
+            }
+          />
+          <Route path="/history" element={<History />} />
+          <Route path="/students" element={<Students />} />
+          <Route path="/students/:studentId" element={<StudentDetail />} />
+          <Route path="/classes" element={<Classes />} />
+        </Route>
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
+};
+
+export const App: React.FC = () => {
+  return (
     <ThemeProvider>
+      <CustomCursor />
       <ErrorBoundary>
-        <BrowserRouter>
-          <Analytics />
-          <Routes>
-            {/* Public Landing & Hero Pages */}
-            <Route path="/" element={<HeroLanding />} />
-            <Route path="/landing" element={<HeroLanding />} />
-
-            {/* Admin & Student Portals */}
-            <Route path="/admin/*" element={<AdminPortalRoot />} />
-            <Route path="/student/*" element={<StudentPortalRoot />} />
-
-            {/* Teacher / Admin Authenticated Shell Routes */}
-            <Route
-              element={
-                <TeacherLayout
-                  user={user}
-                  loading={loading}
-                  onLogout={handleLogout}
-                  onLoginSuccess={handleLoginSuccess}
-                />
-              }
-            >
-              <Route path="/login" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<Dashboard user={user} />} />
-              <Route
-                path="/take-attendance"
-                element={
-                  <TakeAttendance
-                    onAnalysisComplete={(res, context) => {
-                      setAnalysisResult(res);
-                      setSessionContext(context);
-                    }}
-                  />
-                }
-              />
-              <Route
-                path="/review-attendance"
-                element={
-                  <ReviewAttendance
-                    analysisResult={analysisResult}
-                    sessionContext={sessionContext}
-                  />
-                }
-              />
-              <Route path="/history" element={<History />} />
-              <Route path="/students" element={<Students />} />
-              <Route path="/students/:studentId" element={<StudentDetail />} />
-              <Route path="/classes" element={<Classes />} />
-            </Route>
-
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </BrowserRouter>
+        <AppContent />
       </ErrorBoundary>
     </ThemeProvider>
   );
 };
+export default App;

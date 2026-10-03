@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sun, Moon } from 'lucide-react';
+import { Sun, Moon, MousePointer, Sparkles } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 interface ThemeToggleProps {
@@ -7,6 +7,33 @@ interface ThemeToggleProps {
   variant?: 'slider' | 'button' | 'pill';
   size?: 'sm' | 'md';
 }
+
+export const CursorToggle: React.FC<{ className?: string; size?: 'sm' | 'md' }> = ({ 
+  className = '',
+  size = 'sm'
+}) => {
+  const { cursorEnabled, toggleCursor, isDark } = useTheme();
+
+  return (
+    <button
+      onClick={toggleCursor}
+      type="button"
+      title={cursorEnabled ? 'Disable Custom Animated Cursor' : 'Enable Custom Animated Cursor'}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border transition-all duration-300 text-xs font-semibold select-none ${
+        cursorEnabled
+          ? isDark
+            ? 'bg-blue-600/20 border-blue-400/40 text-blue-300 shadow-sm shadow-blue-500/20'
+            : 'bg-indigo-50 border-indigo-200 text-indigo-700 shadow-sm'
+          : isDark
+            ? 'bg-zinc-900/60 border-white/10 text-zinc-400 hover:text-white'
+            : 'bg-slate-100 border-slate-200 text-slate-500 hover:text-slate-900'
+      } ${className}`}
+    >
+      <MousePointer className={`w-3.5 h-3.5 ${cursorEnabled ? 'text-blue-400 animate-pulse' : ''}`} />
+      <span className="hidden sm:inline">{cursorEnabled ? 'Cursor On' : 'Cursor Off'}</span>
+    </button>
+  );
+};
 
 export const ThemeToggle: React.FC<ThemeToggleProps> = ({ 
   className = '', 
