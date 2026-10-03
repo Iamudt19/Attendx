@@ -212,6 +212,9 @@ class SaveAttendanceSessionRequest(BaseModel):
     records: List[AttendanceRecordCreate]
     recognized_faces: Optional[List[RecognizedFace]] = []
 
+class UpdateSessionRecordsRequest(BaseModel):
+    records: List[AttendanceRecordCreate]
+
 class AttendanceRecordOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

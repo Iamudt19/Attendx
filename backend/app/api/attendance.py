@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.models.models import AttendanceSession, AttendanceRecord, Student, Class, Subject, FaceEmbedding, User, AttendanceAuditLog
 from app.schemas.schemas import (
-    AttendanceAnalysisResponse, SaveAttendanceSessionRequest, AttendanceSessionOut, AttendanceRecordOut
+    AttendanceAnalysisResponse, SaveAttendanceSessionRequest, UpdateSessionRecordsRequest, AttendanceSessionOut, AttendanceRecordOut
 )
 from app.core.config import settings
 from app.core.security import get_current_user_token
@@ -450,6 +450,93 @@ def get_attendance_session_detail(
         date=s.date,
         start_time=s.start_time,
         image_path=s.image_path,
+        present_count=present_cnt,
+        absent_count=absent_cnt,
+        total_enrolled=len(records_out),
+        records=records_out
+    )
+
+@router.put("/sessions/{session_id}", response_model=AttendanceSessionOut)
+def update_attendance_session_records(
+    session_id: int,
+    req: UpdateSessionRecordsRequest,
+    db: Session = Depends(get_db),
+    token: dict = Depends(get_current_user_token)
+):
+    session = db.query(AttendanceSession).filter(AttendanceSession.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Attendance session not found")
+
+    teacher_id = int(token.get("sub"))
+
+    # Remove existing records and replace with updated records
+    db.query(AttendanceRecord).filter(AttendanceRecord.session_id == session.id).delete()
+
+    present_cnt = 0
+    absent_cnt = 0
+    for rec in req.records:
+        r = AttendanceRecord(
+            session_id=session.id,
+            student_id=rec.student_id,
+            status=rec.status,
+            confidence=rec.confidence,
+            verification_status="TEACHER_VERIFIED"
+        )
+        db.add(r)
+        if rec.status == "PRESENT":
+            present_cnt += 1
+        else:
+            absent_cnt += 1
+
+        # Audit log
+        try:
+            audit = AttendanceAuditLog(
+                session_id=session.id,
+                student_id=rec.student_id,
+                teacher_id=teacher_id,
+                original_status="PRESENT" if rec.status == "ABSENT" else "ABSENT",
+                original_score=rec.confidence,
+                final_status=rec.status,
+                reason="Manual teacher / admin edit from dossier"
+            )
+            db.add(audit)
+        except Exception:
+            pass
+
+    db.commit()
+    db.refresh(session)
+
+    # Re-generate Excel report
+    try:
+        excel_service.generate_class_attendance_excel(db, session.class_id, session.subject_id)
+    except Exception:
+        pass
+
+    # Build response
+    records_out = []
+    for r in session.records:
+        r_out = AttendanceRecordOut.model_validate(r)
+        if r.student:
+            r_out.student_name = r.student.name
+            r_out.student_code = r.student.student_id
+            r_out.roll_number = r.student.roll_number
+        records_out.append(r_out)
+
+    cls = db.query(Class).filter(Class.id == session.class_id).first()
+    sub = db.query(Subject).filter(Subject.id == session.subject_id).first()
+    tch = db.query(User).filter(User.id == session.teacher_id).first()
+
+    return AttendanceSessionOut(
+        id=session.id,
+        class_id=session.class_id,
+        class_name=f"{cls.name} {cls.section}" if cls else "N/A",
+        subject_id=session.subject_id,
+        subject_name=f"{sub.name} ({sub.code})" if sub else "N/A",
+        teacher_id=session.teacher_id,
+        teacher_name=tch.name if tch else "N/A",
+        date=session.date,
+        start_time=session.start_time,
+        image_path=session.image_path,
         present_count=present_cnt,
         absent_count=absent_cnt,
         total_enrolled=len(records_out),

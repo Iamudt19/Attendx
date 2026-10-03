@@ -252,6 +252,18 @@ export const AttendanceService = {
     const res = await api.get(`/attendance/sessions/${sessionId}`);
     return res.data;
   },
+  updateSessionRecords: async (
+    sessionId: number,
+    records: Array<{
+      student_id: number;
+      status: 'PRESENT' | 'ABSENT';
+      confidence?: number;
+      verification_status?: string;
+    }>
+  ): Promise<AttendanceSessionOut> => {
+    const res = await api.put(`/attendance/sessions/${sessionId}`, { records });
+    return res.data;
+  },
   getStudentAttendanceLog: async (studentId: number) => {
     const res = await api.get(`/attendance/students/${studentId}`);
     return res.data;

@@ -12,11 +12,11 @@ import { StudentDetail } from './pages/StudentDetail';
 import { Classes } from './pages/Classes';
 import { StudentPortal } from './pages/StudentPortal';
 import { AdminPortal } from './pages/AdminPortal';
+import { HeroLanding } from './pages/HeroLanding';
 import { AuthService } from './services/api';
 import { User, AttendanceAnalysisResponse } from './types';
 import { Analytics } from '@vercel/analytics/react';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { HeroLanding } from './pages/HeroLanding';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 
 // ── Admin Portal Root ─────────────────────────────────────────────────────────
@@ -24,13 +24,6 @@ const AdminPortalRoot: React.FC = () => <AdminPortal />;
 
 // ── Student Portal Root ───────────────────────────────────────────────────────
 const StudentPortalRoot: React.FC = () => <StudentPortal />;
-
-// ── Teacher / Admin Shell Layout ──────────────────────────────────────────────
-// Wrapper that gets toggleTheme from context and passes it to Navbar
-const NavbarWithTheme: React.FC<{ user: User | null; onLogout: () => void }> = ({ user, onLogout }) => {
-  const { toggleTheme, isDark } = useTheme();
-  return <Navbar user={user} onLogout={onLogout} toggleTheme={toggleTheme} isDark={isDark} />;
-};
 
 interface TeacherLayoutProps {
   user: User | null;
@@ -45,9 +38,12 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({
   onLogout,
   onLoginSuccess
 }) => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { toggleTheme, isDark } = useTheme();
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400 text-sm font-mono animate-pulse">
+      <div className="min-h-screen bg-[var(--bg-main)] flex items-center justify-center text-[var(--text-secondary)] text-sm font-mono animate-pulse">
         Initializing AttendX Neural Engine...
       </div>
     );
@@ -58,11 +54,21 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
-      <NavbarWithTheme user={user} onLogout={onLogout} />
-      <div className="flex flex-1">
-        <Sidebar user={user} />
-        <main className="flex-1 p-6 overflow-y-auto max-w-7xl mx-auto w-full">
+    <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-primary)] flex flex-col transition-colors duration-400">
+      <Navbar 
+        user={user} 
+        onLogout={onLogout} 
+        toggleTheme={toggleTheme} 
+        isDark={isDark} 
+        onToggleMobileMenu={() => setMobileMenuOpen(!mobileMenuOpen)} 
+      />
+      <div className="flex flex-1 relative">
+        <Sidebar 
+          user={user} 
+          mobileOpen={mobileMenuOpen} 
+          onCloseMobile={() => setMobileMenuOpen(false)} 
+        />
+        <main className="flex-1 p-3.5 sm:p-6 overflow-y-auto max-w-7xl mx-auto w-full animate-fade-in-up">
           <Outlet />
         </main>
       </div>
@@ -112,57 +118,57 @@ export const App: React.FC = () => {
       <ErrorBoundary>
         <BrowserRouter>
           <Analytics />
-        <Routes>
-          {/* Public Landing & Hero Pages */}
-          <Route path="/" element={<HeroLanding />} />
-          <Route path="/landing" element={<HeroLanding />} />
+          <Routes>
+            {/* Public Landing & Hero Pages */}
+            <Route path="/" element={<HeroLanding />} />
+            <Route path="/landing" element={<HeroLanding />} />
 
-          {/* Admin & Student Portals */}
-          <Route path="/admin/*" element={<AdminPortalRoot />} />
-          <Route path="/student/*" element={<StudentPortalRoot />} />
+            {/* Admin & Student Portals */}
+            <Route path="/admin/*" element={<AdminPortalRoot />} />
+            <Route path="/student/*" element={<StudentPortalRoot />} />
 
-          {/* Teacher / Admin Authenticated Shell Routes */}
-          <Route
-            element={
-              <TeacherLayout
-                user={user}
-                loading={loading}
-                onLogout={handleLogout}
-                onLoginSuccess={handleLoginSuccess}
+            {/* Teacher / Admin Authenticated Shell Routes */}
+            <Route
+              element={
+                <TeacherLayout
+                  user={user}
+                  loading={loading}
+                  onLogout={handleLogout}
+                  onLoginSuccess={handleLoginSuccess}
+                />
+              }
+            >
+              <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<Dashboard user={user} />} />
+              <Route
+                path="/take-attendance"
+                element={
+                  <TakeAttendance
+                    onAnalysisComplete={(res, context) => {
+                      setAnalysisResult(res);
+                      setSessionContext(context);
+                    }}
+                  />
+                }
               />
-            }
-          >
-            <Route path="/login" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<Dashboard user={user} />} />
-            <Route
-              path="/take-attendance"
-              element={
-                <TakeAttendance
-                  onAnalysisComplete={(res, context) => {
-                    setAnalysisResult(res);
-                    setSessionContext(context);
-                  }}
-                />
-              }
-            />
-            <Route
-              path="/review-attendance"
-              element={
-                <ReviewAttendance
-                  analysisResult={analysisResult}
-                  sessionContext={sessionContext}
-                />
-              }
-            />
-            <Route path="/history" element={<History />} />
-            <Route path="/students" element={<Students />} />
-            <Route path="/students/:studentId" element={<StudentDetail />} />
-            <Route path="/classes" element={<Classes />} />
-          </Route>
+              <Route
+                path="/review-attendance"
+                element={
+                  <ReviewAttendance
+                    analysisResult={analysisResult}
+                    sessionContext={sessionContext}
+                  />
+                }
+              />
+              <Route path="/history" element={<History />} />
+              <Route path="/students" element={<Students />} />
+              <Route path="/students/:studentId" element={<StudentDetail />} />
+              <Route path="/classes" element={<Classes />} />
+            </Route>
 
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </BrowserRouter>
       </ErrorBoundary>
     </ThemeProvider>
