@@ -44,7 +44,7 @@ export const HeroLanding: React.FC = () => {
               className="cursor-pointer flex items-center gap-2"
             >
               <Logo size="sm" showSubtitle={false} />
-              <span className="font-mono text-[10px] px-1.5 py-0.5 rounded border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-muted)] font-medium">
+              <span className="hidden sm:inline-block font-mono text-[10px] px-1.5 py-0.5 rounded border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-muted)] font-medium">
                 v2.4
               </span>
             </div>
@@ -57,7 +57,7 @@ export const HeroLanding: React.FC = () => {
             </nav>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
             <ThemeToggle variant="slider" size="sm" />
             
             <button
@@ -69,9 +69,10 @@ export const HeroLanding: React.FC = () => {
 
             <button
               onClick={() => navigate('/dashboard')}
-              className="btn-primary text-xs font-semibold px-4 py-2 flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+              className="btn-primary text-xs font-semibold px-3.5 sm:px-4 py-2 flex items-center gap-1.5 shadow-sm active:scale-95 transition-all shrink-0"
             >
-              <span>Launch Studio</span>
+              <span className="hidden sm:inline">Launch Studio</span>
+              <span className="sm:hidden">Launch</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -79,62 +80,106 @@ export const HeroLanding: React.FC = () => {
       </header>
 
       {/* ── Editorial Hero Section ────────────────────────────────────────── */}
-      <section className="border-b border-[var(--border-color)] relative">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-16 pb-20 lg:pt-24 lg:pb-28">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-start">
+      <section className="border-b border-[var(--border-color)] relative overflow-hidden">
+        {/* Ambient Background Radial Mesh Glow */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none -z-10">
+          <div className="absolute -top-32 right-0 w-[450px] h-[450px] bg-blue-600/15 rounded-full blur-[120px] dark:bg-blue-500/20"></div>
+          <div className="absolute top-1/2 left-0 w-[350px] h-[350px] bg-indigo-600/10 rounded-full blur-[100px] dark:bg-indigo-500/15"></div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-12 pb-16 lg:pt-20 lg:pb-28">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-8 items-start">
             
             {/* Left Column: Typographic Lead */}
-            <div className="lg:col-span-6 space-y-6">
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded border border-[var(--border-color)] bg-[var(--bg-surface)] text-[11px] font-mono text-[var(--text-secondary)] uppercase tracking-wider">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
-                Optical Classroom Roll-Call System
+            <div className="lg:col-span-6 space-y-5 sm:space-y-6">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[11px] font-mono tracking-wide backdrop-blur-md shadow-sm">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                </span>
+                OPTICAL CLASSROOM ROLL-CALL SYSTEM
               </div>
 
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[var(--text-primary)] leading-[1.08]">
-                Verifiable attendance in two seconds.
+                Verifiable attendance in{' '}
+                <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-500 dark:from-blue-400 dark:via-indigo-300 dark:to-cyan-400 bg-clip-text text-transparent">
+                  two seconds.
+                </span>
               </h1>
 
               <p className="text-base sm:text-lg text-[var(--text-secondary)] max-w-xl font-normal leading-relaxed">
                 Process high-density lecture halls from a single optical capture. Instant face recognition, multi-angle identity verification, and zero-proxy roster synchronization.
               </p>
 
+              {/* Mobile Interactive AI Preview Chip */}
+              <div className="lg:hidden p-3 rounded-xl border border-blue-500/20 bg-blue-500/5 dark:bg-blue-950/20 backdrop-blur-md flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-blue-600/10 dark:bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+                    <Sparkles className="w-4 h-4 animate-pulse" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-[var(--text-primary)]">SFace Biometric AI Active</p>
+                    <p className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400">● 99.8% Match Accuracy · 1.8s</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate('/take-attendance')}
+                  className="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-semibold flex items-center gap-1 shrink-0 shadow-sm"
+                >
+                  <span>Try AI</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+
               {/* Action Buttons */}
               <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                 <button
                   onClick={() => navigate('/take-attendance')}
-                  className="btn-primary text-sm px-6 py-3 flex items-center justify-center gap-2 font-semibold shadow-sm"
+                  className="py-3.5 px-6 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm shadow-[0_0_25px_rgba(37,99,235,0.35)] flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
                 >
                   <Camera className="w-4 h-4" />
                   <span>Start Roll-Call Scan</span>
                 </button>
                 <button
                   onClick={() => navigate('/dashboard')}
-                  className="btn-secondary text-sm px-6 py-3 flex items-center justify-center gap-2 font-medium"
+                  className="py-3.5 px-6 rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--bg-inset)] text-[var(--text-primary)] font-medium text-sm border border-[var(--border-color)] flex items-center justify-center gap-2 transition-all backdrop-blur-md"
                 >
                   <span>Explore Dashboard</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-4 h-4 text-[var(--text-muted)]" />
                 </button>
               </div>
 
-              {/* Monospace Empirical Metrics Bar */}
-              <div className="pt-8 border-t border-[var(--border-color)] grid grid-cols-3 gap-4 font-mono">
-                <div>
-                  <div className="text-2xl font-bold text-[var(--text-primary)]">1.8s</div>
-                  <div className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider mt-0.5">Scan Latency</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-[var(--text-primary)]">99.8%</div>
-                  <div className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider mt-0.5">Verification</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-[var(--text-primary)]">0.0%</div>
-                  <div className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider mt-0.5">Proxy Vulnerability</div>
+              {/* Monospace Glassmorphic Metrics Card */}
+              <div className="pt-6 border-t border-[var(--border-color)]">
+                <div className="p-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)]/70 backdrop-blur-md grid grid-cols-3 gap-3 font-mono text-center shadow-sm">
+                  <div className="border-r border-[var(--border-color)]/60 pr-2">
+                    <div className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] flex items-center justify-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                      1.8s
+                    </div>
+                    <div className="text-[10px] sm:text-[11px] text-[var(--text-muted)] uppercase tracking-wider mt-0.5 truncate">Scan Latency</div>
+                  </div>
+                  <div className="border-r border-[var(--border-color)]/60 pr-2">
+                    <div className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 flex items-center justify-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      99.8%
+                    </div>
+                    <div className="text-[10px] sm:text-[11px] text-[var(--text-muted)] uppercase tracking-wider mt-0.5 truncate">Verification</div>
+                  </div>
+                  <div>
+                    <div className="text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400 flex items-center justify-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                      0.0%
+                    </div>
+                    <div className="text-[10px] sm:text-[11px] text-[var(--text-muted)] uppercase tracking-wider mt-0.5 truncate">Proxy Rate</div>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Right Column: Authentic Product Scanner Rig */}
             <div className="lg:col-span-6">
+
               <div className="swiss-card rounded-xl overflow-hidden shadow-lg">
                 {/* Window Bar */}
                 <div className="bg-[var(--bg-inset)] px-4 py-3 border-b border-[var(--border-color)] flex items-center justify-between">
