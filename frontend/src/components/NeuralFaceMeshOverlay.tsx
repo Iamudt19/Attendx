@@ -62,6 +62,13 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
   const lockProgress = useRef<number>(0);
   const lastEmittedSector = useRef<string | null>(null);
   const lastEmitTime = useRef<number>(0);
+  const targetStartTime = useRef<number>(Date.now());
+
+  useEffect(() => {
+    targetStartTime.current = Date.now();
+    matchedHoldFrames.current = 0;
+    lockProgress.current = 0;
+  }, [targetAngle]);
 
   // Gentle high-tech audio chime for 3D Sector Lock
   const playLockChime = () => {
@@ -255,6 +262,9 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
       let isAngleMatched = false;
       let prompt = 'Rotate head smoothly to fill 3D Face ID ring';
 
+      const now = Date.now();
+      const timeOnStep = now - (targetStartTime.current || now);
+
       if (targetAngle) {
         const sectorDef = SPATIAL_3D_SECTORS.find(s => s.id === targetAngle);
         if (targetAngle === 'front') {
@@ -263,8 +273,14 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
           isAngleMatched = currentSector.includes('left') || yaw > 7;
         } else if (targetAngle === 'right') {
           isAngleMatched = currentSector.includes('right') || yaw < -7;
-        } else if (targetAngle === 'chin_down') {
-          isAngleMatched = currentSector === 'chin_down' || pitch > 4;
+        } else if (targetAngle === 'chin_down' || targetAngle === 'down') {
+          // Ultra-forgiving chin down: slight nod (pitch > 1), or relative chin offset, or 3.5-5s auto-capture timer
+          const isSlightNod = currentSector === 'chin_down' || pitch > 1 || (dTop - dBot) > 0.005;
+          const isTimerTrigger = timeOnStep >= 3800;
+          isAngleMatched = isSlightNod || isTimerTrigger;
+          if (isTimerTrigger) {
+            prompt = '✓ Chin Perspective (Auto-Locked)';
+          }
         } else if (targetAngle === 'chin_up') {
           isAngleMatched = currentSector === 'chin_up' || pitch < -4;
         } else if (targetAngle === 'smile') {
@@ -272,9 +288,12 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
         } else {
           isAngleMatched = currentSector === targetAngle;
         }
-        prompt = isAngleMatched
-          ? `✓ 3D ${sectorDef?.label || targetAngle} (Locking...)`
-          : (sectorDef?.targetAnglePrompt || `Align head with ${targetAngle}`);
+
+        if (!prompt.includes('Auto-Locked')) {
+          prompt = isAngleMatched
+            ? `✓ 3D ${sectorDef?.label || targetAngle} (Locking...)`
+            : (sectorDef?.targetAnglePrompt || `Align head with ${targetAngle}`);
+        }
       } else {
         // Continuous Hands-Free 3D Sweep mode
         const isAlreadyLocked = lockedSectors.includes(currentSector);
@@ -286,7 +305,6 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
       }
 
       // Auto-scan continuous 3D capture trigger (snappy 4 frames ~ 160ms hold)
-      const now = Date.now();
       if (isAngleMatched) {
         matchedHoldFrames.current += 1;
         lockProgress.current = Math.min(1.0, matchedHoldFrames.current / 5);
