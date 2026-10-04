@@ -1,5 +1,5 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
-from typing import List, Optional
+from pydantic import BaseModel, EmailStr, ConfigDict, model_validator
+from typing import List, Optional, Any
 from datetime import datetime
 
 # Auth Schemas
@@ -33,16 +33,18 @@ class UserOut(BaseModel):
     is_approved: bool = True
     approved_at: Optional[datetime] = None
     approved_by: Optional[int] = None
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
 class TeacherApprovalItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     name: str
     email: str
     role: str
     assigned_classes: Optional[List[int]] = []
     is_approved: bool
-    created_at: datetime
+    created_at: Optional[datetime] = None
 
 class TeacherClassAssignRequest(BaseModel):
     assigned_classes: List[int]

@@ -200,7 +200,6 @@ def save_attendance_session(
         # Record teacher decision audit log if verified / overridden
         if rec.verification_status in ["TEACHER_VERIFIED", "MANUAL"]:
             try:
-                from app.models.models import AttendanceAuditLog
                 audit = AttendanceAuditLog(
                     session_id=session.id,
                     student_id=rec.student_id,
