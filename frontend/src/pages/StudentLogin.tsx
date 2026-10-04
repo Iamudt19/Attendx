@@ -112,12 +112,6 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
     setError(null);
   };
 
-  const fillQuickStudent = (id: string) => {
-    setStudentId(id);
-    setPassword(id);
-    setActiveTab('login');
-  };
-
   return (
     <div className={`min-h-screen font-sans flex flex-col justify-between selection:bg-blue-600 selection:text-white transition-colors duration-300 ${
       isDark ? 'bg-black text-white' : 'bg-[#FBFBFB] text-[#111827]'
@@ -294,7 +288,7 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold py-3 px-4 rounded-xl text-sm transition-all duration-150 active:scale-[0.99] shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 mt-2 disabled:opacity-60"
+                  className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold py-3 px-4 rounded-xl text-sm transition-all duration-150 active:scale-[0.99] shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 mt-2 disabled:opacity-60 font-sans"
                 >
                   {loading ? (
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -305,31 +299,6 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
                     </>
                   )}
                 </button>
-
-                {/* Quick Student Autofill */}
-                <div className={`pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-100'}`}>
-                  <div className={`text-[11px] font-semibold uppercase tracking-wider text-center mb-2.5 ${
-                    isDark ? 'text-zinc-400' : 'text-slate-400'
-                  }`}>
-                    Quick Student Profiles
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {['STU001', 'STU002', 'STU003'].map((id) => (
-                      <button
-                        key={id}
-                        type="button"
-                        onClick={() => fillQuickStudent(id)}
-                        className={`text-xs font-semibold py-2 px-2 rounded-xl border transition-colors ${
-                          isDark 
-                            ? 'border-white/10 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white' 
-                            : 'border-slate-200 bg-slate-50/70 hover:bg-slate-100 text-slate-700'
-                        }`}
-                      >
-                        {id}
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </form>
             ) : (
               <form onSubmit={handleRegister} className="space-y-4">

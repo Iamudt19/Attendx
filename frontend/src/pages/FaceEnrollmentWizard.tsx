@@ -421,17 +421,21 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
   // ── Render: Complete & Continuous AI Face Training Studio ───────────────────
   if (phase === 'complete') {
     return (
-      <div className="min-h-screen bg-[#FBFBFB] text-[#111827] flex flex-col font-sans selection:bg-blue-600 selection:text-white">
+      <div className={`min-h-screen flex flex-col font-sans selection:bg-blue-600 selection:text-white transition-colors duration-300 ${
+        isDark ? 'bg-black text-white' : 'bg-[#FBFBFB] text-[#111827]'
+      }`}>
         {/* Top Header */}
-        <header className="bg-white border-b border-slate-200/90 sticky top-0 z-40">
+        <header className={`border-b sticky top-0 z-40 transition-colors backdrop-blur-xl ${
+          isDark ? 'bg-black/70 border-white/10 text-white' : 'bg-white/80 border-slate-200/90 text-slate-900'
+        }`}>
           <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
               <div className="w-8 h-8 rounded-xl bg-black text-white flex items-center justify-center font-bold shadow-sm">
                 <Camera className="w-4 h-4 text-white" />
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-extrabold text-lg text-slate-900">AttendX</span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                <span className={`font-extrabold text-lg ${isDark ? 'text-white' : 'text-slate-900'}`}>AttendX</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20">
                   STUDENT PORTAL
                 </span>
               </div>
@@ -456,19 +460,21 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
 
         <main className="flex-1 max-w-6xl w-full mx-auto p-6 space-y-6">
           {/* Top Status Banner */}
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className={`border rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-colors ${
+            isDark ? 'bg-zinc-900/60 border-white/10 text-white' : 'bg-white border-slate-200/90 text-slate-900'
+          }`}>
             <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center shrink-0">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
               <div>
-                <h1 className="font-serif text-2xl text-slate-900 font-normal flex items-center gap-2">
+                <h1 className={`font-serif text-2xl font-normal flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                   {student.name}
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 font-semibold">
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-semibold">
                     Face Registered
                   </span>
                 </h1>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className={`text-xs mt-0.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>
                   Student ID: {student.student_id} {assignedClassName ? `• Enrolled in ${assignedClassName}` : ''}
                 </p>
               </div>
@@ -477,7 +483,7 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
             <button
               onClick={handleReset}
               disabled={resetting}
-              className="text-xs text-slate-500 hover:text-rose-600 flex items-center gap-1 transition-colors"
+              className={`text-xs flex items-center gap-1 transition-colors ${isDark ? 'text-zinc-400 hover:text-rose-400' : 'text-slate-500 hover:text-rose-600'}`}
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>{resetting ? 'Resetting...' : 'Re-scan Baseline'}</span>
@@ -486,45 +492,55 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
 
           {/* AI Training Telemetry Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-1">
-              <div className="flex items-center justify-between text-slate-500">
+            <div className={`border rounded-2xl p-6 shadow-sm space-y-1 transition-colors ${
+              isDark ? 'bg-zinc-900/60 border-white/10 text-white' : 'bg-white border-slate-200/90 text-slate-900'
+            }`}>
+              <div className={`flex items-center justify-between ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>
                 <span className="text-xs font-semibold uppercase tracking-wider">Trained Vectors</span>
-                <Layers className="w-4 h-4 text-blue-600" />
+                <Layers className="w-4 h-4 text-blue-500" />
               </div>
-              <div className="text-3xl font-extrabold text-slate-900 tracking-tight">{totalEmbeddings}</div>
-              <div className="text-xs text-slate-500">128-D facial reference embeddings</div>
+              <div className={`text-3xl font-extrabold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{totalEmbeddings}</div>
+              <div className={`text-xs ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>128-D facial reference embeddings</div>
             </div>
 
-            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-1">
-              <div className="flex items-center justify-between text-slate-500">
+            <div className={`border rounded-2xl p-6 shadow-sm space-y-1 transition-colors ${
+              isDark ? 'bg-zinc-900/60 border-white/10 text-white' : 'bg-white border-slate-200/90 text-slate-900'
+            }`}>
+              <div className={`flex items-center justify-between ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>
                 <span className="text-xs font-semibold uppercase tracking-wider">Precision Tier</span>
-                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                <ShieldCheck className="w-4 h-4 text-emerald-500" />
               </div>
-              <div className="text-2xl font-bold text-emerald-600 tracking-tight truncate">{trainingLevel}</div>
-              <div className="text-xs text-slate-500">Multi-pose biometric model ready</div>
+              <div className="text-2xl font-bold text-emerald-500 tracking-tight truncate">{trainingLevel}</div>
+              <div className={`text-xs ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Multi-pose biometric model ready</div>
             </div>
 
-            <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm space-y-1">
-              <div className="flex items-center justify-between text-slate-500">
+            <div className={`border rounded-2xl p-6 shadow-sm space-y-1 transition-colors ${
+              isDark ? 'bg-zinc-900/60 border-white/10 text-white' : 'bg-white border-slate-200/90 text-slate-900'
+            }`}>
+              <div className={`flex items-center justify-between ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>
                 <span className="text-xs font-semibold uppercase tracking-wider">Readiness Score</span>
-                <Sparkles className="w-4 h-4 text-blue-600" />
+                <Sparkles className="w-4 h-4 text-blue-500" />
               </div>
-              <div className="text-3xl font-extrabold text-blue-600 tracking-tight">{readinessScore}%</div>
-              <div className="text-xs text-slate-500">Match probability in lecture hall</div>
+              <div className="text-3xl font-extrabold text-blue-500 tracking-tight">{readinessScore}%</div>
+              <div className={`text-xs ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>Match probability in lecture hall</div>
             </div>
           </div>
 
           {/* Continuous AI Face Training Studio Main Section */}
-          <div className="bg-white border border-slate-200/90 rounded-3xl overflow-hidden shadow-sm">
-            <div className="p-6 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className={`border rounded-3xl overflow-hidden shadow-sm transition-colors ${
+            isDark ? 'bg-zinc-900/60 border-white/10' : 'bg-white border-slate-200/90'
+          }`}>
+            <div className={`p-6 border-b flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
+              isDark ? 'border-white/10' : 'border-slate-100'
+            }`}>
               <div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-100 mb-1">
-                  <Zap className="w-3.5 h-3.5 text-blue-600" /> Continuous Model Calibration
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 text-xs font-semibold border border-blue-500/20 mb-1">
+                  <Zap className="w-3.5 h-3.5 text-blue-500" /> Continuous Model Calibration
                 </div>
-                <h2 className="font-serif text-2xl text-slate-900 font-normal">
+                <h2 className={`font-serif text-2xl font-normal ${isDark ? 'text-white' : 'text-slate-900'}`}>
                   Train AI Face Recognizer with More Scans
                 </h2>
-                <p className="text-xs text-slate-500 mt-1 max-w-xl">
+                <p className={`text-xs mt-1 max-w-xl ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>
                   Extra scans under varied lighting, glasses, and head angles add new reference vectors directly into the classroom matcher.
                 </p>
               </div>
@@ -540,7 +556,9 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
               ) : (
                 <button
                   onClick={stopWebcam}
-                  className="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl flex items-center gap-1.5 transition-all shrink-0"
+                  className={`py-2 px-3 font-semibold text-xs rounded-xl flex items-center gap-1.5 transition-all shrink-0 ${
+                    isDark ? 'bg-white/10 hover:bg-white/15 text-zinc-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                  }`}
                 >
                   <VideoOff className="w-3.5 h-3.5" />
                   <span>Stop Camera</span>
@@ -551,7 +569,7 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
             {/* Studio Workspace */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
               {/* Camera Preview Area (7 Cols) */}
-              <div className="lg:col-span-7 bg-slate-950 relative flex flex-col items-center justify-center min-h-[340px]">
+              <div className="lg:col-span-7 bg-black relative flex flex-col items-center justify-center min-h-[340px]">
                 {isWebcamActive ? (
                   <>
                     <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover max-h-[420px]" />
@@ -562,13 +580,15 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
                       <div className={`absolute inset-0 flex items-center justify-center backdrop-blur-sm ${
                         frameStatus === 'accepted' ? 'bg-emerald-950/70' : 'bg-rose-950/70'
                       }`}>
-                        <div className="text-center px-6 py-4 rounded-2xl bg-white border border-slate-200 shadow-2xl">
+                        <div className={`text-center px-6 py-4 rounded-2xl border shadow-2xl ${
+                          isDark ? 'bg-zinc-900 border-white/20 text-white' : 'bg-white border-slate-200 text-slate-900'
+                        }`}>
                           {frameStatus === 'accepted' ? (
-                            <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto mb-2 animate-bounce" />
+                            <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2 animate-bounce" />
                           ) : (
-                            <XCircle className="w-10 h-10 text-rose-600 mx-auto mb-2" />
+                            <XCircle className="w-10 h-10 text-rose-500 mx-auto mb-2" />
                           )}
-                          <p className={`text-sm font-bold ${frameStatus === 'accepted' ? 'text-emerald-700' : 'text-rose-700'}`}>
+                          <p className={`text-sm font-bold ${frameStatus === 'accepted' ? 'text-emerald-500' : 'text-rose-500'}`}>
                             {lastResult.reason}
                           </p>
                         </div>
@@ -577,9 +597,9 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
                   </>
                 ) : (
                   <div className="text-center p-8 text-white">
-                    <Camera className="w-10 h-10 text-slate-400 mx-auto mb-2" />
+                    <Camera className="w-10 h-10 text-zinc-500 mx-auto mb-2" />
                     <h3 className="text-sm font-bold">Camera Ready</h3>
-                    <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto mb-4">
+                    <p className="text-xs text-zinc-400 mt-1 max-w-xs mx-auto mb-4">
                       Click start camera above to capture extra training poses.
                     </p>
                   </div>
@@ -587,11 +607,15 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
               </div>
 
               {/* Training Controls Area (5 Cols) */}
-              <div className="lg:col-span-5 p-6 bg-white flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-slate-100">
+              <div className={`lg:col-span-5 p-6 flex flex-col justify-between border-t lg:border-t-0 lg:border-l transition-colors ${
+                isDark ? 'bg-zinc-950/80 border-white/10' : 'bg-white border-slate-100'
+              }`}>
                 <div className="space-y-4">
                   <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5 mb-2.5">
-                      <Sliders className="w-3.5 h-3.5 text-blue-600" />
+                    <span className={`text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 mb-2.5 ${
+                      isDark ? 'text-zinc-300' : 'text-slate-700'
+                    }`}>
+                      <Sliders className="w-3.5 h-3.5 text-blue-500" />
                       Select Training Pose
                     </span>
                     <div className="grid grid-cols-2 gap-2">
@@ -602,15 +626,19 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
                           onClick={() => setSelectedTrainingPreset(preset.id)}
                           className={`p-2.5 rounded-xl border text-left transition-all ${
                             selectedTrainingPreset === preset.id
-                              ? 'bg-blue-50 border-blue-500 text-blue-900 shadow-sm'
-                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                              ? isDark 
+                                ? 'bg-blue-900/30 border-blue-500 text-blue-200 shadow-sm'
+                                : 'bg-blue-50 border-blue-500 text-blue-900 shadow-sm'
+                              : isDark
+                                ? 'bg-zinc-900/80 border-white/10 text-zinc-300 hover:bg-zinc-800'
+                                : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
                           }`}
                         >
                           <div className="flex items-center gap-2">
                             <span className="text-base">{preset.icon}</span>
                             <div>
                               <p className="text-xs font-bold leading-tight">{preset.label}</p>
-                              <p className="text-[10px] text-slate-500 truncate">{preset.desc}</p>
+                              <p className={`text-[10px] truncate ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>{preset.desc}</p>
                             </div>
                           </div>
                         </button>
@@ -619,14 +647,14 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
                   </div>
 
                   {trainingSuccessFlash && (
-                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-semibold flex items-center gap-2">
-                      <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-500 text-xs font-semibold flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-emerald-500 shrink-0" />
                       <span>{trainingSuccessFlash}</span>
                     </div>
                   )}
                 </div>
 
-                <div className="pt-4 border-t border-slate-100 space-y-2">
+                <div className={`pt-4 border-t space-y-2 ${isDark ? 'border-white/10' : 'border-slate-100'}`}>
                   <button
                     id="capture-training-btn"
                     onClick={() => captureAndSubmit()}
@@ -651,20 +679,22 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
           </div>
 
           {/* Post-Scan Class Selection Card */}
-          <div className="bg-white border border-slate-200/90 rounded-2xl p-6 space-y-3 shadow-sm">
+          <div className={`border rounded-2xl p-6 space-y-3 shadow-sm transition-colors ${
+            isDark ? 'bg-zinc-900/60 border-white/10 text-white' : 'bg-white border-slate-200/90 text-slate-900'
+          }`}>
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
-                <GraduationCap className="w-4 h-4 text-blue-600" />
+              <span className={`text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                <GraduationCap className="w-4 h-4 text-blue-500" />
                 Classroom Assignment
               </span>
               {assignedClassName && (
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold border border-emerald-100">
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 font-semibold border border-emerald-500/20">
                   Enrolled in {assignedClassName}
                 </span>
               )}
             </div>
 
-            <p className="text-xs text-slate-500">
+            <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>
               Confirm or switch which class and section you belong to:
             </p>
 
@@ -672,7 +702,9 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
               <select
                 value={selectedClassId}
                 onChange={(e) => setSelectedClassId(Number(e.target.value))}
-                className="sm:col-span-3 bg-slate-50 border border-slate-200 text-slate-900 rounded-xl text-xs p-3 focus:ring-4 focus:ring-blue-100 focus:border-blue-500 focus:outline-none font-medium"
+                className={`sm:col-span-3 rounded-xl text-xs p-3 focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none font-medium border transition-colors ${
+                  isDark ? 'bg-black/60 border-white/15 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'
+                }`}
               >
                 <option value={0} disabled>Choose a classroom...</option>
                 {classes.map((c) => (
@@ -692,7 +724,7 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
             </div>
 
             {classMessage && (
-              <p className="text-xs font-semibold text-emerald-600 pt-1">
+              <p className="text-xs font-semibold text-emerald-500 pt-1">
                 {classMessage}
               </p>
             )}
@@ -708,21 +740,30 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
   const progressPct = (completedAngles.length / 5) * 100;
 
   return (
-    <div className="min-h-screen bg-[#FBFBFB] text-[#111827] flex flex-col justify-between selection:bg-blue-600 selection:text-white font-sans">
-      <header className="w-full max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
+    <div className={`min-h-screen flex flex-col justify-between selection:bg-blue-600 selection:text-white font-sans transition-colors duration-300 ${
+      isDark ? 'bg-black text-white' : 'bg-[#FBFBFB] text-[#111827]'
+    }`}>
+      <header className={`w-full max-w-6xl mx-auto px-6 h-20 flex items-center justify-between border-b ${
+        isDark ? 'border-white/10' : 'border-slate-200/90'
+      }`}>
         <div onClick={() => navigate('/')} className="flex items-center gap-2.5 cursor-pointer">
           <div className="w-9 h-9 rounded-xl bg-black text-white flex items-center justify-center font-bold shadow-sm">
             <Camera className="w-5 h-5 text-white" />
           </div>
           <div className="flex items-center">
-            <span className="font-extrabold text-2xl tracking-tight text-slate-900">Attend</span>
+            <span className={`font-extrabold text-2xl tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>Attend</span>
             <span className="font-extrabold text-2xl tracking-tight text-blue-600">X</span>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           <ThemeToggle variant="slider" size="sm" />
-          <button onClick={onLogout} className="text-xs font-semibold text-slate-500 hover:text-slate-900">
+          <button 
+            onClick={onLogout} 
+            className={`text-xs font-semibold px-3 py-1.5 rounded-xl border transition-colors ${
+              isDark ? 'bg-white/5 hover:bg-white/10 text-zinc-300 border-white/10' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+            }`}
+          >
             Sign Out
           </button>
         </div>
@@ -731,15 +772,15 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
       <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-8 space-y-6">
         {/* Header with progress */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-100">
-            <ScanFace className="w-3.5 h-3.5 text-blue-600" /> Step {completedAngles.length + 1} of 5
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-500 text-xs font-semibold border border-blue-500/20">
+            <ScanFace className="w-3.5 h-3.5 text-blue-500" /> Step {completedAngles.length + 1} of 5
           </div>
-          <h1 className="font-serif text-3xl text-slate-900 font-normal">Guided Face Scan</h1>
-          <p className="text-xs text-slate-500">{student.name} · {student.student_id}</p>
+          <h1 className={`font-serif text-3xl font-normal ${isDark ? 'text-white' : 'text-slate-900'}`}>Guided Face Scan</h1>
+          <p className={`text-xs ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>{student.name} · {student.student_id}</p>
         </div>
 
         {/* Progress bar */}
-        <div className="bg-slate-200 rounded-full h-2 overflow-hidden">
+        <div className={`rounded-full h-2 overflow-hidden ${isDark ? 'bg-zinc-800' : 'bg-slate-200'}`}>
           <div className="h-full bg-blue-600 rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }} />
         </div>
 
@@ -753,9 +794,15 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
                 key={angle}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border transition-all ${
                   done
-                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                    ? isDark
+                      ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-400'
+                      : 'bg-emerald-50 border-emerald-200 text-emerald-700'
                     : current
-                    ? 'bg-blue-50 border-blue-300 text-blue-700 ring-2 ring-blue-100'
+                    ? isDark
+                      ? 'bg-blue-950/50 border-blue-400/50 text-blue-300 ring-2 ring-blue-500/20'
+                      : 'bg-blue-50 border-blue-300 text-blue-700 ring-2 ring-blue-100'
+                    : isDark
+                    ? 'bg-zinc-900 border-white/10 text-zinc-500'
                     : 'bg-white border-slate-200 text-slate-400'
                 }`}
               >
@@ -767,20 +814,26 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
         </div>
 
         {/* Main scanning card */}
-        <div className="bg-white border border-slate-200/90 rounded-3xl overflow-hidden shadow-sm">
+        <div className={`border rounded-3xl overflow-hidden shadow-sm transition-colors ${
+          isDark ? 'bg-zinc-900/60 border-white/10' : 'bg-white border-slate-200/90'
+        }`}>
           {/* Instruction row — compact, horizontal */}
-          <div className="flex items-center gap-4 px-6 py-4 border-b border-slate-100">
+          <div className={`flex items-center gap-4 px-6 py-4 border-b ${
+            isDark ? 'border-white/10' : 'border-slate-100'
+          }`}>
             <div className="text-3xl shrink-0">{ANGLE_ICONS[currentAngle]}</div>
             <div className="flex-1 min-w-0">
-              <h2 className="font-semibold text-base text-slate-900 leading-tight">{ANGLE_LABELS[currentAngle]}</h2>
-              <p className="text-xs text-slate-500 leading-relaxed mt-0.5">{ANGLE_INSTRUCTIONS[currentAngle]}</p>
+              <h2 className={`font-semibold text-base leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{ANGLE_LABELS[currentAngle]}</h2>
+              <p className={`text-xs leading-relaxed mt-0.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>{ANGLE_INSTRUCTIONS[currentAngle]}</p>
             </div>
-            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 shrink-0">
+            <div className={`p-2.5 rounded-xl border shrink-0 ${
+              isDark ? 'bg-zinc-800/80 border-white/10' : 'bg-slate-50 border-slate-100'
+            }`}>
               {ANGLE_SVG[currentAngle]}
             </div>
           </div>
 
-          {/* Full-width camera feed — tall enough to see your face clearly */}
+          {/* Full-width camera feed */}
           <div className="relative bg-slate-950" style={{ aspectRatio: '4/3', minHeight: '320px', maxHeight: '480px' }}>
             {isWebcamActive ? (
               <>
@@ -791,13 +844,15 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
                   <div className={`absolute inset-0 flex items-center justify-center ${
                     frameStatus === 'accepted' ? 'bg-emerald-900/60' : 'bg-rose-900/60'
                   }`}>
-                    <div className="text-center px-6 py-4 rounded-2xl bg-white shadow-2xl">
+                    <div className={`text-center px-6 py-4 rounded-2xl border shadow-2xl ${
+                      isDark ? 'bg-zinc-900 border-white/20 text-white' : 'bg-white border-slate-200 text-slate-900'
+                    }`}>
                       {frameStatus === 'accepted' ? (
                         <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2 animate-bounce" />
                       ) : (
                         <XCircle className="w-10 h-10 text-rose-500 mx-auto mb-2" />
                       )}
-                      <p className={`text-sm font-bold ${frameStatus === 'accepted' ? 'text-emerald-700' : 'text-rose-700'}`}>
+                      <p className={`text-sm font-bold ${frameStatus === 'accepted' ? 'text-emerald-500' : 'text-rose-500'}`}>
                         {lastResult.reason}
                       </p>
                     </div>
@@ -819,7 +874,7 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
           </div>
 
           {/* Capture button — full width below the camera */}
-          <div className="p-5 bg-white">
+          <div className={`p-5 transition-colors ${isDark ? 'bg-zinc-900/90' : 'bg-white'}`}>
             <button
               id="capture-frame-btn"
               onClick={() => captureAndSubmit()}
@@ -832,12 +887,14 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
                 <><Camera className="w-4 h-4" /><span>Capture — {ANGLE_LABELS[currentAngle]}</span></>
               )}
             </button>
-            <p className="text-center text-xs text-slate-400 mt-2">Make sure your face is clearly inside the oval guide before capturing.</p>
+            <p className={`text-center text-xs mt-2 ${isDark ? 'text-zinc-500' : 'text-slate-400'}`}>Make sure your face is clearly inside the oval guide before capturing.</p>
           </div>
         </div>
       </main>
 
-      <footer className="py-6 border-t border-slate-200/80 bg-white text-center text-xs text-slate-500">
+      <footer className={`py-6 border-t text-center text-xs transition-colors ${
+        isDark ? 'border-white/10 bg-black text-zinc-500' : 'border-slate-200/80 bg-white text-slate-500'
+      }`}>
         AttendX Facial Geometry Enrollment
       </footer>
 
