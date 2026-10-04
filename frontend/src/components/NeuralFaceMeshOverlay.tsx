@@ -179,8 +179,37 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
 
       // Guidance Check based on target angle
       let isAngleMatched = false;
+      let detectedAngle = targetAngle || 'auto';
       let prompt = 'Hold steady...';
-      if (targetAngle === 'front') {
+
+      if (targetAngle === 'auto' || !targetAngle) {
+        // Dynamic multi-pose recognition for continuous hands-free calibration
+        if (yaw > 12) {
+          detectedAngle = 'left';
+          isAngleMatched = true;
+          prompt = '✓ Left Profile Detected (Holding...)';
+        } else if (yaw < -12) {
+          detectedAngle = 'right';
+          isAngleMatched = true;
+          prompt = '✓ Right Profile Detected (Holding...)';
+        } else if (pitch < -8) {
+          detectedAngle = 'chin_down';
+          isAngleMatched = true;
+          prompt = '✓ Chin Down Detected (Holding...)';
+        } else if (isSmiling) {
+          detectedAngle = 'smile';
+          isAngleMatched = true;
+          prompt = '✓ Expression / Smile Detected (Holding...)';
+        } else if (Math.abs(yaw) <= 12 && Math.abs(pitch) <= 12) {
+          detectedAngle = 'front';
+          isAngleMatched = true;
+          prompt = '✓ Front Center Detected (Holding...)';
+        } else {
+          detectedAngle = 'front';
+          isAngleMatched = true;
+          prompt = '✓ Biometric Pose Aligned';
+        }
+      } else if (targetAngle === 'front') {
         isAngleMatched = Math.abs(yaw) <= 12 && Math.abs(pitch) <= 12;
         prompt = isAngleMatched ? '✓ Front Look Locked' : 'Look straight at camera';
       } else if (targetAngle === 'left') {
@@ -207,7 +236,7 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
 
         if (matchedHoldFrames.current === 12 && isAutoScan && onPoseLock) {
           playLockChime();
-          onPoseLock(targetAngle);
+          onPoseLock(detectedAngle);
         }
       } else {
         matchedHoldFrames.current = 0;
