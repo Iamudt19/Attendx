@@ -163,6 +163,7 @@ export const StudentPortal: React.FC = () => {
               onComplete={handleRegistrationComplete}
               onLogout={handleLogout}
               onNavigateToAttendance={() => setActiveTab('attendance')}
+              embedded={true}
             />
           </div>
         )}

@@ -301,6 +301,17 @@ def save_attendance_session(
 
                 if new_emb and any(v != 0.0 for v in new_emb):
                     existing_embs = db.query(FaceEmbedding).filter(FaceEmbedding.student_id == face.student_id).all()
+                    
+                    # Verify high cross-similarity with authentic enrollment scans before adding
+                    enrollment_embs = [e for e in existing_embs if e.source != "teacher_verified" and e.embedding]
+                    if enrollment_embs:
+                        sims = [float(np.dot(np.array(new_emb), np.array(e.embedding))) for e in enrollment_embs]
+                        max_sim = max(sims)
+                        mean_sim = float(np.mean(sims))
+                        # Only accept if high confidence match with authentic baseline scans
+                        if max_sim < 0.82 or mean_sim < 0.65:
+                            continue
+
                     should_add = True
                     for ex in existing_embs:
                         if ex.embedding:

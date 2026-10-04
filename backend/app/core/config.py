@@ -50,10 +50,10 @@ class Settings(BaseSettings):
 
 
     # ── Face Recognition Pipeline Configuration ──────────────────────────────────
-    # Calibrated for OpenCV SFace Deep Neural 128-d Cosine Metric
-    FACE_MATCH_THRESHOLD: float = 0.50       # Similarity >= 0.50 + Margin >= 0.08 → PRESENT
-    FACE_REVIEW_THRESHOLD: float = 0.38      # 0.38 <= Similarity < 0.50 or Low Margin → NEEDS_REVIEW (<0.38 is UNKNOWN)
-    FACE_MIN_MARGIN: float = 0.08            # Minimum gap between Top-1 and Top-2 match
+    # Calibrated for OpenCV SFace Deep Neural 128-d Metric in Open-Set Classroom Settings
+    FACE_MATCH_THRESHOLD: float = 0.80       # Similarity >= 0.80 + Margin >= 0.10 → PRESENT
+    FACE_REVIEW_THRESHOLD: float = 0.65      # 0.65 <= Similarity < 0.80 → NEEDS_REVIEW (<0.65 is UNKNOWN)
+    FACE_MIN_MARGIN: float = 0.10            # Minimum gap between Top-1 and Top-2 match
     FACE_MIN_SIZE: int = 24                  # Minimum face bounding box size (pixels)
     FACE_BLUR_THRESHOLD: float = 40.0        # Minimum Laplacian variance for sharpness
     FACE_DETECTION_THRESHOLD: float = 0.45   # YuNet face detector confidence threshold

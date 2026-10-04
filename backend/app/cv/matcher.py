@@ -145,30 +145,30 @@ class FaceMatcher:
 
     def calibrate_confidence(self, raw_cosine: float) -> float:
         """
-        Accurately maps OpenCV SFace cosine similarity (-1.0 to 1.0) into a realistic percentage:
-          - raw < 0.25: 5% - 20% (Stranger/Noise)
-          - 0.25 - 0.38: 20% - 40% (Unknown / Unregistered)
-          - 0.38 - 0.50: 40% - 65% (Review Zone - ambiguous)
-          - 0.50 - 0.65: 65% - 88% (Confirmed High Match)
-          - 0.65 - 0.85: 88% - 98% (Extremely High Fidelity)
-          - 0.85+: 99% (Definitive identity lock)
+        Accurately maps OpenCV SFace cosine similarity (-1.0 to 1.0) into realistic percentage:
+          - raw < 0.60: 5% - 25% (Stranger / Noise)
+          - 0.60 - 0.72: 25% - 50% (Unregistered / Lookalike)
+          - 0.72 - 0.80: 50% - 75% (Review Zone - ambiguous)
+          - 0.80 - 0.88: 75% - 93% (Confirmed High Match)
+          - 0.88+: 94% - 99% (Definitive 3D biometric lock)
         """
-        if raw_cosine <= 0.20:
-            return round(max(0.05, float(raw_cosine * 0.8)), 3)
-        elif raw_cosine < 0.38:
-            # Scale 0.20 -> 0.38 to 0.16 -> 0.40
-            return round(0.16 + (raw_cosine - 0.20) / (0.38 - 0.20) * 0.24, 3)
-        elif raw_cosine < 0.50:
-            # Scale 0.38 -> 0.50 to 0.40 -> 0.65 (Review Zone)
-            return round(0.40 + (raw_cosine - 0.38) / (0.50 - 0.38) * 0.25, 3)
-        elif raw_cosine < 0.65:
-            # Scale 0.50 -> 0.65 to 0.65 -> 0.88 (Present Zone)
-            return round(0.65 + (raw_cosine - 0.50) / (0.65 - 0.50) * 0.23, 3)
-        elif raw_cosine < 0.85:
-            # Scale 0.65 -> 0.85 to 0.88 -> 0.98
-            return round(0.88 + (raw_cosine - 0.65) / (0.85 - 0.65) * 0.10, 3)
+        if raw_cosine <= 0.40:
+            return round(max(0.05, float(raw_cosine * 0.4)), 3)
+        elif raw_cosine < 0.60:
+            # Scale 0.40 -> 0.60 to 0.16 -> 0.25
+            return round(0.16 + (raw_cosine - 0.40) / (0.60 - 0.40) * 0.09, 3)
+        elif raw_cosine < 0.72:
+            # Scale 0.60 -> 0.72 to 0.25 -> 0.50
+            return round(0.25 + (raw_cosine - 0.60) / (0.72 - 0.60) * 0.25, 3)
+        elif raw_cosine < 0.80:
+            # Scale 0.72 -> 0.80 to 0.50 -> 0.75 (Review Zone)
+            return round(0.50 + (raw_cosine - 0.72) / (0.80 - 0.72) * 0.25, 3)
+        elif raw_cosine < 0.88:
+            # Scale 0.80 -> 0.88 to 0.75 -> 0.93 (Present Zone)
+            return round(0.75 + (raw_cosine - 0.80) / (0.88 - 0.80) * 0.18, 3)
         else:
-            return min(0.99, round(0.98 + (raw_cosine - 0.85) * 0.05, 3))
+            # Scale 0.88 -> 1.0 to 0.93 -> 0.99
+            return min(0.99, round(0.93 + (raw_cosine - 0.88) / (1.0 - 0.88) * 0.06, 3))
 
     def batch_match_embeddings(
         self,
@@ -241,9 +241,9 @@ class FaceMatcher:
                 s_sims.sort(reverse=True)
                 top1 = s_sims[0]
                 if len(s_sims) >= 3:
-                    # Consensus scoring: 80% Top-1 + 20% Top-2 to reject single-vector impostor anomalies
+                    # Consensus scoring: 75% Top-1 + 25% Top-2 to filter single-angle lookalike impostors
                     top2 = s_sims[1]
-                    consensus = 0.80 * top1 + 0.20 * top2
+                    consensus = 0.75 * top1 + 0.25 * top2
                     student_scores_dict[s_id] = consensus
                 else:
                     student_scores_dict[s_id] = top1
