@@ -18,6 +18,7 @@ interface FaceEnrollmentWizardProps {
   student: StudentUser;
   onComplete: () => void;
   onLogout: () => void;
+  onNavigateToAttendance?: () => void;
   embedded?: boolean;
 }
 
@@ -94,13 +95,20 @@ const ANGLE_SVG: Record<ScanAngle, React.ReactNode> = {
   ),
 };
 
-export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ student, onComplete, onLogout, embedded = true }) => {
+export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({
+  student,
+  onComplete,
+  onLogout,
+  onNavigateToAttendance,
+  embedded = true,
+}) => {
   const navigate = useNavigate();
   const [phase, setPhase] = useState<WizardPhase>(student.face_registration_complete ? 'complete' : 'intro');
   const [currentAngleIdx, setCurrentAngleIdx] = useState(0);
   const [completedAngles, setCompletedAngles] = useState<ScanAngle[]>([]);
   const [frameStatus, setFrameStatus] = useState<FrameStatus>('idle');
   const [lastResult, setLastResult] = useState<FaceFrameUploadResult | null>(null);
+  const [scanToast, setScanToast] = useState<{ text: string; nextTip?: string; type: 'success' | 'error' } | null>(null);
   const [isWebcamActive, setIsWebcamActive] = useState(false);
   const { isDark } = useTheme();
   const [webcamError, setWebcamError] = useState<string | null>(null);
@@ -336,11 +344,13 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
         if (result.training_level) setTrainingLevel(result.training_level);
         if (result.recognition_readiness_score !== undefined) setReadinessScore(result.recognition_readiness_score);
 
-        setTrainingSuccessFlash(`+1 Face Vector Added (Total: ${result.total_embeddings || totalEmbeddings + 1})`);
-        setTimeout(() => setTrainingSuccessFlash(null), 4000);
-
         if (phase === 'scanning') {
           if (result.registration_complete) {
+            setScanToast({
+              text: '🎉 5/5 Face Angles Successfully Saved to Biometric Model!',
+              nextTip: 'Registration complete. Your 3D facial identity is active.',
+              type: 'success',
+            });
             setTimeout(() => {
               setPhase('complete');
               onComplete();
@@ -348,38 +358,56 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
               setLastResult(null);
             }, 1200);
           } else {
+            const nextIdx = SCAN_ANGLES.findIndex(a => !result.completed_angles.includes(a as ScanAngle));
+            const nextAngleKey = nextIdx !== -1 ? (SCAN_ANGLES[nextIdx] as ScanAngle) : null;
+            const nextAngleName = nextAngleKey ? ANGLE_LABELS[nextAngleKey] : 'Next Pose';
+
+            setScanToast({
+              text: `✓ ${ANGLE_LABELS[angleToSubmit as ScanAngle] || 'Angle'} Saved to Vector Bank!`,
+              nextTip: `👉 Next Step: Turn slowly toward ${nextAngleName}`,
+              type: 'success',
+            });
+
+            if (nextIdx !== -1) setCurrentAngleIdx(nextIdx);
             setTimeout(() => {
-              const nextIdx = SCAN_ANGLES.findIndex(a => !result.completed_angles.includes(a as ScanAngle));
-              if (nextIdx !== -1) setCurrentAngleIdx(nextIdx);
               setFrameStatus('idle');
               setLastResult(null);
-            }, 1500);
+            }, 900);
           }
         } else {
+          setScanToast({
+            text: `✓ Biometric Vector Saved into 128-D Bank! (Total: ${result.total_embeddings || totalEmbeddings + 1})`,
+            nextTip: '👉 Next: Try other angles, glasses, or lighting to strengthen detection in large lecture halls.',
+            type: 'success',
+          });
           setTimeout(() => {
             setFrameStatus('idle');
             setLastResult(null);
-          }, 1500);
+          }, 900);
         }
       } else {
         setFrameStatus('rejected');
+        setScanToast({
+          text: 'Scan Skipped — Adjust Position',
+          nextTip: result.reason || 'Please face the camera steadily and hold in view.',
+          type: 'error',
+        });
         setTimeout(() => {
           setFrameStatus('idle');
           setLastResult(null);
-        }, 3000);
+        }, 2000);
       }
     } catch (err: any) {
       setFrameStatus('rejected');
-      setLastResult({
-        accepted: false,
-        angle_label: angleToSubmit,
-        reason: extractErrorMessage(err, 'Upload failed. Please try again.'),
-        completed_angles: completedAngles,
-        remaining_angles: SCAN_ANGLES.filter(a => !completedAngles.includes(a as ScanAngle)) as ScanAngle[],
-        total_required: 5,
-        registration_complete: false,
+      setScanToast({
+        text: 'Upload Attempt Failed',
+        nextTip: extractErrorMessage(err, 'Network timeout. Hold position to retry.'),
+        type: 'error',
       });
-      setTimeout(() => { setFrameStatus('idle'); setLastResult(null); }, 3000);
+      setTimeout(() => {
+        setFrameStatus('idle');
+        setLastResult(null);
+      }, 2500);
     }
   };
 
@@ -559,39 +587,79 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
   if (phase === 'complete') {
     const completeContent = (
       <div className="w-full space-y-6">
-        {/* Top Status Banner */}
-        <div className={`border rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-colors ${
+        {/* Top Status & Next Steps Banner */}
+        <div className={`border rounded-2xl p-6 shadow-sm flex flex-col gap-4 transition-colors ${
           isDark ? 'bg-zinc-900/60 border-white/10 text-white' : 'bg-white border-slate-200/90 text-slate-900'
         }`}>
-          <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center shrink-0">
-              <CheckCircle2 className="w-6 h-6" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h1 className={`font-serif text-2xl font-normal flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                  {student.name}
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-semibold">
+                    Face Registered &amp; Saved
+                  </span>
+                </h1>
+                <p className={`text-xs mt-0.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>
+                  Student ID: {student.student_id} {assignedClassName ? `• Enrolled in ${assignedClassName}` : ''}
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className={`font-serif text-2xl font-normal flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                {student.name}
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-semibold">
-                  Face Registered
-                </span>
-              </h1>
-              <p className={`text-xs mt-0.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>
-                Student ID: {student.student_id} {assignedClassName ? `• Enrolled in ${assignedClassName}` : ''}
-              </p>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {onNavigateToAttendance && (
+                <button
+                  type="button"
+                  onClick={onNavigateToAttendance}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl shadow-sm flex items-center gap-1.5 transition-all"
+                >
+                  <span>View Attendance</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              )}
+              <button
+                onClick={handleReset}
+                disabled={resetting}
+                className={`text-xs flex items-center gap-1 transition-colors px-3 py-2 rounded-xl border ${
+                  isDark 
+                    ? 'text-zinc-400 hover:text-rose-400 border-white/10 bg-white/5' 
+                    : 'text-slate-600 hover:text-rose-600 border-slate-200 bg-slate-50'
+                }`}
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>{resetting ? 'Resetting...' : 'Re-scan Baseline'}</span>
+              </button>
             </div>
           </div>
 
-          <button
-            onClick={handleReset}
-            disabled={resetting}
-            className={`text-xs flex items-center gap-1 transition-colors px-3 py-1.5 rounded-xl border ${
-              isDark 
-                ? 'text-zinc-400 hover:text-rose-400 border-white/10 bg-white/5' 
-                : 'text-slate-600 hover:text-rose-600 border-slate-200 bg-slate-50'
-            }`}
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>{resetting ? 'Resetting...' : 'Re-scan Baseline'}</span>
-          </button>
+          {/* Clear Next Steps Box */}
+          <div className={`p-4 rounded-xl border text-xs space-y-2 ${
+            isDark ? 'bg-emerald-950/20 border-emerald-500/20 text-emerald-300' : 'bg-emerald-50/80 border-emerald-200 text-emerald-900'
+          }`}>
+            <div className="font-bold text-sm flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
+              <Sparkles className="w-4 h-4" />
+              <span>Biometric Scans Successfully Saved &amp; Active</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              <div className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold">Step 1: Classroom Confirmation</p>
+                  <p className="opacity-80 text-[11px]">Confirm your class &amp; section below to receive automated attendance marks.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold">Step 2: Continuous Model Calibration (Optional)</p>
+                  <p className="opacity-80 text-[11px]">Rotate your head in the continuous studio below to add extra lighting &amp; glasses angles.</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* AI Training Telemetry Cards */}
@@ -732,22 +800,27 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
                     </button>
                   </div>
 
-                  {/* Result Overlay */}
-                  {(frameStatus === 'accepted' || frameStatus === 'rejected') && lastResult && (
-                    <div className={`absolute inset-0 flex items-center justify-center backdrop-blur-sm z-20 ${
-                      frameStatus === 'accepted' ? 'bg-emerald-950/70' : 'bg-rose-950/70'
-                    }`}>
-                      <div className={`text-center px-6 py-4 rounded-2xl border shadow-2xl ${
-                        isDark ? 'bg-zinc-900 border-white/20 text-white' : 'bg-white border-slate-200 text-slate-900'
+                  {/* Floating Scan Feedback Notification Pill */}
+                  {scanToast && (
+                    <div className="absolute top-12 inset-x-4 flex justify-center z-20 pointer-events-none transition-all animate-fadeIn">
+                      <div className={`px-4 py-2 rounded-xl backdrop-blur-md border shadow-xl max-w-md text-center ${
+                        scanToast.type === 'success'
+                          ? 'bg-emerald-950/90 border-emerald-500/50 text-emerald-300'
+                          : 'bg-rose-950/90 border-rose-500/50 text-rose-300'
                       }`}>
-                        {frameStatus === 'accepted' ? (
-                          <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2 animate-bounce" />
-                        ) : (
-                          <XCircle className="w-10 h-10 text-rose-500 mx-auto mb-2" />
+                        <div className="flex items-center justify-center gap-2 font-bold text-xs">
+                          {scanToast.type === 'success' ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                          ) : (
+                            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                          )}
+                          <span>{scanToast.text}</span>
+                        </div>
+                        {scanToast.nextTip && (
+                          <p className="text-[11px] mt-0.5 opacity-90 text-white font-medium">
+                            {scanToast.nextTip}
+                          </p>
                         )}
-                        <p className={`text-sm font-bold ${frameStatus === 'accepted' ? 'text-emerald-500' : 'text-rose-500'}`}>
-                          {lastResult.reason}
-                        </p>
                       </div>
                     </div>
                   )}
@@ -1145,21 +1218,27 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
                 </button>
               </div>
 
-              {(frameStatus === 'accepted' || frameStatus === 'rejected') && lastResult && (
-                <div className={`absolute inset-0 flex items-center justify-center z-20 ${
-                  frameStatus === 'accepted' ? 'bg-emerald-900/60' : 'bg-rose-900/60'
-                }`}>
-                  <div className={`text-center px-6 py-4 rounded-2xl border shadow-2xl ${
-                    isDark ? 'bg-zinc-900 border-white/20 text-white' : 'bg-white border-slate-200 text-slate-900'
+              {/* Floating Scan Feedback Notification Pill */}
+              {scanToast && (
+                <div className="absolute top-12 inset-x-4 flex justify-center z-20 pointer-events-none transition-all animate-fadeIn">
+                  <div className={`px-4 py-2 rounded-xl backdrop-blur-md border shadow-xl max-w-md text-center ${
+                    scanToast.type === 'success'
+                      ? 'bg-emerald-950/90 border-emerald-500/50 text-emerald-300'
+                      : 'bg-rose-950/90 border-rose-500/50 text-rose-300'
                   }`}>
-                    {frameStatus === 'accepted' ? (
-                      <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-2 animate-bounce" />
-                    ) : (
-                      <XCircle className="w-10 h-10 text-rose-500 mx-auto mb-2" />
+                    <div className="flex items-center justify-center gap-2 font-bold text-xs">
+                      {scanToast.type === 'success' ? (
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      ) : (
+                        <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                      )}
+                      <span>{scanToast.text}</span>
+                    </div>
+                    {scanToast.nextTip && (
+                      <p className="text-[11px] mt-0.5 opacity-90 text-white font-medium">
+                        {scanToast.nextTip}
+                      </p>
                     )}
-                    <p className={`text-sm font-bold ${frameStatus === 'accepted' ? 'text-emerald-500' : 'text-rose-500'}`}>
-                      {lastResult.reason}
-                    </p>
                   </div>
                 </div>
               )}

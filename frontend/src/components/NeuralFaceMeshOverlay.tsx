@@ -247,124 +247,45 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
 
       if (!hudEnabled) return;
 
-      const themeColor = isAngleMatched ? '#10b981' : '#06b6d4'; // Emerald or Cyan
-      const glowColor = isAngleMatched ? 'rgba(16, 185, 129, 0.45)' : 'rgba(6, 182, 212, 0.45)';
-
-      // ── 1. Apple Face ID / Lenskart 3D Radial Tick Ring ──
-      const radius = Math.max(bw, bh) * 0.65;
-      const numTicks = 36;
-      rotationAngle.current += 0.015;
+      // ── Clean Apple Face ID / Lenskart 3D Radial Progress Ring ──
+      const radius = Math.max(bw, bh) * 0.62;
+      const numTicks = 32;
 
       ctx.save();
       for (let i = 0; i < numTicks; i++) {
-        const angle = (i / numTicks) * Math.PI * 2;
-        const tickLength = i % 3 === 0 ? 12 : 7;
+        const angle = (i / numTicks) * Math.PI * 2 - Math.PI / 2;
+        const tickLength = i % 4 === 0 ? 10 : 6;
         const x1 = cx + Math.cos(angle) * radius;
         const y1 = cy + Math.sin(angle) * radius;
         const x2 = cx + Math.cos(angle) * (radius + tickLength);
         const y2 = cy + Math.sin(angle) * (radius + tickLength);
 
-        const isFilled = isAngleMatched ? (i / numTicks <= (lockProgress.current || 1.0)) : (i % 6 === 0);
-        ctx.strokeStyle = isFilled ? themeColor : 'rgba(255, 255, 255, 0.25)';
-        ctx.lineWidth = isFilled ? 2.5 : 1.2;
+        const isFilled = isAngleMatched && (i / numTicks <= (lockProgress.current || 0));
+        ctx.strokeStyle = isFilled ? '#10b981' : 'rgba(255, 255, 255, 0.28)';
+        ctx.lineWidth = isFilled ? 2.5 : 1.5;
+        ctx.lineCap = 'round';
         ctx.beginPath();
         ctx.moveTo(x1, y1);
         ctx.lineTo(x2, y2);
         ctx.stroke();
       }
-      ctx.restore();
 
-      // ── 2. Cyber Target Brackets (Futuristic Corners) ──
-      const pad = 24;
-      const rx = bx - pad;
-      const ry = by - pad;
-      const rw = bw + pad * 2;
-      const rh = bh + pad * 2;
-      const arm = Math.min(32, rw * 0.2);
-
-      ctx.save();
-      ctx.strokeStyle = themeColor;
-      ctx.lineWidth = 2.5;
-      ctx.shadowColor = glowColor;
-      ctx.shadowBlur = 12;
-
-      // Top-Left
-      ctx.beginPath();
-      ctx.moveTo(rx, ry + arm);
-      ctx.lineTo(rx, ry);
-      ctx.lineTo(rx + arm, ry);
-      ctx.stroke();
-
-      // Top-Right
-      ctx.beginPath();
-      ctx.moveTo(rx + rw - arm, ry);
-      ctx.lineTo(rx + rw, ry);
-      ctx.lineTo(rx + rw, ry + arm);
-      ctx.stroke();
-
-      // Bottom-Left
-      ctx.beginPath();
-      ctx.moveTo(rx, ry + rh - arm);
-      ctx.lineTo(rx, ry + rh);
-      ctx.lineTo(rx + arm, ry + rh);
-      ctx.stroke();
-
-      // Bottom-Right
-      ctx.beginPath();
-      ctx.moveTo(rx + rw - arm, ry + rh);
-      ctx.lineTo(rx + rw, ry + rh);
-      ctx.lineTo(rx + rw, ry + rh - arm);
-      ctx.stroke();
-
-      // ── 3. Smooth Laser Biometric Scanning Beam ──
-      scanBeamY.current += 3.5 * scanDirection.current;
-      if (scanBeamY.current > rh) {
-        scanBeamY.current = rh;
-        scanDirection.current = -1;
-      } else if (scanBeamY.current < 0) {
-        scanBeamY.current = 0;
-        scanDirection.current = 1;
-      }
-
-      const beamY = ry + scanBeamY.current;
-      const grad = ctx.createLinearGradient(rx, beamY, rx + rw, beamY);
-      grad.addColorStop(0, 'rgba(6, 182, 212, 0)');
-      grad.addColorStop(0.5, themeColor);
-      grad.addColorStop(1, 'rgba(6, 182, 212, 0)');
-
-      ctx.strokeStyle = grad;
-      ctx.lineWidth = 2;
-      ctx.shadowColor = themeColor;
-      ctx.shadowBlur = 15;
-      ctx.beginPath();
-      ctx.moveTo(rx + 10, beamY);
-      ctx.lineTo(rx + rw - 10, beamY);
-      ctx.stroke();
-
-      // ── 4. 3D Facial Mesh Topological Nodes ──
+      // Soft subtle facial anchor points
       const keyNodes = [
-        lm[33], lm[133], lm[362], lm[263], // Eye corners
-        lm[1], lm[4], lm[6],               // Nose bridge & tip
-        lm[61], lm[291], lm[0], lm[17],    // Mouth corners & center
-        lm[10], lm[152], lm[234], lm[454]  // Forehead, Chin, Cheeks
+        lm[33], lm[263], // Eye outer corners
+        lm[1],           // Nose tip
+        lm[61], lm[291], // Mouth corners
+        lm[152]          // Chin
       ];
 
       for (const node of keyNodes) {
         const nx = node.x * w;
         const ny = node.y * h;
-        ctx.fillStyle = themeColor;
-        ctx.shadowColor = glowColor;
-        ctx.shadowBlur = 8;
+        ctx.fillStyle = isAngleMatched ? 'rgba(16, 185, 129, 0.7)' : 'rgba(255, 255, 255, 0.4)';
         ctx.beginPath();
-        ctx.arc(nx, ny, 2.5, 0, Math.PI * 2);
+        ctx.arc(nx, ny, 2, 0, Math.PI * 2);
         ctx.fill();
       }
-
-      // ── 5. Continuous Sci-Fi HUD Telemetry ──
-      ctx.font = 'bold 10px monospace';
-      ctx.fillStyle = themeColor;
-      ctx.shadowBlur = 6;
-      ctx.fillText(`3D FACE-ID LOCK: 128-D [YAW ${yaw >= 0 ? '+' : ''}${yaw}° | PITCH ${pitch >= 0 ? '+' : ''}${pitch}°]`, rx + 4, ry - 8);
 
       ctx.restore();
     };
@@ -372,20 +293,21 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
     const drawSearchingHud = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
       const cx = w / 2;
       const cy = h / 2;
-      const r = Math.min(w, h) * 0.3;
+      const rx = Math.min(w, h) * 0.28;
+      const ry = Math.min(w, h) * 0.36;
 
       ctx.save();
-      ctx.strokeStyle = 'rgba(6, 182, 212, 0.4)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
       ctx.lineWidth = 1.5;
-      ctx.setLineDash([6, 8]);
+      ctx.setLineDash([6, 6]);
       ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
       ctx.stroke();
 
-      ctx.font = '11px monospace';
-      ctx.fillStyle = 'rgba(6, 182, 212, 0.7)';
+      ctx.font = '12px system-ui, -apple-system, sans-serif';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
       ctx.textAlign = 'center';
-      ctx.fillText('LOOK AT CAMERA TO BEGIN CONTINUOUS 3D SCAN...', cx, cy + r + 24);
+      ctx.fillText('Center your face in the oval to begin', cx, cy + ry + 28);
       ctx.restore();
     };
 
