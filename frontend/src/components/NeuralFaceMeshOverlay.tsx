@@ -128,41 +128,183 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
 
       if (!meshEnabled) return;
 
-      // Draw minimal, clean face contour only
+      const time = Date.now() * 0.003;
+      const w = canvas.width;
+      const h = canvas.height;
+
       ctx.save();
-      ctx.lineWidth = 1;
 
-      const keyIndices = [
-        10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288,
-        397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136,
-        172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109
-      ];
-
-      ctx.beginPath();
-      ctx.strokeStyle = 'rgba(139, 92, 246, 0.45)';
-      keyIndices.forEach((idx, i) => {
-        const pt = landmarks[idx];
-        const x = pt.x * canvas.width;
-        const y = pt.y * canvas.height;
-        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      // ── 1. Calculate Face Bounding Coordinates ──
+      let minX = w, maxX = 0, minY = h, maxY = 0;
+      landmarks.forEach((pt: any) => {
+        const x = pt.x * w;
+        const y = pt.y * h;
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
       });
-      ctx.closePath();
+
+      const padX = (maxX - minX) * 0.15;
+      const padY = (maxY - minY) * 0.15;
+      const bboxLeft = Math.max(10, minX - padX);
+      const bboxRight = Math.min(w - 10, maxX + padX);
+      const bboxTop = Math.max(10, minY - padY);
+      const bboxBottom = Math.min(h - 10, maxY + padY);
+
+      // ── 2. Corner Tech Brackets (Biometric HUD Bounding Box) ──
+      const cornerLen = Math.min(28, (bboxRight - bboxLeft) * 0.2);
+      ctx.strokeStyle = qualityScore > 85 ? 'rgba(52, 211, 153, 0.85)' : 'rgba(56, 189, 248, 0.85)';
+      ctx.lineWidth = 2;
+
+      // Top-Left
+      ctx.beginPath();
+      ctx.moveTo(bboxLeft, bboxTop + cornerLen);
+      ctx.lineTo(bboxLeft, bboxTop);
+      ctx.lineTo(bboxLeft + cornerLen, bboxTop);
       ctx.stroke();
 
-      // Eyes only — subtle cyan
-      const drawRing = (indices: number[], color: string) => {
+      // Top-Right
+      ctx.beginPath();
+      ctx.moveTo(bboxRight - cornerLen, bboxTop);
+      ctx.lineTo(bboxRight, bboxTop);
+      ctx.lineTo(bboxRight, bboxTop + cornerLen);
+      ctx.stroke();
+
+      // Bottom-Left
+      ctx.beginPath();
+      ctx.moveTo(bboxLeft, bboxBottom - cornerLen);
+      ctx.lineTo(bboxLeft, bboxBottom);
+      ctx.lineTo(bboxLeft + cornerLen, bboxBottom);
+      ctx.stroke();
+
+      // Bottom-Right
+      ctx.beginPath();
+      ctx.moveTo(bboxRight - cornerLen, bboxBottom);
+      ctx.lineTo(bboxRight, bboxBottom);
+      ctx.lineTo(bboxRight, bboxBottom - cornerLen);
+      ctx.stroke();
+
+      // ── 3. Cyber Scanning Laser Beam across Face ──
+      const scanY = bboxTop + ((Math.sin(time * 2.2) + 1) / 2) * (bboxBottom - bboxTop);
+      const laserGrad = ctx.createLinearGradient(0, scanY - 14, 0, scanY);
+      laserGrad.addColorStop(0, 'rgba(6, 182, 212, 0)');
+      laserGrad.addColorStop(1, 'rgba(6, 182, 212, 0.45)');
+      ctx.fillStyle = laserGrad;
+      ctx.fillRect(bboxLeft, scanY - 14, bboxRight - bboxLeft, 14);
+
+      ctx.strokeStyle = 'rgba(34, 211, 238, 0.85)';
+      ctx.lineWidth = 1.5;
+      ctx.shadowColor = '#06b6d4';
+      ctx.shadowBlur = 6;
+      ctx.beginPath();
+      ctx.moveTo(bboxLeft, scanY);
+      ctx.lineTo(bboxRight, scanY);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // ── 4. Geodesic Neural Wireframe (Decorative Mesh Network) ──
+      const drawPolyline = (indices: number[], color: string, width = 1, close = false) => {
         ctx.beginPath();
         ctx.strokeStyle = color;
+        ctx.lineWidth = width;
         indices.forEach((idx, i) => {
           const pt = landmarks[idx];
-          if (i === 0) ctx.moveTo(pt.x * canvas.width, pt.y * canvas.height);
-          else ctx.lineTo(pt.x * canvas.width, pt.y * canvas.height);
+          if (!pt) return;
+          const x = pt.x * w;
+          const y = pt.y * h;
+          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         });
-        ctx.closePath();
+        if (close) ctx.closePath();
         ctx.stroke();
       };
-      drawRing([33, 160, 158, 133, 153, 144], 'rgba(56, 189, 248, 0.5)');
-      drawRing([362, 385, 387, 263, 373, 380], 'rgba(56, 189, 248, 0.5)');
+
+      // Outer Face Silhouette
+      const outerSilhouette = [
+        10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288,
+        397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136,
+        172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109, 10
+      ];
+      drawPolyline(outerSilhouette, 'rgba(139, 92, 246, 0.65)', 1.5, true);
+
+      // Eyebrows
+      drawPolyline([70, 63, 105, 66, 107, 55, 65, 52, 53, 46], 'rgba(56, 189, 248, 0.75)', 1.2);
+      drawPolyline([336, 296, 334, 293, 300, 276, 283, 282, 295, 285], 'rgba(56, 189, 248, 0.75)', 1.2);
+
+      // Eyes & Irises
+      drawPolyline([33, 160, 158, 133, 153, 144, 33], 'rgba(34, 211, 238, 0.85)', 1.2, true);
+      drawPolyline([362, 385, 387, 263, 373, 380, 362], 'rgba(34, 211, 238, 0.85)', 1.2, true);
+
+      // Nose Bridge & Contour
+      drawPolyline([168, 6, 197, 195, 5, 4, 1, 19, 94, 2], 'rgba(99, 102, 241, 0.7)', 1.2);
+      drawPolyline([98, 97, 2, 326, 327], 'rgba(56, 189, 248, 0.6)', 1);
+
+      // Lips
+      drawPolyline([61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 308, 324, 318, 402, 317, 14, 87, 178, 88, 95, 61], 'rgba(236, 72, 153, 0.65)', 1.2, true);
+      drawPolyline([78, 95, 88, 178, 87, 14, 317, 402, 318, 324, 308], 'rgba(236, 72, 153, 0.4)', 1);
+
+      // ── 5. Triangulated Geodesic Tessellation Lines ──
+      const triangulationPairs = [
+        [10, 151], [151, 9], [9, 8], [8, 168], [168, 1], [1, 2], [2, 0], [0, 17], [17, 152], // Central sagittal axis
+        [10, 67], [10, 297], [67, 109], [297, 338], // Forehead triangles
+        [70, 168], [336, 168], // Eyebrows to glabella
+        [33, 168], [263, 168], // Eyes to nose bridge
+        [33, 1], [263, 1], // Eyes to nose tip
+        [234, 1], [454, 1], // Cheeks to nose tip
+        [234, 132], [454, 361], // Cheekbones
+        [132, 58], [361, 288], // Jaw angles
+        [58, 172], [288, 397],
+        [172, 152], [397, 152], // Jaw to chin
+        [61, 1], [291, 1], // Mouth corners to nose
+        [61, 152], [291, 152], // Mouth corners to chin
+        [234, 93], [454, 323], // Mid-cheeks
+        [93, 61], [323, 291], // Cheeks to mouth
+        [1, 152], // Nose to chin vertical
+      ];
+
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
+      ctx.lineWidth = 0.8;
+      triangulationPairs.forEach(([i, j]) => {
+        const p1 = landmarks[i];
+        const p2 = landmarks[j];
+        if (p1 && p2) {
+          ctx.beginPath();
+          ctx.moveTo(p1.x * w, p1.y * h);
+          ctx.lineTo(p2.x * w, p2.y * h);
+          ctx.stroke();
+        }
+      });
+
+      // ── 6. Luminous Coordinate Landmark Nodes ──
+      const keyNodes = [
+        10, 151, 9, 8, 168, 1, 2, 0, 17, 152, // Center axis
+        70, 107, 336, 334, // Brows
+        33, 133, 362, 263, // Eye corners
+        234, 454, 93, 323, // Cheeks
+        61, 291, 0, 17, // Lips & Philtrum
+        58, 288, 132, 361 // Jawline nodes
+      ];
+
+      keyNodes.forEach((idx, i) => {
+        const pt = landmarks[idx];
+        if (!pt) return;
+        const x = pt.x * w;
+        const y = pt.y * h;
+        const pulse = (Math.sin(time * 5 + i) + 1) / 2;
+
+        ctx.fillStyle = idx === 1 || idx === 152 || idx === 10 ? '#10b981' : '#38bdf8';
+        ctx.beginPath();
+        ctx.arc(x, y, 2.2 + pulse * 1.2, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // ── 7. Decorative HUD Readout Overlays ──
+      ctx.font = '10px "JetBrains Mono", ui-monospace, monospace';
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.95)';
+      ctx.fillText(`SFACE-128D // NEURAL LOCK: ACTIVE`, bboxLeft + 4, bboxTop - 8);
+
+      ctx.fillStyle = qualityScore > 85 ? 'rgba(52, 211, 153, 0.95)' : 'rgba(251, 191, 36, 0.95)';
+      ctx.fillText(`YAW: ${yaw > 0 ? '+' : ''}${yaw}°  PITCH: ${pitch > 0 ? '+' : ''}${pitch}°  Q: ${qualityScore}%`, bboxLeft + 4, bboxBottom + 16);
 
       ctx.restore();
     };
@@ -172,14 +314,27 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
       const cy = h / 2;
       const rx = w * 0.28;
       const ry = h * 0.40;
+      const time = Date.now() * 0.002;
 
       ctx.save();
-      ctx.strokeStyle = faceDetected ? 'rgba(52, 211, 153, 0.85)' : 'rgba(255,255,255,0.5)';
-      ctx.lineWidth = 2.5;
-      ctx.setLineDash(faceDetected ? [] : [8, 6]);
+      // Glowing target oval
+      ctx.strokeStyle = faceDetected ? 'rgba(52, 211, 153, 0.75)' : 'rgba(255,255,255,0.45)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash(faceDetected ? [12, 6] : [8, 6]);
+      ctx.lineDashOffset = -time * 20;
       ctx.beginPath();
       ctx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
       ctx.stroke();
+
+      // Outer delicate reticle
+      ctx.strokeStyle = faceDetected ? 'rgba(56, 189, 248, 0.4)' : 'rgba(255,255,255,0.2)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 12]);
+      ctx.lineDashOffset = time * 15;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, rx * 1.1, ry * 1.1, 0, 0, 2 * Math.PI);
+      ctx.stroke();
+
       ctx.setLineDash([]);
       ctx.restore();
     };
