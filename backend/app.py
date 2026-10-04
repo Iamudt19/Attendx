@@ -1,13 +1,16 @@
 import os
 import gradio as gr
 import spaces
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+
 from app.main import app as fastapi_app
 from app.core.config import settings
 
 # ---------------------------------------------------------------------------
-# ZeroGPU Inferred Worker Function
-# Hugging Face ZeroGPU checks demo.fns to verify that at least one active
-# Gradio component is bound to a @spaces.GPU decorated function.
+# ZeroGPU Worker Function
+# Hugging Face ZeroGPU checks demo.fns during demo.launch() to verify that
+# at least one active Gradio component is bound to a @spaces.GPU decorated function.
 # ---------------------------------------------------------------------------
 @spaces.GPU(duration=60)
 def zerogpu_face_inference_probe():
@@ -15,7 +18,7 @@ def zerogpu_face_inference_probe():
     return "AttendX ZeroGPU Face Recognition Engine Active"
 
 # ---------------------------------------------------------------------------
-# Gradio UI mounted at /gradio for ZeroGPU supervisor compliance & diagnostics
+# Gradio UI for Status, Diagnostics & ZeroGPU Supervisor Registration
 # ---------------------------------------------------------------------------
 with gr.Blocks(title="AttendX AI API Gateway") as demo:
     gr.Markdown("""
@@ -33,12 +36,29 @@ with gr.Blocks(title="AttendX AI API Gateway") as demo:
     test_btn.click(fn=zerogpu_face_inference_probe, outputs=status_box)
 
 # ---------------------------------------------------------------------------
-# Mount Gradio onto FastAPI
+# Register FastAPI Routes onto Gradio ASGI Application
 # ---------------------------------------------------------------------------
-# This preserves FastAPI as the root router (serving /api/*, /docs, /storage/*)
-# and exposes the Gradio ZeroGPU probe interface at /gradio
-app = gr.mount_gradio_app(fastapi_app, demo, path="/gradio")
+# Enable CORS so Vercel frontend can call all /api endpoints
+demo.app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Register all FastAPI routes (auth, classes, subjects, students, attendance, export, student_portal)
+demo.app.include_router(fastapi_app.router)
+
+# Mount static storage for student photos & uploads
+os.makedirs(settings.STORAGE_DIR, exist_ok=True)
+demo.app.mount("/storage", StaticFiles(directory=settings.STORAGE_DIR), name="storage")
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=7860)
+    # ssr=False disables Gradio 5's experimental Node.js SSR proxy which fails in Space containers
+    demo.launch(
+        server_name="0.0.0.0",
+        server_port=7860,
+        ssr=False,
+        show_error=True
+    )
