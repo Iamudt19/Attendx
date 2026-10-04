@@ -65,6 +65,8 @@ backend/storage/students/*
 !backend/storage/students/.gitkeep
 backend/storage/models/*
 !backend/storage/models/.gitkeep
+storage/*
+!storage/.gitkeep
 backend/exports/*
 !backend/exports/.gitkeep
 exports/*
