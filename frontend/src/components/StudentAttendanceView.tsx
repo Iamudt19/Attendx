@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   TrendingUp, TrendingDown, CheckCircle2, AlertCircle, AlertTriangle,
   Calendar, Clock, BookOpen, Layers, RefreshCw, BarChart2, Filter,
-  Eye, Check, X, ShieldCheck, ChevronRight, User, Award, ArrowUpRight
+  Eye, Check, X, ShieldCheck, ChevronRight, User, Award, ArrowUpRight,
+  Calculator, Sparkles, Sliders
 } from 'lucide-react';
 import { StudentUser, StudentAttendanceDashboardResponse, StudentSubjectAttendance, StudentLectureLog } from '../types';
 import { StudentPortalService, getStorageUrl } from '../services/api';
@@ -22,6 +23,12 @@ export const StudentAttendanceView: React.FC<StudentAttendanceViewProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [selectedSubjectId, setSelectedSubjectId] = useState<number | 'ALL'>('ALL');
   const [previewPhotoUrl, setPreviewPhotoUrl] = useState<string | null>(null);
+
+  // Bunk & Shortage Simulator State
+  const [simTargetPct, setSimTargetPct] = useState(75);
+  const [simFutureClasses, setSimFutureClasses] = useState(2);
+  const [simAction, setSimAction] = useState<'miss' | 'attend'>('miss');
+  const [simSubjectId, setSimSubjectId] = useState<number | 'ALL'>('ALL');
 
   const fetchDashboard = useCallback(async (subId?: number) => {
     setLoading(true);
@@ -192,6 +199,162 @@ export const StudentAttendanceView: React.FC<StudentAttendanceViewProps> = ({
             Total Classes Held: {data?.total_classes || 0}
           </div>
         </div>
+      </div>
+
+      {/* ── BUNK & ATTENDANCE SHORTAGE SIMULATOR WIDGET ─────────────────────── */}
+      <div className="swiss-card p-6 rounded-2xl border border-[var(--border-color)] space-y-4 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--border-color)] pb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+              <Calculator className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
+                <span>Attendance Shortage Simulator &amp; "Bunk" Calculator</span>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold">
+                  Live Tool
+                </span>
+              </h3>
+              <p className="text-[11px] text-[var(--text-muted)]">
+                Forecast your exam eligibility if you skip or attend upcoming lectures.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-[var(--text-secondary)] font-mono font-medium">Select Subject:</span>
+            <select
+              value={simSubjectId}
+              onChange={(e) => setSimSubjectId(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+              className="text-xs p-1.5 rounded-lg border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-primary)] font-mono font-bold"
+            >
+              <option value="ALL">All Subjects (Overall Aggregate)</option>
+              {data?.subjects?.map((s) => (
+                <option key={s.subject_id} value={s.subject_id}>
+                  {s.subject_code} - {s.subject_name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Dynamic calculations for selected subject or overall */}
+        {(() => {
+          let curAttended = data?.attended || 0;
+          let curTotal = data?.total_classes || 0;
+          let subName = 'Overall Attendance';
+
+          if (simSubjectId !== 'ALL' && data?.subjects) {
+            const foundSub = data.subjects.find((s) => s.subject_id === simSubjectId);
+            if (foundSub) {
+              curAttended = foundSub.attended;
+              curTotal = foundSub.total_classes;
+              subName = foundSub.subject_name;
+            }
+          }
+
+          const curPct = curTotal > 0 ? Number(((curAttended / curTotal) * 100).toFixed(1)) : 100;
+          const targetFrac = simTargetPct / 100;
+          const isSafe = curPct >= simTargetPct;
+
+          // Bunks allowed:
+          const maxBunkable = Math.max(0, Math.floor((curAttended - targetFrac * curTotal) / (targetFrac || 0.75)));
+          // Lectures needed to recover:
+          const neededToRecover = Math.max(0, Math.ceil((targetFrac * curTotal - curAttended) / (1 - targetFrac || 0.25)));
+
+          // Forecast:
+          const futureTotal = curTotal + simFutureClasses;
+          const futureAttended = simAction === 'attend' ? curAttended + simFutureClasses : curAttended;
+          const forecastPct = futureTotal > 0 ? Number(((futureAttended / futureTotal) * 100).toFixed(1)) : 100;
+          const forecastSafe = forecastPct >= simTargetPct;
+
+          return (
+            <div className="space-y-4">
+              {/* Status Banner */}
+              <div className={`p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
+                isSafe
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-300'
+                  : 'bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-300'
+              }`}>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 font-bold text-sm">
+                    {isSafe ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                    )}
+                    <span>{subName}: {curPct}% ({curAttended}/{curTotal} held)</span>
+                  </div>
+                  <p className="text-xs opacity-90">
+                    {isSafe
+                      ? `🎉 Safe: You can miss up to ${maxBunkable} more lecture${maxBunkable === 1 ? '' : 's'} in this subject without falling below ${simTargetPct}%.`
+                      : `⚠️ Shortage: You need to attend ${neededToRecover} consecutive lecture${neededToRecover === 1 ? '' : 's'} to get back above ${simTargetPct}%.`}
+                  </p>
+                </div>
+
+                <div className="text-right shrink-0">
+                  <div className="font-mono text-2xl font-extrabold">{curPct}%</div>
+                  <span className="text-[10px] font-mono uppercase tracking-wider font-bold">
+                    {isSafe ? 'Eligible' : 'Shortage Alert'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Slider Controls */}
+              <div className="p-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] space-y-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-[var(--text-primary)] flex items-center gap-1.5">
+                    <span>Simulate next:</span>
+                    <span className="font-mono text-blue-500 font-bold">
+                      {simAction === 'miss' ? `Skip ${simFutureClasses} Lectures` : `Attend ${simFutureClasses} Lectures`}
+                    </span>
+                  </span>
+
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setSimAction('miss')}
+                      className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
+                        simAction === 'miss'
+                          ? 'bg-rose-500 text-white shadow-sm'
+                          : 'bg-[var(--bg-inset)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                      }`}
+                    >
+                      If I Skip
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSimAction('attend')}
+                      className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
+                        simAction === 'attend'
+                          ? 'bg-emerald-600 text-white shadow-sm'
+                          : 'bg-[var(--bg-inset)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                      }`}
+                    >
+                      If I Attend
+                    </button>
+                  </div>
+                </div>
+
+                <input
+                  type="range"
+                  min={1}
+                  max={12}
+                  value={simFutureClasses}
+                  onChange={(e) => setSimFutureClasses(Number(e.target.value))}
+                  className="w-full accent-blue-600 cursor-pointer"
+                />
+
+                <div className="flex items-center justify-between text-xs font-mono text-[var(--text-secondary)] pt-1">
+                  <span>Projected New Attendance:</span>
+                  <span className={`font-bold text-sm ${forecastSafe ? 'text-emerald-500' : 'text-rose-500'}`}>
+                    {forecastPct}% ({futureAttended}/{futureTotal} classes) · {forecastSafe ? '✓ Exam Eligible' : '⚠ Shortage Risk'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* ── SUBJECT CURRICULUM BREAKDOWN ──────────────────────────────────────── */}

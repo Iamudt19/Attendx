@@ -10,6 +10,14 @@ import {
   ChevronDown,
   ScanFace,
   School,
+  Calculator,
+  Percent,
+  CheckCircle2,
+  AlertTriangle,
+  Sparkles,
+  Lock,
+  Database,
+  Check,
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -22,6 +30,13 @@ export const HeroLanding: React.FC = () => {
   const [detectedCount, setDetectedCount] = useState(42);
   const [showPortalDropdown, setShowPortalDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Attendance Shortage Simulator & Bunk Calculator state
+  const [simTotalClasses, setSimTotalClasses] = useState(40);
+  const [simAttendedClasses, setSimAttendedClasses] = useState(33);
+  const [simTargetPct, setSimTargetPct] = useState(75);
+  const [simNextAction, setSimNextAction] = useState<'miss' | 'attend'>('miss');
+  const [simFutureCount, setSimFutureCount] = useState(2);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -580,6 +595,243 @@ export const HeroLanding: React.FC = () => {
               <div className="pt-4 border-t border-[var(--border-color)]">
                 <div className="font-bold text-xs text-[var(--text-primary)]">Marcus Chen</div>
                 <div className="text-[11px] font-mono text-[var(--text-muted)]">VP of Academic Operations, Global Institute</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Section 04: Security, SIS & Interactive Bunk Calculator ──────── */}
+      <section id="security" className="border-b border-[var(--border-color)] py-20 bg-[var(--bg-main)]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="max-w-2xl mb-12">
+            <span className="text-xs font-mono font-bold text-blue-600 uppercase tracking-wider flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5" /> Student Tools &amp; Security Architecture
+            </span>
+            <h2 className="text-3xl font-extrabold text-[var(--text-primary)] mt-1">
+              Attendance Shortage Simulator &amp; Enterprise SIS Security.
+            </h2>
+            <p className="text-xs text-[var(--text-secondary)] mt-2">
+              Empower students with predictive roll-call planning while protecting student biometric vectors with zero-knowledge math.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* ── Left 7 Cols: Interactive Bunk & Attendance Simulator Widget ── */}
+            <div className="lg:col-span-7 swiss-card p-6 rounded-2xl border border-[var(--border-color)] space-y-6 shadow-sm">
+              <div className="flex items-center justify-between border-b border-[var(--border-color)] pb-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+                    <Calculator className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-[var(--text-primary)]">
+                      Attendance Shortage &amp; "Bunk" Simulator
+                    </h3>
+                    <p className="text-[11px] text-[var(--text-muted)] font-mono">
+                      Real-time exam eligibility threshold simulator
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => navigate('/student')}
+                  className="px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 text-xs font-semibold flex items-center gap-1 transition-colors"
+                >
+                  <GraduationCap className="w-3.5 h-3.5" />
+                  <span>Student Portal</span>
+                </button>
+              </div>
+
+              {/* Live Input Controls */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 font-mono text-xs">
+                <div className="space-y-1.5">
+                  <label className="text-[11px] text-[var(--text-secondary)] font-semibold">
+                    Total Lectures (T)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={200}
+                    value={simTotalClasses}
+                    onChange={(e) => setSimTotalClasses(Math.max(1, Number(e.target.value)))}
+                    className="w-full p-2.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-primary)] font-bold text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] text-[var(--text-secondary)] font-semibold">
+                    Attended Lectures (A)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={simTotalClasses}
+                    value={simAttendedClasses}
+                    onChange={(e) => setSimAttendedClasses(Math.min(simTotalClasses, Math.max(0, Number(e.target.value))))}
+                    className="w-full p-2.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-primary)] font-bold text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[11px] text-[var(--text-secondary)] font-semibold">
+                    Min Eligibility Req.
+                  </label>
+                  <select
+                    value={simTargetPct}
+                    onChange={(e) => setSimTargetPct(Number(e.target.value))}
+                    className="w-full p-2.5 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-primary)] font-bold text-sm"
+                  >
+                    <option value={75}>75% (University Std)</option>
+                    <option value={80}>80% (Strict)</option>
+                    <option value={85}>85% (Honors)</option>
+                    <option value={65}>65% (Medical Condonation)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Simulation Result Calculations */}
+              {(() => {
+                const curPct = Number(((simAttendedClasses / (simTotalClasses || 1)) * 100).toFixed(1));
+                const targetFrac = simTargetPct / 100;
+                const isSafe = curPct >= simTargetPct;
+
+                // Max skips possible while staying >= target
+                const maxBunkable = Math.max(0, Math.floor((simAttendedClasses - targetFrac * simTotalClasses) / targetFrac));
+
+                // Lectures needed to reach target if below
+                const neededToRecover = Math.max(0, Math.ceil((targetFrac * simTotalClasses - simAttendedClasses) / (1 - targetFrac)));
+
+                // Forecast with future simulation slider
+                const futureTotal = simTotalClasses + simFutureCount;
+                const futureAttended = simNextAction === 'attend' ? simAttendedClasses + simFutureCount : simAttendedClasses;
+                const forecastPct = Number(((futureAttended / (futureTotal || 1)) * 100).toFixed(1));
+                const forecastSafe = forecastPct >= simTargetPct;
+
+                return (
+                  <div className="space-y-4 pt-2">
+                    {/* Status Forecast Banner */}
+                    <div className={`p-4 rounded-xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
+                      isSafe
+                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-300'
+                        : 'bg-amber-500/10 border-amber-500/30 text-amber-900 dark:text-amber-300'
+                    }`}>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 font-bold text-sm">
+                          {isSafe ? (
+                            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                          ) : (
+                            <AlertTriangle className="w-4 h-4 text-amber-500" />
+                          )}
+                          <span>Current Attendance: {curPct}% ({simAttendedClasses}/{simTotalClasses} classes)</span>
+                        </div>
+                        <p className="text-xs opacity-90">
+                          {isSafe
+                            ? `🎉 You can safely miss up to ${maxBunkable} more lecture${maxBunkable === 1 ? '' : 's'} without falling below ${simTargetPct}%.`
+                            : `⚠️ Shortage Alert: You must attend ${neededToRecover} consecutive lecture${neededToRecover === 1 ? '' : 's'} to restore eligibility to ${simTargetPct}%.`}
+                        </p>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <div className="font-mono text-2xl font-extrabold">{curPct}%</div>
+                        <span className="text-[10px] uppercase font-mono tracking-wider font-bold">
+                          {isSafe ? 'Exam Eligible' : 'Shortage'}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Interactive Future Simulation Slider */}
+                    <div className="p-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] space-y-3">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-bold text-[var(--text-primary)] flex items-center gap-1.5">
+                          <span>🔮 Future Simulation:</span>
+                          <span className="font-mono text-blue-500">
+                            {simNextAction === 'miss' ? `Skip Next ${simFutureCount} Classes` : `Attend Next ${simFutureCount} Classes`}
+                          </span>
+                        </span>
+                        <div className="flex gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setSimNextAction('miss')}
+                            className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${
+                              simNextAction === 'miss'
+                                ? 'bg-rose-500 text-white'
+                                : 'bg-[var(--bg-inset)] text-[var(--text-secondary)]'
+                            }`}
+                          >
+                            If I Skip
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSimNextAction('attend')}
+                            className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${
+                              simNextAction === 'attend'
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-[var(--bg-inset)] text-[var(--text-secondary)]'
+                            }`}
+                          >
+                            If I Attend
+                          </button>
+                        </div>
+                      </div>
+
+                      <input
+                        type="range"
+                        min={1}
+                        max={15}
+                        value={simFutureCount}
+                        onChange={(e) => setSimFutureCount(Number(e.target.value))}
+                        className="w-full accent-blue-600 cursor-pointer"
+                      />
+
+                      <div className="flex items-center justify-between text-[11px] font-mono text-[var(--text-secondary)] pt-1">
+                        <span>Projected Attendance:</span>
+                        <span className={`font-bold ${forecastSafe ? 'text-emerald-500' : 'text-rose-500'}`}>
+                          {forecastPct}% ({futureAttended}/{futureTotal} classes) · {forecastSafe ? '✓ Safe' : '⚠ Below Target'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* ── Right 5 Cols: Security & SIS Architecture Specs ── */}
+            <div className="lg:col-span-5 space-y-4">
+              <div className="swiss-card p-6 rounded-2xl border border-[var(--border-color)] space-y-4">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-sm font-bold text-[var(--text-primary)]">
+                    Zero-Knowledge Biometric Security
+                  </h3>
+                </div>
+
+                <div className="space-y-3 text-xs text-[var(--text-secondary)]">
+                  <div className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <p><strong className="text-[var(--text-primary)]">128-D Vector Embeddings Only:</strong> Raw facial photographs are never permanently stored without explicit consent; only mathematical coordinate vectors are retained.</p>
+                  </div>
+
+                  <div className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <p><strong className="text-[var(--text-primary)]">FERPA &amp; Academic Privacy:</strong> Complies with institutional student record standards with strict cryptographic isolation between course sections.</p>
+                  </div>
+
+                  <div className="flex items-start gap-2">
+                    <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                    <p><strong className="text-[var(--text-primary)]">Automated SIS &amp; LMS Connectors:</strong> Real-time REST endpoints and XLSX ledgers compatible with Canvas, Moodle, Blackboard, and SAP ERP.</p>
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-[var(--border-color)] flex items-center justify-between text-[11px] font-mono text-[var(--text-muted)]">
+                  <span className="flex items-center gap-1.5 text-emerald-500 font-semibold">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                    AES-256 Vector Encryption
+                  </span>
+                  <span>TLS 1.3 Active</span>
+                </div>
               </div>
             </div>
           </div>
