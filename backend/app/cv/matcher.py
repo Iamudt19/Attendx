@@ -193,12 +193,10 @@ class FaceMatcher:
         # Cosine similarity matrix: (N, M)
         sim_matrix = np.dot(cand_matrix, ref_matrix.T)
 
-        results = []
-        for i in range(len(candidate_embeddings)):
-            q_assessment = quality_assessments[i] if quality_assessments and i < len(quality_assessments) else None
-            quality_status = q_assessment.get("overall", "GOOD") if q_assessment else "GOOD"
-            is_poor_quality = (quality_status in ["POOR", "REJECT"])
+        num_faces = len(candidate_embeddings)
+        face_student_scores: List[Dict[int, float]] = []
 
+        for i in range(num_faces):
             row_sims = sim_matrix[i]
             # Group maximum similarity per unique student
             student_scores_dict: Dict[int, float] = {}
@@ -206,8 +204,41 @@ class FaceMatcher:
                 sim = float(row_sims[j])
                 if s_id not in student_scores_dict or sim > student_scores_dict[s_id]:
                     student_scores_dict[s_id] = sim
+            face_student_scores.append(student_scores_dict)
 
-            student_scores = sorted(student_scores_dict.items(), key=lambda x: x[1], reverse=True)
+        # ── 1 Identity = 1 Face Constraint (Competitive Bipartite Matching) ──
+        # When multiple faces in the same photograph match the same student (e.g. Face 1 -> Udit 96%, Face 2 -> Udit 94%),
+        # the identity is awarded to the highest-confidence face.
+        # Competing faces then fall back to their next best unclaimed student match or UNKNOWN.
+        
+        # Collect all candidate pairs: (similarity_score, face_index, student_id)
+        all_match_candidates = []
+        for face_idx, scores_dict in enumerate(face_student_scores):
+            for s_id, sim in scores_dict.items():
+                if sim >= self.review_threshold:
+                    all_match_candidates.append((sim, face_idx, s_id))
+
+        # Sort all possible pairings globally by similarity descending
+        all_match_candidates.sort(key=lambda x: x[0], reverse=True)
+
+        assigned_face_to_student: Dict[int, int] = {}
+        claimed_students = set()
+
+        for sim, face_idx, s_id in all_match_candidates:
+            if face_idx not in assigned_face_to_student and s_id not in claimed_students:
+                assigned_face_to_student[face_idx] = s_id
+                claimed_students.add(s_id)
+
+        # Construct final results per candidate face
+        results = []
+        for i in range(num_faces):
+            q_assessment = quality_assessments[i] if quality_assessments and i < len(quality_assessments) else None
+            quality_status = q_assessment.get("overall", "GOOD") if q_assessment else "GOOD"
+            is_poor_quality = (quality_status in ["POOR", "REJECT"])
+
+            scores_dict = face_student_scores[i]
+            student_scores = sorted(scores_dict.items(), key=lambda x: x[1], reverse=True)
+
             if not student_scores:
                 results.append({
                     "student_id": None,
@@ -220,29 +251,47 @@ class FaceMatcher:
                 })
                 continue
 
-            top1_student_id, top1_score = student_scores[0]
-            top2_score = student_scores[1][1] if len(student_scores) > 1 else 0.0
-            margin = max(0.0, top1_score - top2_score)
+            # Check if this face was awarded a unique identity under the 1-to-1 constraint
+            assigned_student_id = assigned_face_to_student.get(i)
 
-            if top1_score < self.review_threshold:
+            if assigned_student_id is not None:
+                # Awarded student match
+                top1_student_id = assigned_student_id
+                top1_score = scores_dict.get(top1_student_id, 0.0)
+
+                # Second best among other students
+                other_scores = [score for s_id, score in student_scores if s_id != top1_student_id]
+                top2_score = other_scores[0] if other_scores else 0.0
+                margin = max(0.0, top1_score - top2_score)
+
+                if top1_score < self.review_threshold:
+                    status_str = "UNKNOWN"
+                    final_student_id = None
+                    reason = f"Match score {top1_score:.3f} is below review threshold ({self.review_threshold:.2f})."
+                elif top1_score >= self.match_threshold and margin >= self.min_margin and not is_poor_quality:
+                    status_str = "PRESENT"
+                    final_student_id = top1_student_id
+                    reason = f"High similarity ({top1_score:.3f}) and clear margin ({margin:.3f})."
+                else:
+                    status_str = "NEEDS_REVIEW"
+                    final_student_id = top1_student_id
+                    reasons = []
+                    if top1_score < self.match_threshold:
+                        reasons.append(f"Moderate similarity ({top1_score:.3f} < {self.match_threshold:.2f})")
+                    if margin < self.min_margin and len(student_scores) > 1:
+                        reasons.append(f"Ambiguous match (margin {margin:.3f} < {self.min_margin:.2f})")
+                    if is_poor_quality:
+                        reasons.append(f"Poor image quality ({q_assessment.get('reason', '')})")
+                    reason = "; ".join(reasons) if reasons else "Marked for teacher verification."
+            else:
+                # This face's candidate student was already claimed by a higher-confidence face in the same photo
+                top1_student_id = student_scores[0][0]
+                top1_score = student_scores[0][1]
+                top2_score = student_scores[1][1] if len(student_scores) > 1 else 0.0
+                margin = max(0.0, top1_score - top2_score)
                 status_str = "UNKNOWN"
                 final_student_id = None
-                reason = f"Match score {top1_score:.3f} is below review threshold ({self.review_threshold:.2f})."
-            elif top1_score >= self.match_threshold and margin >= self.min_margin and not is_poor_quality:
-                status_str = "PRESENT"
-                final_student_id = top1_student_id
-                reason = f"High similarity ({top1_score:.3f}) and clear margin ({margin:.3f})."
-            else:
-                status_str = "NEEDS_REVIEW"
-                final_student_id = top1_student_id
-                reasons = []
-                if top1_score < self.match_threshold:
-                    reasons.append(f"Moderate similarity ({top1_score:.3f} < {self.match_threshold:.2f})")
-                if margin < self.min_margin and len(student_scores) > 1:
-                    reasons.append(f"Ambiguous match (margin {margin:.3f} < {self.min_margin:.2f})")
-                if is_poor_quality:
-                    reasons.append(f"Poor image quality ({q_assessment.get('reason', '')})")
-                reason = "; ".join(reasons) if reasons else "Marked for teacher verification."
+                reason = f"Duplicate identity suppressed: student was matched to another face with higher confidence."
 
             results.append({
                 "student_id": final_student_id,
