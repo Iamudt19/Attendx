@@ -55,10 +55,8 @@ os.makedirs(settings.STORAGE_DIR, exist_ok=True)
 demo.app.mount("/storage", StaticFiles(directory=settings.STORAGE_DIR), name="storage")
 
 if __name__ == "__main__":
-    # ssr=False disables Gradio 5's experimental Node.js SSR proxy which fails in Space containers
     demo.launch(
         server_name="0.0.0.0",
-        server_port=7860,
-        ssr=False,
-        show_error=True
+        server_port=7860
     )
+
