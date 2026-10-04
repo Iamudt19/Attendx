@@ -179,62 +179,55 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
 
       // Guidance Check based on target angle
       let isAngleMatched = false;
-      let detectedAngle = targetAngle || 'auto';
-      let prompt = 'Hold steady...';
+      let detectedAngle = targetAngle || 'front';
+      let prompt = 'Center your face in view';
 
-      if (targetAngle === 'auto' || !targetAngle) {
-        // Dynamic multi-pose recognition for continuous hands-free calibration
+      if (targetAngle === 'front') {
+        isAngleMatched = Math.abs(yaw) <= 12 && Math.abs(pitch) <= 12;
+        prompt = isAngleMatched ? '✓ Looking Straight (Holding...)' : 'Look directly straight at camera';
+      } else if (targetAngle === 'left') {
+        isAngleMatched = yaw > 10;
+        prompt = isAngleMatched ? '✓ Left Profile (Holding...)' : 'Slowly turn head to the LEFT ⬅️';
+      } else if (targetAngle === 'right') {
+        isAngleMatched = yaw < -10;
+        prompt = isAngleMatched ? '✓ Right Profile (Holding...)' : 'Slowly turn head to the RIGHT ➡️';
+      } else if (targetAngle === 'chin_down' || targetAngle === 'down') {
+        isAngleMatched = pitch < -7;
+        prompt = isAngleMatched ? '✓ Chin Down (Holding...)' : 'Gently tilt chin DOWN ⬇️';
+      } else if (targetAngle === 'smile') {
+        isAngleMatched = isSmiling || (Math.abs(yaw) <= 14 && Math.abs(pitch) <= 14);
+        prompt = isAngleMatched ? '✓ Smile / Expression (Holding...)' : 'Face camera and give a natural SMILE 😊';
+      } else {
+        // Auto mode fallback
         if (yaw > 12) {
           detectedAngle = 'left';
           isAngleMatched = true;
-          prompt = '✓ Left Profile Detected (Holding...)';
+          prompt = '✓ Left Profile (Holding...)';
         } else if (yaw < -12) {
           detectedAngle = 'right';
           isAngleMatched = true;
-          prompt = '✓ Right Profile Detected (Holding...)';
+          prompt = '✓ Right Profile (Holding...)';
         } else if (pitch < -8) {
           detectedAngle = 'chin_down';
           isAngleMatched = true;
-          prompt = '✓ Chin Down Detected (Holding...)';
+          prompt = '✓ Chin Down (Holding...)';
         } else if (isSmiling) {
           detectedAngle = 'smile';
           isAngleMatched = true;
-          prompt = '✓ Expression / Smile Detected (Holding...)';
-        } else if (Math.abs(yaw) <= 12 && Math.abs(pitch) <= 12) {
-          detectedAngle = 'front';
-          isAngleMatched = true;
-          prompt = '✓ Front Center Detected (Holding...)';
+          prompt = '✓ Smiling Expression (Holding...)';
         } else {
           detectedAngle = 'front';
           isAngleMatched = true;
-          prompt = '✓ Biometric Pose Aligned';
+          prompt = '✓ Face Aligned (Holding...)';
         }
-      } else if (targetAngle === 'front') {
-        isAngleMatched = Math.abs(yaw) <= 12 && Math.abs(pitch) <= 12;
-        prompt = isAngleMatched ? '✓ Front Look Locked' : 'Look straight at camera';
-      } else if (targetAngle === 'left') {
-        isAngleMatched = yaw > 10;
-        prompt = isAngleMatched ? '✓ Left Profile Locked' : 'Slowly turn head LEFT ⬅️';
-      } else if (targetAngle === 'right') {
-        isAngleMatched = yaw < -10;
-        prompt = isAngleMatched ? '✓ Right Profile Locked' : 'Slowly turn head RIGHT ➡️';
-      } else if (targetAngle === 'chin_down' || targetAngle === 'down') {
-        isAngleMatched = pitch < -7;
-        prompt = isAngleMatched ? '✓ Downward Depth Locked' : 'Gently tilt chin DOWN ⬇️';
-      } else if (targetAngle === 'smile') {
-        isAngleMatched = (isSmiling || Math.abs(yaw) <= 14);
-        prompt = isAngleMatched ? '✓ Expression Locked' : 'Give a natural SMILE 😊';
-      } else {
-        isAngleMatched = true;
-        prompt = '✓ Biometric Pose Locked';
       }
 
-      // Auto-scan continuous lock trigger
+      // Auto-scan continuous lock trigger (8 frames ~ 0.35s for snappy Face ID response)
       if (isAngleMatched) {
         matchedHoldFrames.current += 1;
-        lockProgress.current = Math.min(1.0, matchedHoldFrames.current / 12);
+        lockProgress.current = Math.min(1.0, matchedHoldFrames.current / 8);
 
-        if (matchedHoldFrames.current === 12 && isAutoScan && onPoseLock) {
+        if (matchedHoldFrames.current === 8 && isAutoScan && onPoseLock) {
           playLockChime();
           onPoseLock(detectedAngle);
         }

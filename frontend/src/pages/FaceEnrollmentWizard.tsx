@@ -375,9 +375,13 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({
             }, 900);
           }
         } else {
+          const nextAngleIdx = (currentAngleIdx + 1) % SCAN_ANGLES.length;
+          setCurrentAngleIdx(nextAngleIdx);
+          const nextAngleName = ANGLE_LABELS[SCAN_ANGLES[nextAngleIdx] as ScanAngle];
+
           setScanToast({
-            text: `✓ Biometric Vector Saved into 128-D Bank! (Total: ${result.total_embeddings || totalEmbeddings + 1})`,
-            nextTip: '👉 Next: Try other angles, glasses, or lighting to strengthen detection in large lecture halls.',
+            text: `✓ Vector Saved to 128-D Bank! (Total: ${result.total_embeddings || totalEmbeddings + 1})`,
+            nextTip: `👉 Next Step: Turn toward ${nextAngleName}`,
             type: 'success',
           });
           setTimeout(() => {
@@ -772,7 +776,7 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({
                   <NeuralFaceMeshOverlay
                     videoRef={videoRef}
                     isActive={isWebcamActive}
-                    targetAngle="auto"
+                    targetAngle={SCAN_ANGLES[currentAngleIdx] || 'front'}
                     isAutoScan={true}
                     onPoseLock={(lockedPreset) => {
                       if (frameStatus === 'idle') {
@@ -781,10 +785,16 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({
                     }}
                   />
 
-                  {/* Camera Info Badge */}
-                  <div className="absolute top-3 left-3 flex items-center gap-2 px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-[11px] font-mono text-cyan-400 z-10 pointer-events-none shadow-md">
-                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-                    <span>Live Continuous ({facingMode === 'user' ? 'Front' : 'Back Camera'})</span>
+                  {/* Camera Info & Step Badge */}
+                  <div className="absolute top-3 left-3 flex items-center gap-2 z-10 pointer-events-none">
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-[11px] font-mono text-cyan-400 shadow-md">
+                      <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                      <span>{facingMode === 'user' ? 'Front' : 'Back Camera'}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-600/90 backdrop-blur-md border border-blue-400/40 text-[11px] font-semibold text-white shadow-md">
+                      <ScanFace className="w-3.5 h-3.5" />
+                      <span>Step {currentAngleIdx + 1}/5: {ANGLE_LABELS[SCAN_ANGLES[currentAngleIdx] as ScanAngle]}</span>
+                    </div>
                   </div>
 
                   {/* Quick Flip Floating Button */}
