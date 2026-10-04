@@ -36,7 +36,9 @@ class Settings(BaseSettings):
             url = url[5:].strip().strip("'\"").strip()
         
         if url.startswith("postgres://"):
-            url = url.replace("postgres://", "postgresql://", 1)
+            url = url.replace("postgres://", "postgresql+psycopg2://", 1)
+        elif url.startswith("postgresql://") and not url.startswith("postgresql+"):
+            url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
         
         if url in ["sqlite:///./attendx.db", "sqlite:///attendx.db", "sqlite://attendx.db"]:
             return f"sqlite:///{canonical_sqlite}"
