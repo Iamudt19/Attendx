@@ -33,15 +33,34 @@ with gr.Blocks(title="AttendX AI API Gateway") as demo:
     test_btn.click(fn=zerogpu_face_inference_probe, outputs=status_box)
 
 # ---------------------------------------------------------------------------
-# Mount Gradio App onto FastAPI
+# Route Registration: Prepend FastAPI Routes to Gradio's Internal App
 # ---------------------------------------------------------------------------
-# Mount Gradio at /gradio so FastAPI handles root, /docs, /api/*, and /storage/* directly,
-# while the @spaces.GPU registered Gradio interface is hosted at /gradio.
+# Prepend all FastAPI API routes to demo.app so /api/*, /docs, /openapi.json
+# take precedence over Gradio's frontend catch-all SPA handler
+for route in reversed(fastapi_app.router.routes):
+    demo.app.router.routes.insert(0, route)
+
+# Mount storage directory onto demo.app for student images and attendance photos
+import os
+from fastapi.staticfiles import StaticFiles
+os.makedirs(settings.STORAGE_DIR, exist_ok=True)
+demo.app.mount("/storage", StaticFiles(directory=settings.STORAGE_DIR), name="storage")
+
+# Enable CORS on demo.app
+demo.app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins_list,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Also create the mounted FastAPI app
 app = gr.mount_gradio_app(fastapi_app, demo, path="/gradio")
 
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=7860)
+    demo.launch(server_name="0.0.0.0", server_port=7860)
+
 
 
 
