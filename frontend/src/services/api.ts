@@ -270,18 +270,24 @@ export const AttendanceService = {
         errMsg.toLowerCase().includes('already been recorded') || 
         errMsg.toLowerCase().includes('already exists') ||
         errMsg.toLowerCase().includes('already marked') ||
+        errMsg.toLowerCase().includes('already recorded') ||
         err.response?.status === 400 ||
         err.response?.status === 409
       ) {
         console.warn("Session already recorded for this date/class, performing seamless overwrite:", errMsg);
         try {
-          const existingSessions = await AttendanceService.getSessions({
-            class_id: data.class_id,
-            subject_id: data.subject_id,
-            date: data.date
-          });
-          if (existingSessions && existingSessions.length > 0) {
-            const targetSession = existingSessions[0];
+          const allSessions = await AttendanceService.getSessions();
+          const targetSession = (allSessions || []).find(
+            (s: AttendanceSessionOut) =>
+              Number(s.class_id) === Number(data.class_id) &&
+              Number(s.subject_id) === Number(data.subject_id) &&
+              s.date === data.date
+          ) || (allSessions || []).find(
+            (s: AttendanceSessionOut) =>
+              Number(s.class_id) === Number(data.class_id) &&
+              s.date === data.date
+          );
+          if (targetSession) {
             return await AttendanceService.updateSessionRecords(targetSession.id, data.records);
           }
         } catch (fallbackErr) {

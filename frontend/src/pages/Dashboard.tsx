@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Camera, 
   Upload, 
@@ -23,6 +23,7 @@ interface DashboardProps {
 
 export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [sessions, setSessions] = useState<AttendanceSessionOut[]>([]);
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [students, setStudents] = useState<StudentItem[]>([]);
@@ -36,7 +37,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
       const [sessData, classData, stuData] = await Promise.all([
         AttendanceService.getSessions().catch(() => []),
@@ -52,11 +53,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadDashboardData();
-  }, []);
+  }, [loadDashboardData, location.key]);
+
+  useEffect(() => {
+    const onFocus = () => loadDashboardData();
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [loadDashboardData]);
 
   const handleRefresh = () => {
     setRefreshing(true);
