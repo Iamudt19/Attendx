@@ -44,12 +44,19 @@ demo.app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount FastAPI app as root fallback so /api/*, /docs, /openapi.json, and /storage/* work seamlessly
-demo.app.mount("", fastapi_app)
+# Register all FastAPI routes directly onto Gradio's FastAPI application so /api/*, /docs, /openapi.json take priority over Gradio's catch-all
+demo.app.include_router(fastapi_app.router)
 
-# Expose app for ASGI servers (Gunicorn/Uvicorn)
+# Mount static file directory for student photos and exports
+import os
+from fastapi.staticfiles import StaticFiles
+os.makedirs(settings.STORAGE_DIR, exist_ok=True)
+demo.app.mount("/storage", StaticFiles(directory=settings.STORAGE_DIR), name="storage")
+
+# Expose app for ASGI servers
 app = demo.app
 
 if __name__ == "__main__":
     demo.launch(server_name="0.0.0.0", server_port=7860)
+
 
