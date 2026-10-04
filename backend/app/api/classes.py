@@ -2,15 +2,34 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database.session import get_db
-from app.models.models import Class, Student
+from app.models.models import Class, Student, User
 from app.schemas.schemas import ClassCreate, ClassUpdate, ClassOut, StudentOut
 from app.core.security import get_current_user_token
 
 router = APIRouter(prefix="/classes", tags=["Classes"])
 
+@router.get("/public", response_model=List[ClassOut])
+def get_public_classes(db: Session = Depends(get_db)):
+    """Public unauthenticated list of classes for registration."""
+    classes = db.query(Class).all()
+    results = []
+    for c in classes:
+        student_count = db.query(Student).filter(Student.class_id == c.id, Student.active == True).count()
+        c_out = ClassOut.model_validate(c)
+        c_out.student_count = student_count
+        results.append(c_out)
+    return results
+
 @router.get("", response_model=List[ClassOut])
 def get_classes(db: Session = Depends(get_db), token: dict = Depends(get_current_user_token)):
-    classes = db.query(Class).all()
+    caller_id = token.get("sub")
+    caller = db.query(User).filter(User.id == int(caller_id)).first() if caller_id else None
+
+    query = db.query(Class)
+    if caller and caller.role == "TEACHER" and caller.assigned_classes and len(caller.assigned_classes) > 0:
+        query = query.filter(Class.id.in_(caller.assigned_classes))
+
+    classes = query.all()
     results = []
     for c in classes:
         student_count = db.query(Student).filter(Student.class_id == c.id, Student.active == True).count()

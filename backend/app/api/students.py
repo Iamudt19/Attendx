@@ -4,7 +4,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from sqlalchemy.orm import Session
 from app.database.session import get_db
-from app.models.models import Student, FaceEmbedding, AttendanceRecord, AttendanceSession
+from app.models.models import Student, FaceEmbedding, AttendanceRecord, AttendanceSession, User
 from app.schemas.schemas import StudentCreate, StudentOut, FaceRegistrationResult
 from app.core.security import get_current_user_token
 from app.core.storage import storage_service
@@ -27,10 +27,15 @@ def normalize_image_url(path_str: Optional[str]) -> Optional[str]:
 
 @router.get("", response_model=List[StudentOut])
 def list_students(class_id: Optional[int] = None, db: Session = Depends(get_db), token: dict = Depends(get_current_user_token)):
+    caller_id = token.get("sub")
+    caller = db.query(User).filter(User.id == int(caller_id)).first() if caller_id else None
+
     query = db.query(Student).filter(Student.active == True)
     if class_id:
         query = query.filter(Student.class_id == class_id)
-    
+    elif caller and caller.role == "TEACHER" and caller.assigned_classes and len(caller.assigned_classes) > 0:
+        query = query.filter(Student.class_id.in_(caller.assigned_classes))
+
     students = query.order_by(Student.roll_number).all()
     results = []
     for s in students:

@@ -379,9 +379,15 @@ def get_attendance_sessions(
     db: Session = Depends(get_db),
     token: dict = Depends(get_current_user_token)
 ):
+    caller_id = token.get("sub")
+    caller = db.query(User).filter(User.id == int(caller_id)).first() if caller_id else None
+
     query = db.query(AttendanceSession)
     if class_id:
         query = query.filter(AttendanceSession.class_id == class_id)
+    elif caller and caller.role == "TEACHER" and caller.assigned_classes and len(caller.assigned_classes) > 0:
+        query = query.filter(AttendanceSession.class_id.in_(caller.assigned_classes))
+
     if subject_id:
         query = query.filter(AttendanceSession.subject_id == subject_id)
     if date:

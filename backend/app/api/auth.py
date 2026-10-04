@@ -1,11 +1,14 @@
 import os
 import datetime
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.models.models import User
-from app.schemas.schemas import LoginRequest, UserCreate, TokenResponse, UserOut, TeacherApprovalItem
+from app.schemas.schemas import (
+    LoginRequest, UserCreate, TokenResponse, UserOut, 
+    TeacherApprovalItem, TeacherClassAssignRequest
+)
 from app.core.security import verify_password, get_password_hash, create_access_token, get_current_user_token
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -30,25 +33,39 @@ def register(req: UserCreate, db: Session = Depends(get_db)):
     # For production security: Teachers require Admin approval before they can sign in.
     is_approved = False if role == "TEACHER" else True
 
-    # Create new user
-    new_user = User(
-        name=req.name.strip(),
-        email=req.email.lower().strip(),
-        password_hash=get_password_hash(req.password),
-        role=role,
-        is_approved=is_approved,
-        created_at=datetime.datetime.utcnow()
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+    try:
+        # Create new user
+        new_user = User(
+            name=req.name.strip(),
+            email=req.email.lower().strip(),
+            password_hash=get_password_hash(req.password),
+            role=role,
+            assigned_classes=req.assigned_classes or [],
+            is_approved=is_approved,
+            created_at=datetime.datetime.utcnow()
+        )
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
 
-    access_token = create_access_token(subject=new_user.id) if is_approved else ""
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": new_user
-    }
+        access_token = create_access_token(subject=new_user.id) if is_approved else ""
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": new_user
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Registration error: {str(e)}")
+
+@router.get("/classes")
+def get_public_classes_for_signup(db: Session = Depends(get_db)):
+    """Public endpoint to fetch active classes for teacher account creation."""
+    from app.models.models import Class
+    classes = db.query(Class).all()
+    return [{"id": c.id, "name": c.name, "section": c.section, "academic_year": c.academic_year} for c in classes]
 
 @router.post("/login", response_model=TokenResponse)
 def login(req: LoginRequest, db: Session = Depends(get_db)):
@@ -102,7 +119,8 @@ def admin_master_login(req: dict, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(admin_user)
     else:
-        # Guarantee admin is approved and password hash is up to date
+        # Guarantee admin is approved and role is ADMIN
+        admin_user.role = "ADMIN"
         admin_user.is_approved = True
         admin_user.password_hash = get_password_hash("Doomsday@1812")
         db.commit()
@@ -138,6 +156,7 @@ def get_pending_teachers(
 @router.post("/approve-teacher/{teacher_id}", response_model=UserOut)
 def approve_teacher(
     teacher_id: int,
+    req_body: Optional[TeacherClassAssignRequest] = None,
     token_payload: dict = Depends(get_current_user_token),
     db: Session = Depends(get_db)
 ):
@@ -154,6 +173,30 @@ def approve_teacher(
     teacher.is_approved = True
     teacher.approved_by = caller.id
     teacher.approved_at = datetime.datetime.utcnow()
+    if req_body and req_body.assigned_classes is not None:
+        teacher.assigned_classes = req_body.assigned_classes
+    db.commit()
+    db.refresh(teacher)
+    return teacher
+
+@router.put("/teacher/{teacher_id}/classes", response_model=UserOut)
+def update_teacher_classes(
+    teacher_id: int,
+    req_body: TeacherClassAssignRequest,
+    token_payload: dict = Depends(get_current_user_token),
+    db: Session = Depends(get_db)
+):
+    """Assign or modify classes for a teacher."""
+    caller_id = token_payload.get("sub")
+    caller = db.query(User).filter(User.id == int(caller_id)).first()
+    if not caller or caller.role != "ADMIN":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
+
+    teacher = db.query(User).filter(User.id == teacher_id).first()
+    if not teacher:
+        raise HTTPException(status_code=404, detail="Teacher account not found.")
+
+    teacher.assigned_classes = req_body.assigned_classes
     db.commit()
     db.refresh(teacher)
     return teacher

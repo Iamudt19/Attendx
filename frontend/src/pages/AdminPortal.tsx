@@ -87,6 +87,13 @@ export const AdminPortal: React.FC = () => {
   const [newSubjectClassId, setNewSubjectClassId] = useState<number>(0);
 
   const [actionMessage, setActionMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [editingTeacherClasses, setEditingTeacherClasses] = useState<{
+    id: number;
+    name: string;
+    email: string;
+    assigned_classes: number[];
+  } | null>(null);
+  const [isSavingTeacherClasses, setIsSavingTeacherClasses] = useState<boolean>(false);
 
   const notify = (text: string, type: 'success' | 'error' = 'success') => {
     setActionMessage({ text, type });
@@ -187,6 +194,60 @@ export const AdminPortal: React.FC = () => {
       refreshAllData();
     } catch (err: any) {
       notify(extractErrorMessage(err, 'Failed to reject teacher registration.'), 'error');
+    }
+  };
+
+  const handleOpenEditTeacherClasses = (teacher: any) => {
+    setEditingTeacherClasses({
+      id: teacher.id,
+      name: teacher.name,
+      email: teacher.email,
+      assigned_classes: Array.isArray(teacher.assigned_classes) ? [...teacher.assigned_classes] : []
+    });
+  };
+
+  const handleToggleTeacherClass = (classId: number) => {
+    if (!editingTeacherClasses) return;
+    setEditingTeacherClasses(prev => {
+      if (!prev) return null;
+      const exists = prev.assigned_classes.includes(classId);
+      return {
+        ...prev,
+        assigned_classes: exists
+          ? prev.assigned_classes.filter(id => id !== classId)
+          : [...prev.assigned_classes, classId]
+      };
+    });
+  };
+
+  const handleSelectAllTeacherClasses = () => {
+    if (!editingTeacherClasses) return;
+    setEditingTeacherClasses(prev => prev ? {
+      ...prev,
+      assigned_classes: classes.map(c => c.id)
+    } : null);
+  };
+
+  const handleDeselectAllTeacherClasses = () => {
+    if (!editingTeacherClasses) return;
+    setEditingTeacherClasses(prev => prev ? {
+      ...prev,
+      assigned_classes: []
+    } : null);
+  };
+
+  const handleSaveTeacherClasses = async () => {
+    if (!editingTeacherClasses) return;
+    setIsSavingTeacherClasses(true);
+    try {
+      await AuthService.updateTeacherClasses(editingTeacherClasses.id, editingTeacherClasses.assigned_classes);
+      notify(`Assigned classes updated for ${editingTeacherClasses.name}.`);
+      setEditingTeacherClasses(null);
+      refreshAllData();
+    } catch (err: any) {
+      notify(extractErrorMessage(err, 'Failed to update teacher assigned classes.'), 'error');
+    } finally {
+      setIsSavingTeacherClasses(false);
     }
   };
 
@@ -980,48 +1041,75 @@ export const AdminPortal: React.FC = () => {
                     <tr>
                       <th className="py-3 px-4">Educator Name</th>
                       <th className="py-3 px-4">Institutional Email</th>
-                      <th className="py-3 px-4">Role</th>
+                      <th className="py-3 px-4">Requested Classes</th>
                       <th className="py-3 px-4">Registered On</th>
                       <th className="py-3 px-4 text-right">Approval Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border-color)]">
-                    {pendingTeachers.map((teacher: any) => (
-                      <tr key={teacher.id} className="hover:bg-[var(--bg-inset)] transition-colors bg-amber-500/[0.03]">
-                        <td className="py-3.5 px-4 font-bold text-[var(--text-primary)] font-sans">
-                          {teacher.name}
-                        </td>
-                        <td className="py-3.5 px-4 text-[var(--text-secondary)]">
-                          {teacher.email}
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20">
-                            {teacher.role}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-[var(--text-muted)]">
-                          {teacher.created_at ? new Date(teacher.created_at).toLocaleString() : 'Recent'}
-                        </td>
-                        <td className="py-3.5 px-4 text-right space-x-2">
-                          <button
-                            type="button"
-                            onClick={() => handleApproveTeacher(teacher.id, teacher.name)}
-                            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm inline-flex items-center gap-1.5 transition-colors"
-                          >
-                            <Check className="w-3.5 h-3.5" />
-                            <span>Approve Account</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleRejectTeacher(teacher.id, teacher.name)}
-                            className="px-3 py-1.5 rounded-lg bg-rose-600/10 hover:bg-rose-600/20 text-rose-500 border border-rose-500/20 font-bold text-xs inline-flex items-center gap-1.5 transition-colors"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                            <span>Reject</span>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {pendingTeachers.map((teacher: any) => {
+                      const teacherClassIds: number[] = Array.isArray(teacher.assigned_classes) ? teacher.assigned_classes : [];
+                      return (
+                        <tr key={teacher.id} className="hover:bg-[var(--bg-inset)] transition-colors bg-amber-500/[0.03]">
+                          <td className="py-3.5 px-4 font-bold text-[var(--text-primary)] font-sans">
+                            {teacher.name}
+                          </td>
+                          <td className="py-3.5 px-4 text-[var(--text-secondary)]">
+                            {teacher.email}
+                          </td>
+                          <td className="py-3.5 px-4">
+                            <div className="flex flex-wrap gap-1 items-center">
+                              {teacherClassIds.length > 0 ? (
+                                teacherClassIds.map((cid: number) => {
+                                  const cObj = classes.find((c: ClassItem) => c.id === cid);
+                                  return (
+                                    <span
+                                      key={cid}
+                                      className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
+                                    >
+                                      {cObj ? `${cObj.name} ${cObj.section}` : `Class #${cid}`}
+                                    </span>
+                                  );
+                                })
+                              ) : (
+                                <span className="text-[11px] text-[var(--text-muted)] italic">
+                                  All Classes (Default)
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditTeacherClasses(teacher)}
+                                className="ml-1 text-[10px] text-blue-600 hover:underline inline-flex items-center gap-0.5"
+                                title="Edit assigned classes"
+                              >
+                                <Edit3 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </td>
+                          <td className="py-3.5 px-4 text-[var(--text-muted)]">
+                            {teacher.created_at ? new Date(teacher.created_at).toLocaleString() : 'Recent'}
+                          </td>
+                          <td className="py-3.5 px-4 text-right space-x-2">
+                            <button
+                              type="button"
+                              onClick={() => handleApproveTeacher(teacher.id, teacher.name)}
+                              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm inline-flex items-center gap-1.5 transition-colors"
+                            >
+                              <Check className="w-3.5 h-3.5" />
+                              <span>Approve Account</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRejectTeacher(teacher.id, teacher.name)}
+                              className="px-3 py-1.5 rounded-lg bg-rose-600/10 hover:bg-rose-600/20 text-rose-500 border border-rose-500/20 font-bold text-xs inline-flex items-center gap-1.5 transition-colors"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                              <span>Reject</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                     {pendingTeachers.length === 0 && (
                       <tr>
                         <td colSpan={5} className="py-10 text-center text-xs text-[var(--text-muted)]">
@@ -1047,28 +1135,60 @@ export const AdminPortal: React.FC = () => {
                     <tr>
                       <th className="py-3 px-4">Faculty Name</th>
                       <th className="py-3 px-4">Institutional Email</th>
+                      <th className="py-3 px-4">Assigned Cohorts &amp; Classes</th>
                       <th className="py-3 px-4">Status</th>
-                      <th className="py-3 px-4">Registration Date</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border-color)]">
-                    {allTeachers.filter((t: any) => t.is_approved).map((t: any) => (
-                      <tr key={t.id} className="hover:bg-[var(--bg-inset)] transition-colors">
-                        <td className="py-3 px-4 font-bold text-[var(--text-primary)] font-sans">{t.name}</td>
-                        <td className="py-3 px-4 text-[var(--text-secondary)]">{t.email}</td>
-                        <td className="py-3 px-4">
-                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                            ✓ ACTIVE &amp; APPROVED
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-[var(--text-muted)]">
-                          {t.created_at ? new Date(t.created_at).toLocaleDateString() : '—'}
-                        </td>
-                      </tr>
-                    ))}
+                    {allTeachers.filter((t: any) => t.is_approved).map((t: any) => {
+                      const teacherClassIds: number[] = Array.isArray(t.assigned_classes) ? t.assigned_classes : [];
+                      return (
+                        <tr key={t.id} className="hover:bg-[var(--bg-inset)] transition-colors">
+                          <td className="py-3 px-4 font-bold text-[var(--text-primary)] font-sans">{t.name}</td>
+                          <td className="py-3 px-4 text-[var(--text-secondary)]">{t.email}</td>
+                          <td className="py-3 px-4">
+                            <div className="flex flex-wrap gap-1 items-center">
+                              {teacherClassIds.length > 0 ? (
+                                teacherClassIds.map((cid: number) => {
+                                  const cObj = classes.find((c: ClassItem) => c.id === cid);
+                                  return (
+                                    <span
+                                      key={cid}
+                                      className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
+                                    >
+                                      {cObj ? `${cObj.name} ${cObj.section}` : `Class #${cid}`}
+                                    </span>
+                                  );
+                                })
+                              ) : (
+                                <span className="text-[11px] text-[var(--text-muted)] italic">
+                                  All Classes (Unrestricted)
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                              ✓ ACTIVE
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenEditTeacherClasses(t)}
+                              className="px-2.5 py-1 rounded-md text-[11px] font-mono font-bold bg-[var(--bg-inset)] hover:bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-color)] inline-flex items-center gap-1.5 transition-colors"
+                            >
+                              <Edit3 className="w-3 h-3 text-blue-500" />
+                              <span>Edit Classes</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                     {allTeachers.filter((t: any) => t.is_approved).length === 0 && (
                       <tr>
-                        <td colSpan={4} className="p-6 text-center text-xs text-[var(--text-muted)]">
+                        <td colSpan={5} className="p-6 text-center text-xs text-[var(--text-muted)]">
                           No active faculty accounts found.
                         </td>
                       </tr>
@@ -1918,6 +2038,131 @@ export const AdminPortal: React.FC = () => {
                   <span>{isSavingAttendance ? 'Saving to Database...' : 'Save Attendance Changes'}</span>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: EDIT TEACHER ASSIGNED CLASSES ───────────────────────────────── */}
+      {editingTeacherClasses && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="swiss-card max-w-lg w-full rounded-2xl shadow-2xl border border-[var(--border-color)] overflow-hidden flex flex-col animate-in fade-in zoom-in-95">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-[var(--border-color)] flex items-center justify-between bg-[var(--bg-surface)]">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                  <UserCheck className="w-3 h-3" /> FACULTY CLASS SCOPE
+                </div>
+                <h3 className="text-base font-bold text-[var(--text-primary)]">
+                  Assign Classes: {editingTeacherClasses.name}
+                </h3>
+                <p className="text-xs text-[var(--text-secondary)] font-mono">
+                  {editingTeacherClasses.email}
+                </p>
+              </div>
+              <button
+                onClick={() => setEditingTeacherClasses(null)}
+                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-inset)]"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
+              <div className="p-3.5 rounded-xl bg-[var(--bg-inset)] border border-[var(--border-color)] text-xs text-[var(--text-secondary)]">
+                Select the classes this teacher is authorized to teach and mark attendance for. They will only see students and take sessions for these assigned cohorts.
+              </div>
+
+              {/* Quick Select Buttons */}
+              <div className="flex items-center justify-between font-mono text-xs pt-1">
+                <span className="text-[var(--text-muted)] font-bold">
+                  {editingTeacherClasses.assigned_classes.length} of {classes.length} selected
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSelectAllTeacherClasses}
+                    className="text-xs text-blue-600 hover:underline font-bold"
+                  >
+                    Select All
+                  </button>
+                  <span className="text-[var(--text-muted)]">·</span>
+                  <button
+                    type="button"
+                    onClick={handleDeselectAllTeacherClasses}
+                    className="text-xs text-rose-500 hover:underline font-bold"
+                  >
+                    Clear All
+                  </button>
+                </div>
+              </div>
+
+              {/* Class Checkbox List */}
+              <div className="space-y-2">
+                {classes.map((cls: ClassItem) => {
+                  const isChecked = editingTeacherClasses.assigned_classes.includes(cls.id);
+                  const enrolledCount = students.filter(s => s.class_id === cls.id).length;
+                  return (
+                    <label
+                      key={cls.id}
+                      onClick={() => handleToggleTeacherClass(cls.id)}
+                      className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer select-none ${
+                        isChecked
+                          ? 'bg-blue-500/10 border-blue-500/40 text-[var(--text-primary)] shadow-sm'
+                          : 'bg-[var(--bg-surface)] border-[var(--border-color)] text-[var(--text-secondary)] hover:border-[var(--border-color-hover)]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {}} // handled by parent label onClick
+                          className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        />
+                        <div>
+                          <div className="text-xs font-bold text-[var(--text-primary)]">
+                            {cls.name} <span className="font-mono text-blue-500 font-normal">({cls.section})</span>
+                          </div>
+                          <div className="text-[11px] font-mono text-[var(--text-muted)]">
+                            Year: {cls.academic_year || '2026-27'} · {enrolledCount} Students Enrolled
+                          </div>
+                        </div>
+                      </div>
+                      <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
+                        isChecked ? 'bg-blue-500 text-white' : 'bg-[var(--bg-inset)] text-[var(--text-muted)]'
+                      }`}>
+                        {isChecked ? 'ASSIGNED' : 'UNASSIGNED'}
+                      </span>
+                    </label>
+                  );
+                })}
+                {classes.length === 0 && (
+                  <div className="text-center py-6 text-xs text-[var(--text-muted)] font-mono">
+                    No classes created in system yet.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-[var(--border-color)] bg-[var(--bg-surface)] flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setEditingTeacherClasses(null)}
+                className="btn-secondary px-4 py-2 text-xs font-mono"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveTeacherClasses}
+                disabled={isSavingTeacherClasses}
+                className="btn-primary px-5 py-2 text-xs font-mono font-bold flex items-center gap-1.5 shadow-md disabled:opacity-50"
+              >
+                <Save className={`w-3.5 h-3.5 ${isSavingTeacherClasses ? 'animate-spin' : ''}`} />
+                <span>{isSavingTeacherClasses ? 'Saving...' : 'Save Assigned Classes'}</span>
+              </button>
             </div>
           </div>
         </div>

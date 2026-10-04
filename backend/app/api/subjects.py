@@ -2,7 +2,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database.session import get_db
-from app.models.models import Subject
+from app.models.models import Subject, User
 from app.schemas.schemas import SubjectCreate, SubjectUpdate, SubjectOut
 from app.core.security import get_current_user_token
 
@@ -10,9 +10,14 @@ router = APIRouter(prefix="/subjects", tags=["Subjects"])
 
 @router.get("", response_model=List[SubjectOut])
 def get_subjects(class_id: Optional[int] = None, db: Session = Depends(get_db), token: dict = Depends(get_current_user_token)):
+    caller_id = token.get("sub")
+    caller = db.query(User).filter(User.id == int(caller_id)).first() if caller_id else None
+
     query = db.query(Subject)
     if class_id:
         query = query.filter(Subject.class_id == class_id)
+    elif caller and caller.role == "TEACHER" and caller.assigned_classes and len(caller.assigned_classes) > 0:
+        query = query.filter(Subject.class_id.in_(caller.assigned_classes))
     return query.all()
 
 @router.post("", response_model=SubjectOut)

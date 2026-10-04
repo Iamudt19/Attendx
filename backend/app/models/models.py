@@ -11,6 +11,7 @@ class User(Base):
     email = Column(String(100), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     role = Column(String(20), default="TEACHER") # TEACHER or ADMIN
+    assigned_classes = Column(JSON, default=list, nullable=True) # List of class IDs assigned to teacher, e.g. [1, 2]
     is_approved = Column(Boolean, default=False, nullable=False) # Requires Admin approval for teachers
     approved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     approved_at = Column(DateTime, nullable=True)

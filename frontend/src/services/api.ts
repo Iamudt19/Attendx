@@ -42,8 +42,12 @@ export const AuthService = {
     const res = await api.post('/auth/admin-master-login', { password });
     return res.data;
   },
-  register: async (data: { name: string; email: string; password: string; role?: string }) => {
+  register: async (data: { name: string; email: string; password: string; role?: string; assigned_classes?: number[] }) => {
     const res = await api.post('/auth/register', data);
+    return res.data;
+  },
+  getPublicClasses: async (): Promise<ClassItem[]> => {
+    const res = await api.get('/auth/classes');
     return res.data;
   },
   getMe: async (): Promise<User> => {
@@ -54,8 +58,12 @@ export const AuthService = {
     const res = await api.get('/auth/pending-teachers');
     return res.data;
   },
-  approveTeacher: async (teacherId: number) => {
-    const res = await api.post(`/auth/approve-teacher/${teacherId}`);
+  approveTeacher: async (teacherId: number, data?: { assigned_classes?: number[] }) => {
+    const res = await api.post(`/auth/approve-teacher/${teacherId}`, data || {});
+    return res.data;
+  },
+  updateTeacherClasses: async (teacherId: number, assignedClasses: number[]) => {
+    const res = await api.put(`/auth/teacher/${teacherId}/classes`, { assigned_classes: assignedClasses });
     return res.data;
   },
   rejectTeacher: async (teacherId: number) => {
@@ -71,6 +79,10 @@ export const AuthService = {
 export const ClassService = {
   getClasses: async (): Promise<ClassItem[]> => {
     const res = await api.get('/classes');
+    return res.data;
+  },
+  getPublicClasses: async (): Promise<ClassItem[]> => {
+    const res = await api.get('/classes/public');
     return res.data;
   },
   createClass: async (data: { name: string; section: string; academic_year: string }): Promise<ClassItem> => {

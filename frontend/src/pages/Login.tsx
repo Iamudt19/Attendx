@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Camera, Lock, Mail, User as UserIcon, ArrowRight, ShieldCheck, 
-  GraduationCap, UserPlus, LogIn, ChevronLeft, Sparkles, CheckCircle2 
+  GraduationCap, UserPlus, LogIn, ChevronLeft, Sparkles, CheckCircle2,
+  BookOpen
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AuthService } from '../services/api';
-import { User } from '../types';
+import { User, ClassItem } from '../types';
 import { extractErrorMessage } from '../utils/error';
 import { Logo } from '../components/Logo';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { InstallAppButton } from '../components/InstallAppButton';
 import { useTheme } from '../context/ThemeContext';
 
 interface LoginProps {
@@ -29,11 +31,24 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<'TEACHER' | 'ADMIN'>('TEACHER');
+  const [role, setRole] = useState<'TEACHER'>('TEACHER');
+  const [availableClasses, setAvailableClasses] = useState<ClassItem[]>([]);
+  const [selectedClasses, setSelectedClasses] = useState<number[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    AuthService.getPublicClasses()
+      .then(data => {
+        setAvailableClasses(data || []);
+        if (data && data.length > 0) {
+          setSelectedClasses(data.map(c => c.id));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,13 +83,19 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       return;
     }
 
+    if (selectedClasses.length === 0) {
+      setError('Please select at least one class section you teach.');
+      return;
+    }
+
     setLoading(true);
     try {
       const data = await AuthService.register({
         name: name.trim(),
         email: regEmail.trim(),
         password: regPassword,
-        role: role,
+        role: 'TEACHER',
+        assigned_classes: selectedClasses
       });
       if (data.user?.is_approved && data.access_token) {
         localStorage.setItem('attendx_token', data.access_token);
@@ -116,6 +137,8 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         </div>
 
         <div className="flex items-center gap-3">
+          <InstallAppButton variant="header" />
+
           {/* Theme Toggle Slider */}
           <ThemeToggle variant="slider" size="sm" />
 
@@ -383,41 +406,64 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                 </div>
 
                 <div>
-                  <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${
+                  <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 flex items-center justify-between ${
                     isDark ? 'text-zinc-300' : 'text-slate-700'
                   }`}>
-                    Account Role
+                    <span>Assigned Classes & Sections <span className="text-blue-500">*</span></span>
+                    <span className="text-[10px] font-mono text-zinc-400 font-normal">
+                      {selectedClasses.length} selected
+                    </span>
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setRole('TEACHER')}
-                      className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
-                        role === 'TEACHER'
-                          ? 'border-blue-500 bg-blue-500/20 text-blue-400 shadow-sm'
-                          : isDark 
-                            ? 'border-white/10 bg-white/5 text-zinc-400 hover:bg-white/10' 
-                            : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
-                      }`}
-                    >
-                      <UserIcon className="w-3.5 h-3.5" />
-                      <span>Instructor / Teacher</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRole('ADMIN')}
-                      className={`p-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
-                        role === 'ADMIN'
-                          ? 'border-blue-500 bg-blue-500/20 text-blue-400 shadow-sm'
-                          : isDark 
-                            ? 'border-white/10 bg-white/5 text-zinc-400 hover:bg-white/10' 
-                            : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100'
-                      }`}
-                    >
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      <span>Department Admin</span>
-                    </button>
+                  <p className="text-[11px] text-zinc-400 mb-2 leading-relaxed">
+                    Select the class sections you teach. Your attendance rosters and student profiles will be scoped to these classes.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 border border-[var(--border-color)] rounded-xl bg-[var(--bg-inset)]">
+                    {availableClasses.length > 0 ? (
+                      availableClasses.map((cls) => {
+                        const isSelected = selectedClasses.includes(cls.id);
+                        return (
+                          <button
+                            key={cls.id}
+                            type="button"
+                            onClick={() => {
+                              if (isSelected) {
+                                setSelectedClasses(selectedClasses.filter((id) => id !== cls.id));
+                              } else {
+                                setSelectedClasses([...selectedClasses, cls.id]);
+                              }
+                            }}
+                            className={`p-2.5 rounded-xl border text-left flex items-center justify-between transition-all ${
+                              isSelected
+                                ? 'border-blue-500 bg-blue-500/15 text-blue-400 font-semibold shadow-sm'
+                                : isDark
+                                  ? 'border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10'
+                                  : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                            }`}
+                          >
+                            <div className="min-w-0 pr-2">
+                              <div className="text-xs font-bold truncate">{cls.name} {cls.section}</div>
+                              <div className="text-[10px] text-zinc-400 font-mono truncate">{cls.academic_year}</div>
+                            </div>
+                            {isSelected ? (
+                              <CheckCircle2 className="w-4 h-4 text-blue-500 shrink-0" />
+                            ) : (
+                              <div className="w-4 h-4 rounded-full border border-zinc-500 shrink-0" />
+                            )}
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <div className="p-3 text-center text-xs text-zinc-400 col-span-2">
+                        Loading available campus class sections...
+                      </div>
+                    )}
                   </div>
+                  {selectedClasses.length === 0 && (
+                    <div className="text-[11px] text-amber-500 font-medium mt-1.5 flex items-center gap-1">
+                      ⚠️ Please select at least one class section.
+                    </div>
+                  )}
                 </div>
 
                 <button

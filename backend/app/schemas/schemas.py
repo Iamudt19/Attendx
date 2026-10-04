@@ -20,6 +20,7 @@ class UserCreate(BaseModel):
     email: str
     password: str
     role: str = "TEACHER"
+    assigned_classes: Optional[List[int]] = []
 
 class UserOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -28,6 +29,7 @@ class UserOut(BaseModel):
     name: str
     email: str
     role: str
+    assigned_classes: Optional[List[int]] = []
     is_approved: bool = True
     approved_at: Optional[datetime] = None
     approved_by: Optional[int] = None
@@ -38,8 +40,12 @@ class TeacherApprovalItem(BaseModel):
     name: str
     email: str
     role: str
+    assigned_classes: Optional[List[int]] = []
     is_approved: bool
     created_at: datetime
+
+class TeacherClassAssignRequest(BaseModel):
+    assigned_classes: List[int]
 
 # Class Schemas
 class ClassCreate(BaseModel):
