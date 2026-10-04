@@ -370,6 +370,16 @@ export const AttendanceService = {
     }
     throw lastError;
   },
+  deleteSession: async (sessionId: number): Promise<{ success: boolean; message: string }> => {
+    const res = await api.delete(`/attendance/sessions/${sessionId}`);
+    return res.data;
+  },
+  deleteSessionByDateAndSubject: async (date: string, subjectId: number, classId?: number): Promise<{ success: boolean; deleted_count: number; message: string }> => {
+    const res = await api.delete('/attendance/sessions', {
+      params: { date, subject_id: subjectId, class_id: classId }
+    });
+    return res.data;
+  },
   getStudentAttendanceLog: async (studentId: number) => {
     const res = await api.get(`/attendance/students/${studentId}`);
     return res.data;

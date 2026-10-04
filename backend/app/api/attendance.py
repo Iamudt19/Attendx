@@ -579,6 +579,85 @@ def update_attendance_session_records(
         records=records_out
     )
 
+@router.delete("/sessions/{session_id}")
+def delete_attendance_session(
+    session_id: int,
+    db: Session = Depends(get_db),
+    token: dict = Depends(get_current_user_token)
+):
+    """
+    Delete a specific attendance session and all its associated records & audit logs.
+    Automatically regenerates class attendance excel report.
+    """
+    session = db.query(AttendanceSession).filter(AttendanceSession.id == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Attendance session not found.")
+
+    class_id = session.class_id
+    subject_id = session.subject_id
+    sess_date = session.date
+
+    # Delete records & audit logs
+    db.query(AttendanceAuditLog).filter(AttendanceAuditLog.session_id == session_id).delete()
+    db.query(AttendanceRecord).filter(AttendanceRecord.session_id == session_id).delete()
+    db.delete(session)
+    db.commit()
+
+    # Re-generate Excel report
+    try:
+        excel_service.generate_class_attendance_excel(db, class_id, subject_id)
+    except Exception as e:
+        print(f"Warning: Excel regeneration after delete failed: {e}")
+
+    return {
+        "success": True,
+        "message": f"Attendance session #{session_id} for {sess_date} deleted successfully."
+    }
+
+@router.delete("/sessions")
+def delete_attendance_by_date_and_subject(
+    date: str,
+    subject_id: int,
+    class_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    token: dict = Depends(get_current_user_token)
+):
+    """
+    Delete attendance session(s) for a particular date and subject.
+    """
+    query = db.query(AttendanceSession).filter(
+        AttendanceSession.date == date,
+        AttendanceSession.subject_id == subject_id
+    )
+    if class_id:
+        query = query.filter(AttendanceSession.class_id == class_id)
+
+    sessions = query.all()
+    if not sessions:
+        raise HTTPException(status_code=404, detail=f"No attendance sessions found for date '{date}' and subject ID {subject_id}.")
+
+    deleted_count = 0
+    for sess in sessions:
+        db.query(AttendanceAuditLog).filter(AttendanceAuditLog.session_id == sess.id).delete()
+        db.query(AttendanceRecord).filter(AttendanceRecord.session_id == sess.id).delete()
+        db.delete(sess)
+        deleted_count += 1
+
+    db.commit()
+
+    # Re-generate Excel report
+    if class_id:
+        try:
+            excel_service.generate_class_attendance_excel(db, class_id, subject_id)
+        except Exception:
+            pass
+
+    return {
+        "success": True,
+        "deleted_count": deleted_count,
+        "message": f"Deleted {deleted_count} attendance session(s) for date '{date}' and subject #{subject_id}."
+    }
+
 @router.get("/students/{student_id}")
 def get_student_attendance_log(
     student_id: int,
