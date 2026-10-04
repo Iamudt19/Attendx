@@ -90,6 +90,7 @@ def root():
     """
     return HTMLResponse(content=html)
 
+@app.get("/health")
 @app.get("/healthz")
 @app.get("/api/health")
 def health_check(db: Session = Depends(get_db)):

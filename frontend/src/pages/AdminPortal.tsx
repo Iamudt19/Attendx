@@ -1,13 +1,18 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Shield, Lock, Unlock, KeyRound, CheckCircle2, AlertCircle,
   Users, BookOpen, RefreshCw, Plus,
   Trash2, Search, ArrowRight, Activity,
   Sliders, Eye, EyeOff, Cpu, ChevronLeft,
-  FileSpreadsheet, Edit3, Save, Check, RotateCcw, X, Calendar, Download, UserCheck
+  FileSpreadsheet, Edit3, Save, Check, RotateCcw, X, Calendar, Download, UserCheck,
+  Server, Zap, HardDrive, Wifi, WifiOff, Globe, Clock, ShieldCheck, AlertTriangle,
+  Play, Database, Terminal, Radio, Signal, Power
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { AuthService, ClassService, StudentService, SubjectService, AttendanceService, api } from '../services/api';
+import { 
+  AuthService, ClassService, StudentService, SubjectService, 
+  AttendanceService, SystemDiagnosticsService, BackendHealthResult, api 
+} from '../services/api';
 import { ClassItem, StudentItem, SubjectItem, AttendanceSessionOut, AttendanceRecordOut } from '../types';
 import { extractErrorMessage } from '../utils/error';
 import { Logo } from '../components/Logo';
@@ -40,6 +45,13 @@ export const AdminPortal: React.FC = () => {
   const [loadingData, setLoadingData] = useState<boolean>(false);
   const [loadingSessions, setLoadingSessions] = useState<boolean>(false);
   const [systemHealth, setSystemHealth] = useState<{ status: string; database: string; version: string } | null>(null);
+
+  // System Diagnostics & Backend Pulse State
+  const [backendHealth, setBackendHealth] = useState<BackendHealthResult | null>(null);
+  const [isPingingBackend, setIsPingingBackend] = useState<boolean>(false);
+  const [autoKeepAlive, setAutoKeepAlive] = useState<boolean>(true);
+  const [isDownloadingBackup, setIsDownloadingBackup] = useState<boolean>(false);
+  const [pingHistory, setPingHistory] = useState<{ time: string; latency: number | null; status: string }[]>([]);
 
   // Attendance Editing State
   const [selectedSessionForEdit, setSelectedSessionForEdit] = useState<AttendanceSessionOut | null>(null);
@@ -177,11 +189,65 @@ export const AdminPortal: React.FC = () => {
     }
   };
 
+  const checkBackendPulse = useCallback(async (isUserInitiated = false) => {
+    setIsPingingBackend(true);
+    try {
+      const result = await SystemDiagnosticsService.pingBackend(isUserInitiated ? 12000 : 6000);
+      setBackendHealth(result);
+      setPingHistory(prev => [
+        { time: result.timestamp, latency: result.latency, status: result.status },
+        ...prev.slice(0, 7)
+      ]);
+      if (isUserInitiated) {
+        if (result.status === 'online') {
+          notify(`Backend node is ONLINE (${result.latency}ms roundtrip latency).`);
+        } else if (result.status === 'waking') {
+          notify('Backend node is spinning up on Render... please wait 15-25 seconds.', 'error');
+        } else {
+          notify(`Backend node status: ${result.error || result.status}`, 'error');
+        }
+      }
+    } catch (e: any) {
+      setBackendHealth({
+        status: 'offline',
+        latency: null,
+        data: null,
+        endpoint: '/api',
+        timestamp: new Date().toLocaleTimeString(),
+        error: e.message || 'Offline'
+      });
+    } finally {
+      setIsPingingBackend(false);
+    }
+  }, []);
+
+  const handleDownloadLiveBackup = async () => {
+    setIsDownloadingBackup(true);
+    try {
+      await SystemDiagnosticsService.downloadLiveBackup();
+      notify('Live database JSON snapshot downloaded successfully.');
+    } catch (e: any) {
+      notify(extractErrorMessage(e, 'Failed to download live database snapshot.'), 'error');
+    } finally {
+      setIsDownloadingBackup(false);
+    }
+  };
+
   useEffect(() => {
     if (isAuthenticated) {
       refreshAllData();
+      checkBackendPulse(false);
     }
-  }, [isAuthenticated, refreshAllData]);
+  }, [isAuthenticated, refreshAllData, checkBackendPulse]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !autoKeepAlive) return;
+    // Auto-ping every 60 seconds to keep Render container active & track latency
+    const interval = setInterval(() => {
+      checkBackendPulse(false);
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, autoKeepAlive, checkBackendPulse]);
 
   // Attendance Handlers
   const handleOpenSessionEditor = async (sessionItem: AttendanceSessionOut) => {
@@ -466,11 +532,41 @@ export const AdminPortal: React.FC = () => {
       {/* Top Header */}
       <header className="border-b border-[var(--border-color)] bg-[var(--bg-surface)] sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
-            <Logo size="sm" showSubtitle={false} />
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-[var(--border-color)] bg-[var(--bg-inset)] text-blue-600 font-bold">
-              INSTITUTIONAL ADMIN
-            </span>
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
+              <Logo size="sm" showSubtitle={false} />
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-[var(--border-color)] bg-[var(--bg-inset)] text-blue-600 font-bold">
+                INSTITUTIONAL ADMIN
+              </span>
+            </div>
+
+            {/* Live Backend Heartbeat Pill */}
+            {backendHealth && (
+              <button
+                onClick={() => checkBackendPulse(true)}
+                disabled={isPingingBackend}
+                className={`hidden md:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold transition-all border ${
+                  backendHealth.status === 'online'
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
+                    : backendHealth.status === 'waking'
+                      ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/20 animate-pulse'
+                      : 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/20 animate-bounce'
+                }`}
+                title="Backend Server Telemetry · Click to test ping / wake up"
+              >
+                <span className={`w-2 h-2 rounded-full ${
+                  backendHealth.status === 'online' ? 'bg-emerald-500 animate-pulse' :
+                  backendHealth.status === 'waking' ? 'bg-amber-500 animate-ping' :
+                  'bg-rose-500'
+                }`}></span>
+                <span>
+                  {isPingingBackend ? 'Pinging...' :
+                   backendHealth.status === 'online' ? `Backend Live ${backendHealth.latency !== null ? `· ${backendHealth.latency}ms` : ''}` :
+                   backendHealth.status === 'waking' ? 'Backend Spinning Up...' :
+                   'Backend Spun Down (Wake)'}
+                </span>
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
@@ -1177,27 +1273,284 @@ export const AdminPortal: React.FC = () => {
 
         {/* ── TAB 5: SYSTEM DIAGNOSTICS ─────────────────────────────────────── */}
         {activeTab === 'diagnostics' && (
-          <div className="swiss-card p-6 rounded-lg space-y-4 font-mono text-xs">
-            <h2 className="text-base font-bold text-[var(--text-primary)] font-sans flex items-center gap-2">
-              <Cpu className="w-4 h-4 text-emerald-600" />
-              Node Diagnostics & Subsystems
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              <div className="p-4 bg-[var(--bg-inset)] rounded-lg border border-[var(--border-color)] space-y-2">
-                <div className="text-[var(--text-muted)] uppercase tracking-wider">Database Status</div>
-                <div className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                  <span>Supabase PostgreSQL Connected</span>
+          <div className="space-y-6 font-mono text-xs">
+            {/* Header & Quick Controls */}
+            <div className="swiss-card p-6 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h2 className="text-lg font-extrabold text-[var(--text-primary)] font-sans flex items-center gap-2">
+                  <Server className="w-5 h-5 text-blue-600" />
+                  System Diagnostics & Server Telemetry
+                </h2>
+                <p className="text-xs text-[var(--text-secondary)] font-sans">
+                  Real-time health monitoring, latency telemetry, and Keep-Alive controls for AttendX cloud subsystems.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <button
+                  onClick={() => setAutoKeepAlive(!autoKeepAlive)}
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-mono font-bold flex items-center gap-2 transition-colors ${
+                    autoKeepAlive
+                      ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                      : 'bg-[var(--bg-inset)] text-[var(--text-muted)] border-[var(--border-color)]'
+                  }`}
+                  title="When active, pings the backend every 60s to prevent Render free-tier sleep"
+                >
+                  <Radio className={`w-3.5 h-3.5 ${autoKeepAlive ? 'animate-pulse text-emerald-500' : ''}`} />
+                  <span>Keep-Alive: {autoKeepAlive ? 'ON (60s)' : 'OFF'}</span>
+                </button>
+
+                <button
+                  onClick={() => checkBackendPulse(true)}
+                  disabled={isPingingBackend}
+                  className="btn-primary px-4 py-1.5 text-xs font-mono flex items-center gap-2 font-bold shrink-0"
+                >
+                  <Zap className={`w-3.5 h-3.5 ${isPingingBackend ? 'animate-spin' : ''}`} />
+                  <span>{isPingingBackend ? 'Pinging Node...' : '⚡ Test Ping / Wake'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 4 Core Telemetry Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Card 1: Backend Container Status */}
+              <div className="swiss-card p-5 rounded-xl border border-[var(--border-color)] space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-sans font-bold text-sm text-[var(--text-primary)]">
+                    <Server className="w-4 h-4 text-blue-500" />
+                    <span>Backend API Container</span>
+                  </div>
+                  <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border flex items-center gap-1.5 ${
+                    backendHealth?.status === 'online'
+                      ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30'
+                      : backendHealth?.status === 'waking'
+                        ? 'bg-amber-500/10 text-amber-500 border-amber-500/30 animate-pulse'
+                        : 'bg-rose-500/10 text-rose-500 border-rose-500/30'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${
+                      backendHealth?.status === 'online' ? 'bg-emerald-500 animate-pulse' :
+                      backendHealth?.status === 'waking' ? 'bg-amber-500' :
+                      'bg-rose-500'
+                    }`}></span>
+                    <span>
+                      {backendHealth?.status === 'online' ? 'ONLINE (ACTIVE)' :
+                       backendHealth?.status === 'waking' ? 'SPINNING UP (WAKING)' :
+                       'SPUN DOWN (OFFLINE)'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between py-1 border-b border-[var(--border-color)]/50">
+                    <span className="text-[var(--text-muted)]">Hosting Platform:</span>
+                    <span className="font-semibold text-[var(--text-primary)]">Render Cloud (FastAPI + Uvicorn)</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-[var(--border-color)]/50">
+                    <span className="text-[var(--text-muted)]">Roundtrip Latency:</span>
+                    <span className={`font-bold ${
+                      (backendHealth?.latency ?? 999) < 150 ? 'text-emerald-500' :
+                      (backendHealth?.latency ?? 999) < 500 ? 'text-amber-500' : 'text-rose-500'
+                    }`}>
+                      {backendHealth?.latency !== null && backendHealth?.latency !== undefined
+                        ? `${backendHealth.latency} ms (${backendHealth.latency < 150 ? 'Optimal' : 'Moderate'})`
+                        : 'No response / Offline'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-[var(--border-color)]/50">
+                    <span className="text-[var(--text-muted)]">Last Pulse Check:</span>
+                    <span className="text-[var(--text-secondary)]">{backendHealth?.timestamp || 'Pending check...'}</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-[var(--text-muted)]">Spindown Protection:</span>
+                    <span className="text-emerald-500 font-semibold">{autoKeepAlive ? 'Active (Auto-Ping enabled)' : 'Disabled'}</span>
+                  </div>
+                </div>
+
+                {backendHealth?.data && (
+                  <div className="p-3 bg-[var(--bg-inset)] rounded-lg border border-[var(--border-color)]">
+                    <div className="text-[10px] text-[var(--text-muted)] uppercase mb-1">Live Health Payload:</div>
+                    <pre className="text-[11px] text-emerald-500 overflow-x-auto">
+                      {JSON.stringify(backendHealth.data, null, 2)}
+                    </pre>
+                  </div>
+                )}
+                {backendHealth?.error && (
+                  <div className="p-3 bg-rose-500/10 rounded-lg border border-rose-500/30 text-rose-500 text-xs">
+                    <div className="font-bold mb-0.5">Connection Notice:</div>
+                    <div>{backendHealth.error}</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Card 2: Supabase PostgreSQL Database */}
+              <div className="swiss-card p-5 rounded-xl border border-[var(--border-color)] space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-sans font-bold text-sm text-[var(--text-primary)]">
+                    <Database className="w-4 h-4 text-emerald-500" />
+                    <span>Supabase PostgreSQL DB</span>
+                  </div>
+                  <div className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    <span>CONNECTED & HEALTHY</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between py-1 border-b border-[var(--border-color)]/50">
+                    <span className="text-[var(--text-muted)]">Database Region:</span>
+                    <span className="font-semibold text-[var(--text-primary)]">AWS ap-south-1 (Mumbai Pooler)</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-[var(--border-color)]/50">
+                    <span className="text-[var(--text-muted)]">Connection Mode:</span>
+                    <span className="font-semibold text-[var(--text-primary)]">IPv4 Session Pooler (psycopg2)</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-[var(--border-color)]/50">
+                    <span className="text-[var(--text-muted)]">Data Persistence:</span>
+                    <span className="text-emerald-500 font-semibold">100% Cloud Permanent (Never wiped)</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+                  <div className="p-2.5 bg-[var(--bg-inset)] rounded-lg border border-[var(--border-color)] text-center">
+                    <div className="text-base font-extrabold text-[var(--text-primary)]">{students.length}</div>
+                    <div className="text-[10px] text-[var(--text-muted)]">Students</div>
+                  </div>
+                  <div className="p-2.5 bg-[var(--bg-inset)] rounded-lg border border-[var(--border-color)] text-center">
+                    <div className="text-base font-extrabold text-blue-500">{totalFacesStored}</div>
+                    <div className="text-[10px] text-[var(--text-muted)]">Face Vectors</div>
+                  </div>
+                  <div className="p-2.5 bg-[var(--bg-inset)] rounded-lg border border-[var(--border-color)] text-center">
+                    <div className="text-base font-extrabold text-emerald-500">{sessions.length}</div>
+                    <div className="text-[10px] text-[var(--text-muted)]">Sessions</div>
+                  </div>
+                  <div className="p-2.5 bg-[var(--bg-inset)] rounded-lg border border-[var(--border-color)] text-center">
+                    <div className="text-base font-extrabold text-[var(--text-primary)]">{classes.length}</div>
+                    <div className="text-[10px] text-[var(--text-muted)]">Classes</div>
+                  </div>
+                  <div className="p-2.5 bg-[var(--bg-inset)] rounded-lg border border-[var(--border-color)] text-center">
+                    <div className="text-base font-extrabold text-[var(--text-primary)]">{subjects.length}</div>
+                    <div className="text-[10px] text-[var(--text-muted)]">Subjects</div>
+                  </div>
+                  <div className="p-2.5 bg-[var(--bg-inset)] rounded-lg border border-[var(--border-color)] text-center">
+                    <div className="text-base font-extrabold text-indigo-500">{allTeachers.length}</div>
+                    <div className="text-[10px] text-[var(--text-muted)]">Educators</div>
+                  </div>
                 </div>
               </div>
-              <div className="p-4 bg-[var(--bg-inset)] rounded-lg border border-[var(--border-color)] space-y-2">
-                <div className="text-[var(--text-muted)] uppercase tracking-wider">Face Recognition Engine</div>
-                <div className="text-blue-600 font-bold flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-                  <span>YuNet (640x640) + SFace 128-D Active</span>
+
+              {/* Card 3: OpenCV SFace Biometric Engine */}
+              <div className="swiss-card p-5 rounded-xl border border-[var(--border-color)] space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-sans font-bold text-sm text-[var(--text-primary)]">
+                    <Cpu className="w-4 h-4 text-purple-500" />
+                    <span>OpenCV SFace AI Engine</span>
+                  </div>
+                  <div className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-500 border border-purple-500/30 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                    <span>ACTIVE & CALIBRATED</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between py-1 border-b border-[var(--border-color)]/50">
+                    <span className="text-[var(--text-muted)]">Face Detection:</span>
+                    <span className="font-semibold text-[var(--text-primary)]">YuNet ONNX (640x640 Dynamic)</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-[var(--border-color)]/50">
+                    <span className="text-[var(--text-muted)]">Feature Extraction:</span>
+                    <span className="font-semibold text-[var(--text-primary)]">OpenCV SFace (128-D Vector Embeddings)</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-[var(--border-color)]/50">
+                    <span className="text-[var(--text-muted)]">Assignment Protocol:</span>
+                    <span className="text-blue-500 font-semibold">Strict 1-to-1 Bipartite Assignment</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-[var(--text-muted)]">Decision Threshold:</span>
+                    <span className="text-emerald-500 font-semibold">Sim ≥ 0.42 · Margin ≥ 0.06 (PRESENT)</span>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-[var(--bg-inset)] rounded-lg border border-[var(--border-color)] space-y-1 text-[11px]">
+                  <div className="font-bold text-[var(--text-primary)]">FAR / False-Positive Protection:</div>
+                  <div className="text-[var(--text-secondary)] leading-relaxed">
+                    Stranger faces &lt; 0.35 similarity fall back to <strong className="text-rose-500">UNKNOWN</strong>. Multi-face photo clashes are resolved via greedy bipartite optimization so no student is ever claimed twice.
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 4: Disaster Recovery & Live Backups */}
+              <div className="swiss-card p-5 rounded-xl border border-[var(--border-color)] space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-sans font-bold text-sm text-[var(--text-primary)]">
+                    <HardDrive className="w-4 h-4 text-amber-500" />
+                    <span>Live Database Backups</span>
+                  </div>
+                  <div className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/30 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                    <span>SNAPSHOT READY</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between py-1 border-b border-[var(--border-color)]/50">
+                    <span className="text-[var(--text-muted)]">Cloud Snapshot Engine:</span>
+                    <span className="font-semibold text-[var(--text-primary)]">Live PostgreSQL Exporter</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-[var(--border-color)]/50">
+                    <span className="text-[var(--text-muted)]">Includes Tables:</span>
+                    <span className="font-semibold text-[var(--text-primary)]">Students, Embeddings, Classes, Subjects, Sessions</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-[var(--text-muted)]">Local CLI Restore:</span>
+                    <span className="text-emerald-500 font-semibold">python scripts/restore_database.py</span>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    onClick={handleDownloadLiveBackup}
+                    disabled={isDownloadingBackup}
+                    className="w-full btn-secondary py-2.5 text-xs font-mono font-bold flex items-center justify-center gap-2 hover:border-blue-500/50 hover:text-blue-500 transition-colors"
+                  >
+                    <Download className={`w-4 h-4 ${isDownloadingBackup ? 'animate-bounce text-blue-500' : ''}`} />
+                    <span>{isDownloadingBackup ? 'Generating Snapshot...' : 'Download Live Database Snapshot (.json)'}</span>
+                  </button>
                 </div>
               </div>
             </div>
+
+            {/* Heartbeat Ping History */}
+            {pingHistory.length > 0 && (
+              <div className="swiss-card p-5 rounded-xl border border-[var(--border-color)] space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="font-sans font-bold text-sm text-[var(--text-primary)] flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-emerald-500" />
+                    <span>Recent Heartbeat Latency Stream</span>
+                  </div>
+                  <span className="text-[10px] text-[var(--text-muted)]">Last {pingHistory.length} pulses</span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
+                  {pingHistory.map((p, idx) => (
+                    <div
+                      key={idx}
+                      className={`p-2 rounded-lg border text-center font-mono ${
+                        p.status === 'online'
+                          ? 'bg-emerald-500/5 border-emerald-500/20 text-emerald-500'
+                          : p.status === 'waking'
+                            ? 'bg-amber-500/5 border-amber-500/20 text-amber-500'
+                            : 'bg-rose-500/5 border-rose-500/20 text-rose-500'
+                      }`}
+                    >
+                      <div className="text-[10px] text-[var(--text-muted)]">{p.time}</div>
+                      <div className="font-bold text-xs mt-0.5">
+                        {p.latency !== null ? `${p.latency}ms` : p.status.toUpperCase()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>

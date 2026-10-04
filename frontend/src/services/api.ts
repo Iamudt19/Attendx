@@ -413,6 +413,65 @@ export const AttendanceService = {
   }
 };
 
+// ── System Diagnostics & Keep-Alive Service ──────────────────────────────────
+export interface BackendHealthResult {
+  status: 'online' | 'waking' | 'offline' | 'degraded';
+  latency: number | null; // in ms
+  data: any;
+  endpoint: string;
+  timestamp: string;
+  error?: string;
+}
+
+export const SystemDiagnosticsService = {
+  pingBackend: async (timeoutMs: number = 8000): Promise<BackendHealthResult> => {
+    const startTime = performance.now();
+    try {
+      // Use raw axios or api instance with timeout
+      const res = await api.get('/health', { timeout: timeoutMs });
+      const latency = Math.round(performance.now() - startTime);
+      return {
+        status: res.data?.status === 'ok' ? 'online' : 'degraded',
+        latency,
+        data: res.data,
+        endpoint: API_BASE,
+        timestamp: new Date().toLocaleTimeString(),
+      };
+    } catch (err: any) {
+      const elapsed = Math.round(performance.now() - startTime);
+      const isTimeout = err.code === 'ECONNABORTED' || err.message?.includes('timeout');
+      return {
+        status: isTimeout ? 'waking' : 'offline',
+        latency: null,
+        data: null,
+        endpoint: API_BASE,
+        timestamp: new Date().toLocaleTimeString(),
+        error: isTimeout 
+          ? 'Backend is spinning up from sleep (Render cold start)... please wait 15-30 seconds.'
+          : (err.response?.status ? `HTTP ${err.response.status}` : (err.message || 'Connection refused / offline')),
+      };
+    }
+  },
+
+  getBackupStatus: async () => {
+    const res = await api.get('/export/backup/status');
+    return res.data;
+  },
+
+  downloadLiveBackup: async () => {
+    const res = await api.get('/export/backup/download');
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(res.data, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    const dateTag = new Date().toISOString().slice(0, 10);
+    downloadAnchor.setAttribute("download", `attendx_database_backup_${dateTag}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+    return res.data;
+  }
+};
+
 // ── Student Portal API ────────────────────────────────────────────────────────
 
 // Separate axios instance that uses the student token from localStorage
