@@ -438,12 +438,15 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
             </div>
 
             <div className="flex items-center gap-3">
-              <span className="text-xs text-slate-600 hidden sm:inline">
+              <ThemeToggle variant="slider" size="sm" />
+              <span className={`text-xs hidden sm:inline ${isDark ? 'text-zinc-400' : 'text-slate-600'}`}>
                 <strong>{student.name}</strong> ({student.student_id})
               </span>
               <button
                 onClick={onLogout}
-                className="py-1.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition-colors"
+                className={`py-1.5 px-3 text-xs font-semibold rounded-xl border transition-colors ${
+                  isDark ? 'bg-white/5 hover:bg-white/10 text-zinc-300 border-white/10' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                }`}
               >
                 Sign Out
               </button>
@@ -717,9 +720,12 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
           </div>
         </div>
 
-        <button onClick={onLogout} className="text-xs font-semibold text-slate-500 hover:text-slate-900">
-          Sign Out
-        </button>
+        <div className="flex items-center gap-3">
+          <ThemeToggle variant="slider" size="sm" />
+          <button onClick={onLogout} className="text-xs font-semibold text-slate-500 hover:text-slate-900">
+            Sign Out
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 max-w-2xl w-full mx-auto px-4 py-8 space-y-6">

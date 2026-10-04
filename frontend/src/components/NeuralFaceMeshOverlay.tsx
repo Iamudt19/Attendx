@@ -197,32 +197,159 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
         canvas.height = video.videoHeight || 480;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        const cx = canvas.width / 2;
-        const cy = canvas.height / 2;
-        const rx = canvas.width * 0.28;
-        const ry = canvas.height * 0.40;
+        const w = canvas.width;
+        const h = canvas.height;
+        const cx = w / 2;
+        const cy = h / 2;
+        const rx = w * 0.28;
+        const ry = h * 0.38;
+        const time = Date.now() * 0.002;
 
-        // Oval guide
-        ctx.strokeStyle = 'rgba(255,255,255,0.55)';
-        ctx.lineWidth = 2.5;
-        ctx.setLineDash([8, 6]);
+        ctx.save();
+
+        // ── 1. Corner Tech Brackets (Biometric Bounding Box) ──
+        const bw = rx * 1.35;
+        const bh = ry * 1.35;
+        const cornerLen = 24;
+        ctx.strokeStyle = faceDetected ? 'rgba(56, 189, 248, 0.85)' : 'rgba(148, 163, 184, 0.5)';
+        ctx.lineWidth = 2;
+
+        // Top-Left
         ctx.beginPath();
-        ctx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
+        ctx.moveTo(cx - bw, cy - bh + cornerLen);
+        ctx.lineTo(cx - bw, cy - bh);
+        ctx.lineTo(cx - bw + cornerLen, cy - bh);
         ctx.stroke();
-        ctx.setLineDash([]);
 
-        // Subtle scanning line
-        const time  = Date.now() * 0.0018;
-        const scanY = cy - ry + ((Math.sin(time) + 1) / 2) * (ry * 2);
-        ctx.strokeStyle = 'rgba(52, 211, 153, 0.5)';
+        // Top-Right
+        ctx.beginPath();
+        ctx.moveTo(cx + bw - cornerLen, cy - bh);
+        ctx.lineTo(cx + bw, cy - bh);
+        ctx.lineTo(cx + bw, cy - bh + cornerLen);
+        ctx.stroke();
+
+        // Bottom-Left
+        ctx.beginPath();
+        ctx.moveTo(cx - bw, cy + bh - cornerLen);
+        ctx.lineTo(cx - bw, cy + bh);
+        ctx.lineTo(cx - bw + cornerLen, cy + bh);
+        ctx.stroke();
+
+        // Bottom-Right
+        ctx.beginPath();
+        ctx.moveTo(cx + bw - cornerLen, cy + bh);
+        ctx.lineTo(cx + bw, cy + bh);
+        ctx.lineTo(cx + bw, cy + bh - cornerLen);
+        ctx.stroke();
+
+        // ── 2. Rotating Circular HUD Degree Reticle ──
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(time * 0.4);
+        ctx.strokeStyle = 'rgba(59, 130, 246, 0.35)';
         ctx.lineWidth = 1;
+        ctx.setLineDash([4, 12]);
         ctx.beginPath();
-        ctx.moveTo(cx - rx * 0.85, scanY);
-        ctx.lineTo(cx + rx * 0.85, scanY);
+        ctx.arc(0, 0, Math.min(rx, ry) * 1.15, 0, Math.PI * 2);
         ctx.stroke();
+
+        ctx.rotate(-time * 0.8);
+        ctx.strokeStyle = 'rgba(16, 185, 129, 0.4)';
+        ctx.setLineDash([16, 24]);
+        ctx.beginPath();
+        ctx.arc(0, 0, Math.min(rx, ry) * 1.25, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+
+        // ── 3. Biometric Oval Target with Pulse ──
+        const pulse = Math.sin(time * 3) * 3;
+        ctx.strokeStyle = faceDetected ? 'rgba(52, 211, 153, 0.9)' : 'rgba(59, 130, 246, 0.6)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, rx + pulse, ry + pulse, 0, 0, 2 * Math.PI);
+        ctx.stroke();
+
+        // ── 4. Neural Geodesic Wireframe Node Grid ──
+        if (meshEnabled) {
+          const nodes = [
+            { x: cx, y: cy - ry * 0.55 },             // Forehead top
+            { x: cx - rx * 0.45, y: cy - ry * 0.4 },  // Left Temple
+            { x: cx + rx * 0.45, y: cy - ry * 0.4 },  // Right Temple
+            { x: cx - rx * 0.35, y: cy - ry * 0.15 }, // Left Eye
+            { x: cx + rx * 0.35, y: cy - ry * 0.15 }, // Right Eye
+            { x: cx, y: cy - ry * 0.15 },             // Glabella
+            { x: cx, y: cy + ry * 0.1 },              // Nose tip
+            { x: cx - rx * 0.25, y: cy + ry * 0.15 }, // Left Nostril
+            { x: cx + rx * 0.25, y: cy + ry * 0.15 }, // Right Nostril
+            { x: cx - rx * 0.55, y: cy + ry * 0.2 },  // Left Cheek
+            { x: cx + rx * 0.55, y: cy + ry * 0.2 },  // Right Cheek
+            { x: cx, y: cy + ry * 0.4 },              // Mouth Center
+            { x: cx - rx * 0.25, y: cy + ry * 0.4 },  // Mouth Left
+            { x: cx + rx * 0.25, y: cy + ry * 0.4 },  // Mouth Right
+            { x: cx - rx * 0.35, y: cy + ry * 0.65 }, // Left Jaw
+            { x: cx + rx * 0.35, y: cy + ry * 0.65 }, // Right Jaw
+            { x: cx, y: cy + ry * 0.75 },             // Chin
+          ];
+
+          const connections = [
+            [0, 1], [0, 2], [0, 5], [1, 3], [2, 4], [3, 5], [4, 5],
+            [3, 9], [4, 10], [5, 6], [6, 7], [6, 8], [7, 9], [8, 10],
+            [6, 11], [11, 12], [11, 13], [12, 14], [13, 15], [14, 16], [15, 16],
+            [9, 14], [10, 15], [1, 9], [2, 10], [12, 16], [13, 16]
+          ];
+
+          // Draw Connecting Mesh Lines
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+          ctx.lineWidth = 1;
+          connections.forEach(([i, j]) => {
+            const p1 = nodes[i];
+            const p2 = nodes[j];
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+          });
+
+          // Draw Glowing Nodes
+          nodes.forEach((n, idx) => {
+            const nodeGlow = (Math.sin(time * 4 + idx) + 1) / 2;
+            ctx.fillStyle = idx === 6 || idx === 0 || idx === 16 ? '#10b981' : '#38bdf8';
+            ctx.beginPath();
+            ctx.arc(n.x, n.y, 2.5 + nodeGlow * 1.5, 0, Math.PI * 2);
+            ctx.fill();
+          });
+        }
+
+        // ── 5. Cyber Laser Scanning Beam with Gradient Trail ──
+        const scanY = cy - ry + ((Math.sin(time * 1.8) + 1) / 2) * (ry * 2);
+        const grad = ctx.createLinearGradient(0, scanY - 18, 0, scanY);
+        grad.addColorStop(0, 'rgba(6, 182, 212, 0)');
+        grad.addColorStop(1, 'rgba(6, 182, 212, 0.65)');
+
+        ctx.fillStyle = grad;
+        ctx.fillRect(cx - rx * 0.9, scanY - 18, rx * 1.8, 18);
+
+        ctx.strokeStyle = '#22d3ee';
+        ctx.lineWidth = 2;
+        ctx.shadowColor = '#06b6d4';
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.moveTo(cx - rx * 0.9, scanY);
+        ctx.lineTo(cx + rx * 0.9, scanY);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // ── 6. HUD Telemetry Digital Overlay Readout ──
+        ctx.font = '9px "JetBrains Mono", monospace';
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.9)';
+        ctx.fillText('SFACE-128D // NEURAL LOCK', cx - bw + 4, cy - bh - 6);
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.9)';
+        ctx.fillText('VEC: 99.4% CALIBRATED', cx + bw - 110, cy - bh - 6);
+
+        ctx.restore();
 
         setFaceDetected(true);
-        setPoseFeedback('Center your face in the oval');
+        setPoseFeedback(targetAngle === 'front' ? 'Look straight at the camera' : `Angle: ${targetAngle}`);
         animFrameRef.current = requestAnimationFrame(render);
       };
       animFrameRef.current = requestAnimationFrame(render);

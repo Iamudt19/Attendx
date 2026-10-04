@@ -166,13 +166,19 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
         <div className="max-w-md w-full space-y-6">
           {/* Header */}
           <div className="text-center space-y-2">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-semibold border border-blue-100 mb-1">
-              <GraduationCap className="w-3.5 h-3.5 text-blue-600" /> Student Attendance Portal
+            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border mb-1 ${
+              isDark ? 'bg-blue-950/60 text-blue-400 border-blue-800/50' : 'bg-blue-50 text-blue-700 border-blue-100'
+            }`}>
+              <GraduationCap className="w-3.5 h-3.5 text-blue-500" /> Student Attendance Portal
             </div>
-            <h1 className="font-serif text-4xl text-slate-900 font-normal tracking-tight">
+            <h1 className={`font-serif text-3xl sm:text-4xl font-normal tracking-tight ${
+              isDark ? 'text-white' : 'text-slate-900'
+            }`}>
               {activeTab === 'login' ? 'Student Sign In.' : 'Register for Face Verification.'}
             </h1>
-            <p className="text-sm text-slate-600">
+            <p className={`text-sm ${
+              isDark ? 'text-zinc-400' : 'text-slate-600'
+            }`}>
               {activeTab === 'login'
                 ? 'Check attendance stats, percentage thresholds, and face registration status.'
                 : 'Self-enroll in your cohort to participate in automatic biometric roll calls.'}
