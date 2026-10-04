@@ -121,11 +121,26 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
   const [savingClass, setSavingClass] = useState(false);
   const [classMessage, setClassMessage] = useState<string | null>(null);
 
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
+  const [availableDevices, setAvailableDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const currentAngle = SCAN_ANGLES[currentAngleIdx] as ScanAngle;
+
+  const enumerateCameras = useCallback(async () => {
+    if (!navigator.mediaDevices?.enumerateDevices) return;
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter((d) => d.kind === 'videoinput');
+      setAvailableDevices(videoDevices);
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
   const loadStudentProfile = useCallback(() => {
     StudentPortalService.getMe()
@@ -152,7 +167,7 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
       .catch(() => {});
   }, []);
 
-  // Load available classes and student profile
+  // Load available classes, student profile, and camera devices
   useEffect(() => {
     StudentPortalService.getPublicClasses()
       .then((data) => {
@@ -161,7 +176,8 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
       .catch(() => {});
 
     loadStudentProfile();
-  }, [loadStudentProfile]);
+    enumerateCameras();
+  }, [loadStudentProfile, enumerateCameras]);
 
   const handleUpdateClass = async () => {
     if (!selectedClassId) return;
@@ -180,17 +196,44 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
     }
   };
 
-  // Start webcam
-  const startWebcam = useCallback(async () => {
+  // Start webcam with specific facing mode or device ID
+  const startWebcam = useCallback(async (mode: 'user' | 'environment' = facingMode, deviceId?: string) => {
     setWebcamError(null);
     if (!navigator.mediaDevices?.getUserMedia) {
       setWebcamError('Camera API not available. Please access this page over HTTPS or localhost.');
       return;
     }
+
+    // Clean up existing stream
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }
-      });
+      let stream: MediaStream;
+      try {
+        const videoConstraints: MediaTrackConstraints = {
+          width: { ideal: 1280, min: 640 },
+          height: { ideal: 720, min: 480 },
+        };
+
+        if (deviceId) {
+          videoConstraints.deviceId = { exact: deviceId };
+        } else {
+          videoConstraints.facingMode = mode;
+        }
+
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: videoConstraints,
+        });
+      } catch (constraintErr) {
+        console.warn(`Targeted camera constraint (${mode}) failed, falling back to basic video:`, constraintErr);
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+        });
+      }
+
       streamRef.current = stream;
       setIsWebcamActive(true);
       setTimeout(() => {
@@ -199,6 +242,9 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
           videoRef.current.play().catch(() => {});
         }
       }, 100);
+
+      // Re-enumerate to get device labels now that permission is granted
+      enumerateCameras();
     } catch (err: any) {
       const name = (err as DOMException).name;
       setWebcamError(
@@ -208,7 +254,32 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
       );
       setIsWebcamActive(false);
     }
-  }, []);
+  }, [facingMode, enumerateCameras]);
+
+  const toggleFacingMode = () => {
+    const nextMode: 'user' | 'environment' = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(nextMode);
+    setSelectedDeviceId('');
+    if (isWebcamActive) {
+      startWebcam(nextMode);
+    }
+  };
+
+  const switchCameraMode = (mode: 'user' | 'environment') => {
+    if (mode === facingMode && !selectedDeviceId) return;
+    setFacingMode(mode);
+    setSelectedDeviceId('');
+    if (isWebcamActive) {
+      startWebcam(mode);
+    }
+  };
+
+  const handleDeviceSelect = (deviceId: string) => {
+    setSelectedDeviceId(deviceId);
+    if (isWebcamActive) {
+      startWebcam(facingMode, deviceId);
+    }
+  };
 
   // Stop webcam
   const stopWebcam = useCallback(() => {
@@ -392,6 +463,74 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
               ))}
             </div>
 
+            {/* Camera Source Selector Card */}
+            <div className={`swiss-card border rounded-2xl p-5 shadow-sm space-y-3 ${
+              isDark ? 'bg-zinc-900/70 border-white/10' : 'bg-slate-50/80 border-slate-200'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Camera className="w-4 h-4 text-blue-500" />
+                  <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-primary)]">
+                    Camera Lens Mode
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 font-bold">
+                  {facingMode === 'user' ? 'Selfie Camera' : 'Back Camera Active'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => switchCameraMode('user')}
+                  className={`py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                    facingMode === 'user' && !selectedDeviceId
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                      : isDark
+                        ? 'bg-zinc-800 text-zinc-300 border-white/10 hover:bg-zinc-700'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Front (Selfie)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => switchCameraMode('environment')}
+                  className={`py-2.5 px-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                    facingMode === 'environment' && !selectedDeviceId
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                      : isDark
+                        ? 'bg-zinc-800 text-zinc-300 border-white/10 hover:bg-zinc-700'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Back Camera (Rear)</span>
+                </button>
+              </div>
+
+              {availableDevices.length > 1 && (
+                <div className="pt-1">
+                  <select
+                    value={selectedDeviceId}
+                    onChange={(e) => handleDeviceSelect(e.target.value)}
+                    className={`w-full text-[11px] p-2 rounded-xl border font-mono transition-colors ${
+                      isDark ? 'bg-black/60 border-white/15 text-white' : 'bg-white border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <option value="">Default {facingMode === 'user' ? 'Front' : 'Back'} Camera</option>
+                    {availableDevices.map((d, idx) => (
+                      <option key={d.deviceId || idx} value={d.deviceId}>
+                        {d.label || `Camera Device ${idx + 1}`}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={onLogout}
@@ -401,7 +540,7 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
               </button>
               <button
                 id="start-scan-btn"
-                onClick={() => { setPhase('scanning'); startWebcam(); }}
+                onClick={() => { setPhase('scanning'); startWebcam(facingMode, selectedDeviceId); }}
                 className="py-3 px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs rounded-xl shadow-sm flex items-center justify-center gap-2 transition-all"
               >
                 <span>Start Face Scan</span>
@@ -545,25 +684,43 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
                 </p>
               </div>
 
-              {!isWebcamActive ? (
-                <button
-                  onClick={startWebcam}
-                  className="py-2.5 px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs rounded-xl shadow-sm flex items-center gap-2 transition-all shrink-0"
-                >
-                  <Video className="w-4 h-4" />
-                  <span>Start Camera</span>
-                </button>
-              ) : (
-                <button
-                  onClick={stopWebcam}
-                  className={`py-2 px-3 font-semibold text-xs rounded-xl flex items-center gap-1.5 transition-all shrink-0 ${
-                    isDark ? 'bg-white/10 hover:bg-white/15 text-zinc-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
-                >
-                  <VideoOff className="w-3.5 h-3.5" />
-                  <span>Stop Camera</span>
-                </button>
-              )}
+              <div className="flex items-center gap-2 flex-wrap">
+                {isWebcamActive && (
+                  <button
+                    type="button"
+                    onClick={toggleFacingMode}
+                    className={`py-2 px-3 font-semibold text-xs rounded-xl flex items-center gap-1.5 border transition-all ${
+                      isDark 
+                        ? 'bg-white/10 hover:bg-white/15 text-zinc-200 border-white/10' 
+                        : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                    }`}
+                    title="Switch camera lens"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5 text-blue-500" />
+                    <span>{facingMode === 'user' ? 'Switch to Back Camera' : 'Switch to Front Camera'}</span>
+                  </button>
+                )}
+
+                {!isWebcamActive ? (
+                  <button
+                    onClick={() => startWebcam(facingMode, selectedDeviceId)}
+                    className="py-2.5 px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs rounded-xl shadow-sm flex items-center gap-2 transition-all shrink-0"
+                  >
+                    <Video className="w-4 h-4" />
+                    <span>Start Camera ({facingMode === 'user' ? 'Front' : 'Back'})</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={stopWebcam}
+                    className={`py-2 px-3 font-semibold text-xs rounded-xl flex items-center gap-1.5 transition-all shrink-0 ${
+                      isDark ? 'bg-white/10 hover:bg-white/15 text-zinc-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                    }`}
+                  >
+                    <VideoOff className="w-3.5 h-3.5" />
+                    <span>Stop Camera</span>
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Studio Workspace */}
@@ -572,12 +729,37 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
               <div className="lg:col-span-7 bg-black relative flex flex-col items-center justify-center min-h-[340px]">
                 {isWebcamActive ? (
                   <>
-                    <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover max-h-[420px]" />
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className={`w-full h-full object-cover max-h-[420px] ${facingMode === 'user' ? '-scale-x-100' : ''}`}
+                    />
                     <NeuralFaceMeshOverlay videoRef={videoRef} isActive={isWebcamActive} targetAngle={selectedTrainingPreset} />
+
+                    {/* Camera Info Badge */}
+                    <div className="absolute top-3 left-3 flex items-center gap-2 px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-[11px] font-mono text-cyan-400 z-10 pointer-events-none shadow-md">
+                      <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                      <span>Live ({facingMode === 'user' ? 'Front / Selfie' : 'Back / Rear Camera'})</span>
+                    </div>
+
+                    {/* Quick Flip Floating Button */}
+                    <div className="absolute top-3 right-14 flex items-center z-10">
+                      <button
+                        type="button"
+                        onClick={toggleFacingMode}
+                        className="px-2.5 py-1 rounded-lg bg-black/80 hover:bg-black text-white border border-white/20 text-[11px] font-mono flex items-center gap-1.5 shadow-lg backdrop-blur-md transition-all active:scale-95"
+                        title="Flip Camera Lens"
+                      >
+                        <RefreshCw className="w-3 h-3 text-cyan-400" />
+                        <span>Flip to {facingMode === 'user' ? 'Back' : 'Front'}</span>
+                      </button>
+                    </div>
 
                     {/* Result Overlay */}
                     {(frameStatus === 'accepted' || frameStatus === 'rejected') && lastResult && (
-                      <div className={`absolute inset-0 flex items-center justify-center backdrop-blur-sm ${
+                      <div className={`absolute inset-0 flex items-center justify-center backdrop-blur-sm z-20 ${
                         frameStatus === 'accepted' ? 'bg-emerald-950/70' : 'bg-rose-950/70'
                       }`}>
                         <div className={`text-center px-6 py-4 rounded-2xl border shadow-2xl ${
@@ -599,9 +781,25 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
                   <div className="text-center p-8 text-white">
                     <Camera className="w-10 h-10 text-zinc-500 mx-auto mb-2" />
                     <h3 className="text-sm font-bold">Camera Ready</h3>
-                    <p className="text-xs text-zinc-400 mt-1 max-w-xs mx-auto mb-4">
+                    <p className="text-xs text-zinc-400 mt-1 max-w-xs mx-auto mb-3">
                       Click start camera above to capture extra training poses.
                     </p>
+                    <div className="inline-flex gap-1.5 p-1 rounded-xl bg-zinc-900 border border-white/10 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => switchCameraMode('user')}
+                        className={`px-3 py-1 rounded-lg transition-colors ${facingMode === 'user' ? 'bg-blue-600 text-white font-bold' : 'text-zinc-400 hover:text-white'}`}
+                      >
+                        🤳 Front Camera
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => switchCameraMode('environment')}
+                        className={`px-3 py-1 rounded-lg transition-colors ${facingMode === 'environment' ? 'bg-blue-600 text-white font-bold' : 'text-zinc-400 hover:text-white'}`}
+                      >
+                        📷 Back Camera
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -611,6 +809,49 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
                 isDark ? 'bg-zinc-950/80 border-white/10' : 'bg-white border-slate-100'
               }`}>
                 <div className="space-y-4">
+                  {/* Camera Lens Selector Pill in Studio */}
+                  <div>
+                    <span className={`text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 mb-2 ${
+                      isDark ? 'text-zinc-300' : 'text-slate-700'
+                    }`}>
+                      <Camera className="w-3.5 h-3.5 text-blue-500" />
+                      Camera Lens Source
+                    </span>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => switchCameraMode('user')}
+                        className={`p-2 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                          facingMode === 'user' && !selectedDeviceId
+                            ? isDark
+                              ? 'bg-blue-900/40 border-blue-500 text-blue-200 shadow-sm'
+                              : 'bg-blue-50 border-blue-500 text-blue-900 shadow-sm'
+                            : isDark
+                              ? 'bg-zinc-900/80 border-white/10 text-zinc-300 hover:bg-zinc-850'
+                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                        }`}
+                      >
+                        <Camera className="w-3.5 h-3.5" />
+                        <span>Front (Selfie)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => switchCameraMode('environment')}
+                        className={`p-2 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                          facingMode === 'environment' && !selectedDeviceId
+                            ? isDark
+                              ? 'bg-blue-900/40 border-blue-500 text-blue-200 shadow-sm'
+                              : 'bg-blue-50 border-blue-500 text-blue-900 shadow-sm'
+                            : isDark
+                              ? 'bg-zinc-900/80 border-white/10 text-zinc-300 hover:bg-zinc-850'
+                              : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                        }`}
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Back Camera (Rear)</span>
+                      </button>
+                    </div>
+                  </div>
                   <div>
                     <span className={`text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 mb-2.5 ${
                       isDark ? 'text-zinc-300' : 'text-slate-700'
@@ -833,15 +1074,96 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
             </div>
           </div>
 
+          {/* Camera Lens Selector Toolbar */}
+          <div className={`flex flex-col sm:flex-row items-center justify-between gap-2 px-6 py-2.5 border-b text-xs ${
+            isDark ? 'bg-zinc-950/60 border-white/10' : 'bg-slate-50 border-slate-100'
+          }`}>
+            <div className="flex items-center gap-1.5 font-mono text-[11px] text-[var(--text-secondary)]">
+              <Camera className="w-3.5 h-3.5 text-blue-500" />
+              <span>Lens Source:</span>
+            </div>
+
+            <div className="flex items-center gap-1.5 w-full sm:w-auto">
+              <div className="flex p-0.5 rounded-lg border bg-[var(--bg-inset)] border-[var(--border-color)] text-xs flex-1 sm:flex-initial">
+                <button
+                  type="button"
+                  onClick={() => switchCameraMode('user')}
+                  className={`px-3 py-1 rounded-md font-semibold flex items-center justify-center gap-1.5 transition-all text-xs flex-1 sm:flex-initial ${
+                    facingMode === 'user' && !selectedDeviceId
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  <Camera className="w-3 h-3" />
+                  <span>Front (Selfie)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchCameraMode('environment')}
+                  className={`px-3 py-1 rounded-md font-semibold flex items-center justify-center gap-1.5 transition-all text-xs flex-1 sm:flex-initial ${
+                    facingMode === 'environment' && !selectedDeviceId
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Back (Rear)</span>
+                </button>
+              </div>
+
+              {availableDevices.length > 1 && (
+                <select
+                  value={selectedDeviceId}
+                  onChange={(e) => handleDeviceSelect(e.target.value)}
+                  className={`text-[10px] p-1 rounded-lg border font-mono ${
+                    isDark ? 'bg-black/60 border-white/15 text-white' : 'bg-white border-slate-200 text-slate-800'
+                  }`}
+                >
+                  <option value="">Auto {facingMode === 'user' ? 'Front' : 'Back'}</option>
+                  {availableDevices.map((d, idx) => (
+                    <option key={d.deviceId || idx} value={d.deviceId}>
+                      {d.label || `Cam ${idx + 1}`}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          </div>
+
           {/* Full-width camera feed */}
           <div className="relative bg-slate-950" style={{ aspectRatio: '4/3', minHeight: '320px', maxHeight: '480px' }}>
             {isWebcamActive ? (
               <>
-                <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className={`w-full h-full object-cover ${facingMode === 'user' ? '-scale-x-100' : ''}`}
+                />
                 <NeuralFaceMeshOverlay videoRef={videoRef} isActive={isWebcamActive} targetAngle={currentAngle} />
 
+                {/* Floating Optical Badge */}
+                <div className="absolute top-3 left-3 flex items-center gap-2 px-2.5 py-1 rounded-full bg-slate-950/80 backdrop-blur-md border border-white/15 text-[11px] font-mono text-cyan-400 z-10 pointer-events-none shadow-md">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                  <span>Live ({facingMode === 'user' ? 'Front / Selfie Camera' : 'Back / Rear Camera'})</span>
+                </div>
+
+                {/* Quick Flip Floating Button */}
+                <div className="absolute top-3 right-14 flex items-center z-10">
+                  <button
+                    type="button"
+                    onClick={toggleFacingMode}
+                    className="px-2.5 py-1 rounded-lg bg-black/80 hover:bg-black text-white border border-white/20 text-[11px] font-mono flex items-center gap-1.5 shadow-lg backdrop-blur-md transition-all active:scale-95"
+                    title="Flip camera"
+                  >
+                    <RefreshCw className="w-3 h-3 text-cyan-400" />
+                    <span>Flip to {facingMode === 'user' ? 'Back' : 'Front'}</span>
+                  </button>
+                </div>
+
                 {(frameStatus === 'accepted' || frameStatus === 'rejected') && lastResult && (
-                  <div className={`absolute inset-0 flex items-center justify-center ${
+                  <div className={`absolute inset-0 flex items-center justify-center z-20 ${
                     frameStatus === 'accepted' ? 'bg-emerald-900/60' : 'bg-rose-900/60'
                   }`}>
                     <div className={`text-center px-6 py-4 rounded-2xl border shadow-2xl ${
@@ -860,15 +1182,25 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
                 )}
               </>
             ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-white gap-3">
+              <div className="absolute inset-0 flex flex-col items-center justify-center text-white gap-3 p-4">
                 <Camera className="w-10 h-10 text-slate-400" />
-                <p className="text-xs text-slate-400">Camera Standby</p>
-                <button
-                  onClick={startWebcam}
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl transition-all"
-                >
-                  Start Camera
-                </button>
+                <p className="text-xs text-slate-400">Camera Standby ({facingMode === 'user' ? 'Front Camera' : 'Back Camera'})</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => startWebcam(facingMode, selectedDeviceId)}
+                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl shadow-sm transition-all"
+                  >
+                    Start Camera
+                  </button>
+                  <button
+                    type="button"
+                    onClick={toggleFacingMode}
+                    className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition-all flex items-center gap-1.5"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Switch to {facingMode === 'user' ? 'Back' : 'Front'} Camera</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -884,7 +1216,7 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
               {frameStatus === 'capturing' || frameStatus === 'uploading' ? (
                 <><RefreshCw className="w-4 h-4 animate-spin" /><span>Processing...</span></>
               ) : (
-                <><Camera className="w-4 h-4" /><span>Capture — {ANGLE_LABELS[currentAngle]}</span></>
+                <><Camera className="w-4 h-4" /><span>Capture — {ANGLE_LABELS[currentAngle]} ({facingMode === 'user' ? 'Front' : 'Back'})</span></>
               )}
             </button>
             <p className={`text-center text-xs mt-2 ${isDark ? 'text-zinc-500' : 'text-slate-400'}`}>Make sure your face is clearly inside the oval guide before capturing.</p>
