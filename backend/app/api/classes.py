@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.models.models import Class, Student
-from app.schemas.schemas import ClassCreate, ClassOut, StudentOut
+from app.schemas.schemas import ClassCreate, ClassUpdate, ClassOut, StudentOut
 from app.core.security import get_current_user_token
 
 router = APIRouter(prefix="/classes", tags=["Classes"])

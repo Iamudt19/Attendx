@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.models.models import Subject
-from app.schemas.schemas import SubjectCreate, SubjectOut
+from app.schemas.schemas import SubjectCreate, SubjectUpdate, SubjectOut
 from app.core.security import get_current_user_token
 
 router = APIRouter(prefix="/subjects", tags=["Subjects"])
