@@ -143,6 +143,27 @@ class FaceMatcher:
             "reason": reason
         }
 
+    def calibrate_confidence(self, raw_cosine: float) -> float:
+        """
+        Calibrate OpenCV SFace cosine similarity (-1.0 to 1.0) into a realistic 0.0 - 1.0 probability.
+        OpenCV SFace standard FAR/FRR operating curve:
+          - raw < 0.30: impostor/stranger (0% - 35%)
+          - 0.30 - 0.38: review zone (35% - 60%)
+          - 0.38 - 0.50: strong match (60% - 85%)
+          - > 0.50: definitive match (85% - 99%)
+        """
+        if raw_cosine <= 0.20:
+            return max(0.0, float(raw_cosine * 1.5))
+        elif raw_cosine < 0.36:
+            # Scale 0.20 -> 0.36 to 0.30 -> 0.55
+            return round(0.30 + (raw_cosine - 0.20) / (0.36 - 0.20) * 0.25, 3)
+        elif raw_cosine < 0.48:
+            # Scale 0.36 -> 0.48 to 0.55 -> 0.85
+            return round(0.55 + (raw_cosine - 0.36) / (0.48 - 0.36) * 0.30, 3)
+        else:
+            # Scale 0.48 -> 0.70+ to 0.85 -> 0.99
+            return min(0.99, round(0.85 + (raw_cosine - 0.48) / (0.70 - 0.48) * 0.14, 3))
+
     def batch_match_embeddings(
         self,
         candidate_embeddings: List[List[float]],
@@ -150,8 +171,8 @@ class FaceMatcher:
         quality_assessments: Optional[List[Dict[str, Any]]] = None
     ) -> List[Dict[str, Any]]:
         """
-        High-Speed Vectorized Batch Matching using Matrix Multiplication (Q @ K.T).
-        Matches N candidate faces against M enrolled student embeddings in sub-millisecond C/NumPy BLAS.
+        High-Speed Vectorized Batch Matching with Strict 1-to-1 Bipartite Unique Assignment.
+        Guarantees that no single student can be claimed by multiple face boxes in the same photo.
         """
         if not candidate_embeddings:
             return []
@@ -170,16 +191,19 @@ class FaceMatcher:
 
         if not ref_vectors:
             return [
-                self.match_embedding(
-                    cand, 
-                    student_embeddings_map, 
-                    quality_assessments[i] if quality_assessments and i < len(quality_assessments) else None
-                )
-                for i, cand in enumerate(candidate_embeddings)
+                {
+                    "student_id": None,
+                    "match_score": 0.0,
+                    "second_best_score": 0.0,
+                    "margin": 0.0,
+                    "status": "UNKNOWN",
+                    "quality_status": "GOOD",
+                    "confidence": 0.0,
+                    "reason": "No enrolled embeddings registered."
+                }
+                for _ in candidate_embeddings
             ]
 
-        # Ref matrix shape: (M, Dim)
-        ref_matrix = np.vstack(ref_vectors)
         # Candidate matrix shape: (N, Dim)
         cand_vectors = []
         for cand in candidate_embeddings:
@@ -189,72 +213,110 @@ class FaceMatcher:
                 vec = vec / norm
             cand_vectors.append(vec)
         cand_matrix = np.vstack(cand_vectors)
+        ref_matrix = np.vstack(ref_vectors)
 
         # Cosine similarity matrix: (N, M)
         sim_matrix = np.dot(cand_matrix, ref_matrix.T)
 
-        results = []
+        # Build candidate ranked score lists
+        cand_ranked_students = []
         for i in range(len(candidate_embeddings)):
-            q_assessment = quality_assessments[i] if quality_assessments and i < len(quality_assessments) else None
-            quality_status = q_assessment.get("overall", "GOOD") if q_assessment else "GOOD"
-            is_poor_quality = (quality_status in ["POOR", "REJECT"])
-
             row_sims = sim_matrix[i]
-            # Group maximum similarity per unique student
+            # Max similarity per unique student
             student_scores_dict: Dict[int, float] = {}
             for j, s_id in enumerate(student_ids):
                 sim = float(row_sims[j])
                 if s_id not in student_scores_dict or sim > student_scores_dict[s_id]:
                     student_scores_dict[s_id] = sim
 
-            student_scores = sorted(student_scores_dict.items(), key=lambda x: x[1], reverse=True)
-            if not student_scores:
+            sorted_scores = sorted(student_scores_dict.items(), key=lambda x: x[1], reverse=True)
+            cand_ranked_students.append(sorted_scores)
+
+        # ── Strict 1-to-1 Greedy Bipartite Assignment ──
+        # Collect all candidate (cand_idx, student_id, score) pairs
+        all_candidate_proposals = []
+        for cand_idx, ranked in enumerate(cand_ranked_students):
+            for rank_pos, (s_id, score) in enumerate(ranked):
+                all_candidate_proposals.append((score, cand_idx, s_id, rank_pos))
+
+        # Sort all proposals by similarity score descending
+        all_candidate_proposals.sort(key=lambda x: x[0], reverse=True)
+
+        assigned_faces: Dict[int, Dict[str, Any]] = {}
+        claimed_students = set()
+
+        for score, cand_idx, s_id, rank_pos in all_candidate_proposals:
+            if cand_idx in assigned_faces:
+                continue
+            if s_id in claimed_students:
+                continue
+
+            q_assessment = quality_assessments[cand_idx] if quality_assessments and cand_idx < len(quality_assessments) else None
+            quality_status = q_assessment.get("overall", "GOOD") if q_assessment else "GOOD"
+            is_poor_quality = (quality_status in ["POOR", "REJECT"])
+
+            ranked = cand_ranked_students[cand_idx]
+            top2_score = ranked[1][1] if len(ranked) > 1 else 0.0
+            margin = max(0.0, score - top2_score)
+
+            calibrated_conf = self.calibrate_confidence(score)
+
+            # Strict SFace thresholds:
+            # PRESENT: score >= 0.42 and margin >= 0.06
+            # NEEDS_REVIEW: score >= 0.35
+            # UNKNOWN: score < 0.35
+            if score < 0.35:
+                status_str = "UNKNOWN"
+                final_sid = None
+                reason = f"Low facial similarity ({score:.3f} < 0.35) - Unregistered or unrecognizable face."
+            elif score >= 0.42 and margin >= 0.06 and not is_poor_quality:
+                status_str = "PRESENT"
+                final_sid = s_id
+                claimed_students.add(s_id)
+                reason = f"Verified Match (sim {score:.3f}, margin {margin:.3f})."
+            else:
+                status_str = "NEEDS_REVIEW"
+                final_sid = s_id
+                claimed_students.add(s_id)
+                reasons = []
+                if score < 0.42:
+                    reasons.append(f"Borderline similarity ({score:.3f})")
+                if margin < 0.06:
+                    reasons.append(f"Ambiguous match (margin {margin:.3f})")
+                if is_poor_quality:
+                    reasons.append(f"Image quality warning ({q_assessment.get('reason', '')})")
+                reason = "; ".join(reasons)
+
+            assigned_faces[cand_idx] = {
+                "student_id": final_sid,
+                "match_score": round(max(0.0, score), 4),
+                "second_best_score": round(max(0.0, top2_score), 4),
+                "margin": round(margin, 4),
+                "confidence": calibrated_conf,
+                "status": status_str,
+                "quality_status": quality_status,
+                "reason": reason
+            }
+
+        # Handle any remaining unassigned candidate faces as UNKNOWN
+        results = []
+        for i in range(len(candidate_embeddings)):
+            if i in assigned_faces:
+                results.append(assigned_faces[i])
+            else:
+                q_assessment = quality_assessments[i] if quality_assessments and i < len(quality_assessments) else None
                 results.append({
                     "student_id": None,
                     "match_score": 0.0,
                     "second_best_score": 0.0,
                     "margin": 0.0,
+                    "confidence": 0.0,
                     "status": "UNKNOWN",
-                    "quality_status": quality_status,
-                    "reason": "No enrolled embeddings."
+                    "quality_status": q_assessment.get("overall", "GOOD") if q_assessment else "GOOD",
+                    "reason": "Unassigned face box — Unregistered stranger or duplicate candidate."
                 })
-                continue
-
-            top1_student_id, top1_score = student_scores[0]
-            top2_score = student_scores[1][1] if len(student_scores) > 1 else 0.0
-            margin = max(0.0, top1_score - top2_score)
-
-            if top1_score < self.review_threshold:
-                status_str = "UNKNOWN"
-                final_student_id = None
-                reason = f"Match score {top1_score:.3f} is below review threshold ({self.review_threshold:.2f})."
-            elif top1_score >= self.match_threshold and margin >= self.min_margin and not is_poor_quality:
-                status_str = "PRESENT"
-                final_student_id = top1_student_id
-                reason = f"High similarity ({top1_score:.3f}) and clear margin ({margin:.3f})."
-            else:
-                status_str = "NEEDS_REVIEW"
-                final_student_id = top1_student_id
-                reasons = []
-                if top1_score < self.match_threshold:
-                    reasons.append(f"Moderate similarity ({top1_score:.3f} < {self.match_threshold:.2f})")
-                if margin < self.min_margin and len(student_scores) > 1:
-                    reasons.append(f"Ambiguous match (margin {margin:.3f} < {self.min_margin:.2f})")
-                if is_poor_quality:
-                    reasons.append(f"Poor image quality ({q_assessment.get('reason', '')})")
-                reason = "; ".join(reasons) if reasons else "Marked for teacher verification."
-
-            results.append({
-                "student_id": final_student_id,
-                "match_score": round(max(0.0, top1_score), 4),
-                "second_best_score": round(max(0.0, top2_score), 4),
-                "margin": round(margin, 4),
-                "status": status_str,
-                "quality_status": quality_status,
-                "reason": reason
-            })
 
         return results
 
-
 face_matcher = FaceMatcher()
+

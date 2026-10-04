@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Header
 from fastapi.responses import FileResponse
@@ -37,3 +38,29 @@ def export_excel(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Excel generation error: {str(e)}")
+
+@router.get("/backup/status")
+def get_backup_status(db: Session = Depends(get_db)):
+    """Get live backup metadata and total backed up record count."""
+    from app.services.backup_service import live_backup_service
+    snapshot = live_backup_service.generate_live_snapshot(db)
+    table_counts = {t: data["count"] for t, data in snapshot["tables"].items()}
+    total = sum(table_counts.values())
+    return {
+        "status": "healthy",
+        "last_backup_timestamp": snapshot["backup_timestamp"],
+        "total_records": total,
+        "table_summary": table_counts
+    }
+
+@router.get("/backup/download")
+def download_live_backup(db: Session = Depends(get_db)):
+    """Download full real-time database JSON backup."""
+    from app.services.backup_service import live_backup_service
+    from fastapi.responses import JSONResponse
+    snapshot = live_backup_service.generate_live_snapshot(db)
+    return JSONResponse(
+        content=snapshot,
+        headers={"Content-Disposition": f"attachment; filename=attendx_supabase_backup_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"}
+    )
+

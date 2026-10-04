@@ -123,6 +123,7 @@ class RecognitionPipeline:
                         matched_student_info = s
                         break
 
+            confidence_val = match.get("confidence", match_score)
             if matched_student_info:
                 rec_face = {
                     "box": box,
@@ -133,18 +134,18 @@ class RecognitionPipeline:
                     "match_score": match_score,
                     "second_best_score": second_best,
                     "margin": margin,
-                    "confidence": match_score,  # Backwards-compatible alias
+                    "confidence": confidence_val,
                     "quality": quality_info,
                     "status": status,
                     "verification_status": "AUTO" if status == "PRESENT" else "NEEDS_REVIEW",
                     "reason": match["reason"]
                 }
 
-                # If student matched multiple face boxes, retain the highest score
                 if (matched_student_info["id"] not in detected_student_matches or 
-                    match_score > detected_student_matches[matched_student_info["id"]]["match_score"]):
+                    confidence_val > detected_student_matches[matched_student_info["id"]]["confidence"]):
                     detected_student_matches[matched_student_info["id"]] = {
                         "match_score": match_score,
+                        "confidence": confidence_val,
                         "status": status,
                         "verification_status": "AUTO" if status == "PRESENT" else "NEEDS_REVIEW"
                     }
@@ -158,7 +159,7 @@ class RecognitionPipeline:
                     "match_score": match_score,
                     "second_best_score": second_best,
                     "margin": margin,
-                    "confidence": match_score,
+                    "confidence": confidence_val,
                     "quality": quality_info,
                     "status": "UNKNOWN",
                     "verification_status": "UNKNOWN",
