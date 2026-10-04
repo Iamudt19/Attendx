@@ -57,10 +57,10 @@ export const HeroLanding: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-primary)] selection:bg-blue-600 selection:text-white transition-colors">
+    <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-primary)] selection:bg-blue-600 selection:text-white transition-colors overflow-x-hidden w-full max-w-full">
       {/* ── Swiss Hairline Header ─────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 bg-[var(--bg-main)]/90 backdrop-blur-md border-b border-[var(--border-color)]">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
+      <header className="sticky top-0 z-50 bg-[var(--bg-main)]/90 backdrop-blur-md border-b border-[var(--border-color)] w-full">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-1.5 sm:gap-4">
           <div className="flex items-center gap-2 sm:gap-6 shrink-0">
             <div 
               onClick={() => navigate('/')} 
@@ -80,16 +80,17 @@ export const HeroLanding: React.FC = () => {
             </nav>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
-            <InstallAppButton variant="header" />
-            <ThemeToggle variant="slider" size="sm" />
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+            <InstallAppButton variant="header" className="hidden sm:inline-flex" />
+            <ThemeToggle variant="button" className="sm:hidden p-1.5 rounded-lg text-xs" />
+            <ThemeToggle variant="slider" size="sm" className="hidden sm:inline-flex" />
             
             {/* Portals Dropdown Switcher */}
             <div className="relative" ref={dropdownRef}>
               <button
                 type="button"
                 onClick={() => setShowPortalDropdown(!showPortalDropdown)}
-                className={`text-xs font-semibold px-2.5 sm:px-3 py-2 rounded-xl border flex items-center gap-1.5 transition-all ${
+                className={`text-xs font-semibold px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl border flex items-center gap-1 sm:gap-1.5 transition-all ${
                   showPortalDropdown
                     ? 'bg-blue-500/10 border-blue-500/40 text-blue-600 dark:text-blue-400 shadow-sm'
                     : 'bg-[var(--bg-surface)] border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-inset)]'
@@ -198,8 +199,8 @@ export const HeroLanding: React.FC = () => {
             </button>
 
             <button
-              onClick={() => navigate('/dashboard')}
-              className="btn-primary text-xs font-semibold px-3.5 sm:px-4 py-2 flex items-center gap-1.5 shadow-sm active:scale-95 transition-all shrink-0"
+              onClick={() => navigate('/student')}
+              className="btn-primary text-xs font-semibold px-2.5 sm:px-4 py-1.5 sm:py-2 flex items-center gap-1 sm:gap-1.5 shadow-sm active:scale-95 transition-all shrink-0"
             >
               <span className="hidden sm:inline">Launch Studio</span>
               <span className="sm:hidden">Launch</span>
@@ -243,10 +244,10 @@ export const HeroLanding: React.FC = () => {
 
               {/* Headline — punchy two-line layout */}
               <div className="space-y-1">
-                <h1 className="text-[2.6rem] sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[var(--text-primary)] leading-[1.05]">
+                <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[var(--text-primary)] leading-[1.1] sm:leading-[1.05]">
                   Attendance.
                 </h1>
-                <h1 className="text-[2.6rem] sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.05]">
+                <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] sm:leading-[1.05]">
                   Verified in{' '}
                   <span className="relative inline-block">
                     <span className="text-blue-600 dark:text-blue-400">1.8 seconds.</span>
@@ -280,16 +281,16 @@ export const HeroLanding: React.FC = () => {
               {/* Key metrics — bold stat blocks */}
               <div className="pt-5 border-t border-[var(--border-color)]">
                 <div className="grid grid-cols-3 gap-0 font-mono">
-                  <div className="pr-4 border-r border-[var(--border-color)]">
-                    <div className="text-2xl sm:text-3xl font-extrabold text-[var(--text-primary)] tabular-nums">1.8s</div>
+                  <div className="pr-3 sm:pr-4 border-r border-[var(--border-color)]">
+                    <div className="text-xl sm:text-3xl font-extrabold text-[var(--text-primary)] tabular-nums">1.8s</div>
                     <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest mt-1">Scan latency</div>
                   </div>
-                  <div className="px-4 border-r border-[var(--border-color)]">
-                    <div className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">99.8%</div>
+                  <div className="px-3 sm:px-4 border-r border-[var(--border-color)]">
+                    <div className="text-xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 tabular-nums">99.8%</div>
                     <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest mt-1">Verified match</div>
                   </div>
-                  <div className="pl-4">
-                    <div className="text-2xl sm:text-3xl font-extrabold text-blue-600 dark:text-blue-400 tabular-nums">0%</div>
+                  <div className="pl-3 sm:pl-4">
+                    <div className="text-xl sm:text-3xl font-extrabold text-blue-600 dark:text-blue-400 tabular-nums">0%</div>
                     <div className="text-[10px] text-[var(--text-muted)] uppercase tracking-widest mt-1">Proxy rate</div>
                   </div>
                 </div>

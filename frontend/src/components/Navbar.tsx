@@ -175,13 +175,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           {/* PWA Mobile App Install Button */}
-          <InstallAppButton variant="header" />
+          <InstallAppButton variant="header" className="hidden sm:inline-flex" />
 
           {/* Custom Animated Cursor Toggle */}
-          <CursorToggle size="sm" />
+          <CursorToggle size="sm" className="hidden md:inline-flex" />
 
-          {/* Theme Toggle Slider Switch */}
-          <ThemeToggle variant="slider" size="sm" />
+          {/* Theme Toggle Button / Slider */}
+          <ThemeToggle variant="button" className="sm:hidden p-1.5 rounded-lg text-xs" />
+          <ThemeToggle variant="slider" size="sm" className="hidden sm:inline-flex" />
 
           <button 
             onClick={() => setShowNewSessionModal(true)}
