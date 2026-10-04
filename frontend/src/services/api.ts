@@ -4,7 +4,8 @@ import {
   AttendanceAnalysisResponse, AttendanceSessionOut, 
   AttendanceProposalItem,
   StudentUser, FaceFrameUploadResult, FaceRegistrationStatus,
-  ScanAngle, StudentPublicClass, StudentSelfRegisterData
+  ScanAngle, StudentPublicClass, StudentSelfRegisterData,
+  StudentAttendanceDashboardResponse
 } from '../types';
 
 const rawApiBase = import.meta.env.VITE_API_URL;
@@ -542,6 +543,12 @@ export const StudentPortalService = {
 
   getRegistrationStatus: async (): Promise<FaceRegistrationStatus> => {
     const res = await studentApi.get('/student/me');
+    return res.data;
+  },
+
+  getAttendanceDashboard: async (subjectId?: number): Promise<StudentAttendanceDashboardResponse> => {
+    const params = subjectId ? { subject_id: subjectId } : {};
+    const res = await studentApi.get('/student/attendance', { params });
     return res.data;
   },
 

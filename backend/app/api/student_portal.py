@@ -6,17 +6,20 @@ import cv2
 import numpy as np
 import io
 import os
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+from typing import List, Optional
+from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Query
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
-from app.models.models import Student, FaceEmbedding, Class
+from app.models.models import Student, FaceEmbedding, Class, Subject, AttendanceSession, AttendanceRecord, User
 from app.schemas.schemas import (
     StudentLoginRequest, StudentPortalTokenResponse,
     FaceFrameUploadResult, FaceRegistrationStatus,
     StudentSelfRegisterRequest, StudentPublicClassOut,
     StudentUpdateClassRequest,
+    StudentAttendanceDashboardResponse, StudentSubjectAttendance,
+    StudentLectureLog, StudentMonthlyStats,
     SCAN_ANGLES
 )
 from app.core.security import (
@@ -418,3 +421,157 @@ def reset_face_scan(
     db.commit()
 
     return {"message": f"Face scan reset. Please complete the face scan wizard again.", "student": student.name}
+
+
+# ── Student Attendance Tracking & Analytics Endpoints ─────────────────────────
+
+@router.get("/attendance", response_model=StudentAttendanceDashboardResponse)
+def get_student_attendance(
+    subject_id: Optional[int] = Query(None),
+    token: dict = Depends(get_current_student_token),
+    db: Session = Depends(get_db)
+):
+    """
+    Returns student attendance profile, curriculum subject breakdown,
+    lecture history log, and visual analytics for their enrolled class section.
+    """
+    student_db_id = int(token["sub"])
+    student = _get_student_or_404(student_db_id, db)
+
+    cls = db.query(Class).filter(Class.id == student.class_id).first() if student.class_id else None
+
+    # Get all subjects in student's class
+    subjects_list = []
+    if student.class_id:
+        subjects_list = db.query(Subject).filter(Subject.class_id == student.class_id).all()
+
+    # Get all sessions recorded for this class
+    all_sessions_query = db.query(AttendanceSession).filter(AttendanceSession.class_id == student.class_id)
+    all_class_sessions = all_sessions_query.order_by(AttendanceSession.date.desc(), AttendanceSession.start_time.desc()).all()
+
+    # Get filtered sessions if subject_id filter is specified
+    if subject_id:
+        filtered_sessions = [s for s in all_class_sessions if s.subject_id == subject_id]
+    else:
+        filtered_sessions = all_class_sessions
+
+    # Fetch all attendance records for this student
+    records = db.query(AttendanceRecord).filter(AttendanceRecord.student_id == student.id).all()
+    record_session_map = {r.session_id: r for r in records}
+
+    # Calculate statistics per subject
+    subject_stats_list = []
+    for sub in subjects_list:
+        sub_sessions = [s for s in all_class_sessions if s.subject_id == sub.id]
+        total_sub_classes = len(sub_sessions)
+        attended_cnt = 0
+        for s in sub_sessions:
+            r = record_session_map.get(s.id)
+            if r and r.status == "PRESENT":
+                attended_cnt += 1
+        pct = round((attended_cnt / total_sub_classes * 100.0), 1) if total_sub_classes > 0 else 100.0
+        if pct >= 75.0:
+            status_label = "ELIGIBLE"
+        elif pct >= 65.0:
+            status_label = "WARNING"
+        else:
+            status_label = "CRITICAL"
+
+        subject_stats_list.append(StudentSubjectAttendance(
+            subject_id=sub.id,
+            subject_name=sub.name,
+            subject_code=sub.code,
+            total_classes=total_sub_classes,
+            attended=attended_cnt,
+            missed=total_sub_classes - attended_cnt,
+            percentage=pct,
+            status=status_label
+        ))
+
+    # Overall calculation across all curriculum classes held
+    total_held = len(all_class_sessions)
+    total_attended = 0
+    for s in all_class_sessions:
+        r = record_session_map.get(s.id)
+        if r and r.status == "PRESENT":
+            total_attended += 1
+
+    total_missed = total_held - total_attended
+    overall_pct = round((total_attended / total_held * 100.0), 1) if total_held > 0 else 100.0
+
+    if overall_pct >= 75.0:
+        eligibility = "ELIGIBLE"
+        req_classes = 0
+    elif overall_pct >= 65.0:
+        eligibility = "WARNING"
+        # Classes needed to reach 75%: (attended + x) / (total_held + x) >= 0.75
+        req_classes = max(1, int(np.ceil((0.75 * total_held - total_attended) / 0.25))) if total_held > 0 else 0
+    else:
+        eligibility = "CRITICAL"
+        req_classes = max(1, int(np.ceil((0.75 * total_held - total_attended) / 0.25))) if total_held > 0 else 0
+
+    # Build Lecture History log for the selected subject view
+    lecture_logs = []
+    for s in filtered_sessions:
+        r = record_session_map.get(s.id)
+        is_present = (r.status == "PRESENT") if r else False
+        sub_obj = db.query(Subject).filter(Subject.id == s.subject_id).first()
+        tch_obj = db.query(User).filter(User.id == s.teacher_id).first()
+
+        lecture_logs.append(StudentLectureLog(
+            session_id=s.id,
+            date=s.date,
+            start_time=s.start_time,
+            subject_id=s.subject_id,
+            subject_name=sub_obj.name if sub_obj else "General Lecture",
+            subject_code=sub_obj.code if sub_obj else "GEN",
+            teacher_name=tch_obj.name if tch_obj else "Faculty",
+            status="PRESENT" if is_present else "ABSENT",
+            confidence=r.confidence if r else 0.0,
+            verification_status=r.verification_status if r else "AUTO",
+            image_url=s.image_path
+        ))
+
+    # Monthly / Weekly Analytics
+    from collections import defaultdict
+    monthly_map = defaultdict(lambda: {"total": 0, "present": 0})
+    for s in all_class_sessions:
+        r = record_session_map.get(s.id)
+        is_present = (r.status == "PRESENT") if r else False
+        try:
+            dt = datetime.strptime(s.date, "%Y-%m-%d")
+            month_key = dt.strftime("%b %Y")
+        except Exception:
+            month_key = "Current Term"
+        monthly_map[month_key]["total"] += 1
+        if is_present:
+            monthly_map[month_key]["present"] += 1
+
+    monthly_analytics = []
+    for m_key, m_data in monthly_map.items():
+        m_pct = round((m_data["present"] / m_data["total"] * 100.0), 1) if m_data["total"] > 0 else 100.0
+        monthly_analytics.append(StudentMonthlyStats(
+            month=m_key,
+            total=m_data["total"],
+            present=m_data["present"],
+            percentage=m_pct
+        ))
+
+    return StudentAttendanceDashboardResponse(
+        student_id=student.student_id,
+        name=student.name,
+        roll_number=student.roll_number,
+        class_id=student.class_id,
+        class_name=cls.name if cls else "N/A",
+        section=cls.section if cls else "N/A",
+        total_classes=total_held,
+        attended=total_attended,
+        missed=total_missed,
+        overall_percentage=overall_pct,
+        eligibility_status=eligibility,
+        required_classes_for_target=req_classes,
+        subjects=subject_stats_list,
+        history=lecture_logs,
+        monthly_analytics=monthly_analytics
+    )
+

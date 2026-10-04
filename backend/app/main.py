@@ -20,17 +20,27 @@ app = FastAPI(
 # CORS Middleware setup
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://one-attendx.vercel.app",
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "http://localhost:8000"
-    ],
-    allow_origin_regex=r"https://.*\.vercel\.app|http://localhost:\d+",
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+from fastapi.responses import JSONResponse
+from fastapi import Request
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    traceback.print_exc()
+    response = JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal Server Error: {str(exc)}"}
+    )
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
 
 # Mount static file directory for stored images & uploads
 os.makedirs(settings.STORAGE_DIR, exist_ok=True)

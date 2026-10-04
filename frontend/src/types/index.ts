@@ -195,3 +195,54 @@ export interface AttendanceSessionOut {
   status?: string;
   records: AttendanceRecordOut[];
 }
+
+export interface StudentSubjectAttendance {
+  subject_id: number;
+  subject_name: string;
+  subject_code: string;
+  total_classes: number;
+  attended: number;
+  missed: number;
+  percentage: number;
+  status: 'ELIGIBLE' | 'WARNING' | 'CRITICAL' | string;
+}
+
+export interface StudentLectureLog {
+  session_id: number;
+  date: string;
+  start_time: string;
+  subject_id: number;
+  subject_name: string;
+  subject_code: string;
+  teacher_name?: string;
+  status: 'PRESENT' | 'ABSENT' | string;
+  confidence?: number;
+  verification_status?: string;
+  image_url?: string;
+}
+
+export interface StudentMonthlyStats {
+  month: string;
+  total: number;
+  present: number;
+  percentage: number;
+}
+
+export interface StudentAttendanceDashboardResponse {
+  student_id: string;
+  name: string;
+  roll_number: string;
+  class_id?: number;
+  class_name?: string;
+  section?: string;
+  total_classes: number;
+  attended: number;
+  missed: number;
+  overall_percentage: number;
+  eligibility_status: 'ELIGIBLE' | 'WARNING' | 'CRITICAL' | string;
+  required_classes_for_target: number;
+  subjects: StudentSubjectAttendance[];
+  history: StudentLectureLog[];
+  monthly_analytics: StudentMonthlyStats[];
+}
+

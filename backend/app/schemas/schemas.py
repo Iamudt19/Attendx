@@ -272,4 +272,53 @@ class AttendanceSessionOut(BaseModel):
     total_enrolled: int = 0
     records: List[AttendanceRecordOut] = []
 
+# ── Student Attendance Analytics Schemas ─────────────────────────────────────
+
+class StudentSubjectAttendance(BaseModel):
+    subject_id: int
+    subject_name: str
+    subject_code: str
+    total_classes: int
+    attended: int
+    missed: int
+    percentage: float
+    status: str
+
+class StudentLectureLog(BaseModel):
+    session_id: int
+    date: str
+    start_time: str
+    subject_id: int
+    subject_name: str
+    subject_code: str
+    teacher_name: Optional[str] = None
+    status: str
+    confidence: Optional[float] = None
+    verification_status: Optional[str] = None
+    image_url: Optional[str] = None
+
+class StudentMonthlyStats(BaseModel):
+    month: str
+    total: int
+    present: int
+    percentage: float
+
+class StudentAttendanceDashboardResponse(BaseModel):
+    student_id: str
+    name: str
+    roll_number: str
+    class_id: Optional[int] = None
+    class_name: Optional[str] = None
+    section: Optional[str] = None
+    total_classes: int
+    attended: int
+    missed: int
+    overall_percentage: float
+    eligibility_status: str
+    required_classes_for_target: int
+    subjects: List[StudentSubjectAttendance]
+    history: List[StudentLectureLog]
+    monthly_analytics: List[StudentMonthlyStats]
+
 TokenResponse.model_rebuild()
+
