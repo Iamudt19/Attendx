@@ -17,3 +17,4 @@ pytest>=7.4.3
 requests>=2.31.0
 onnxruntime>=1.16.0
 gradio>=5.9.1
+spaces
