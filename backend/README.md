@@ -3,10 +3,11 @@ title: AttendX API
 emoji: 📸
 colorFrom: indigo
 colorTo: blue
-sdk: docker
-app_port: 7860
+sdk: gradio
+sdk_version: "5.9.1"
+app_file: app.py
 pinned: false
 ---
 
 # AttendX API — AI-Powered Classroom Attendance System
-FastAPI backend for AttendX running on Hugging Face Spaces.
+Production FastAPI server with OpenCV SFace deep facial recognition running on Hugging Face Spaces.
