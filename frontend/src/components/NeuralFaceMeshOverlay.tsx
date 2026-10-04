@@ -1,5 +1,31 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Eye, EyeOff, CheckCircle2, Scan, Sparkles, Zap } from 'lucide-react';
+import { Scan, Sparkles, Layers, CheckCircle2 } from 'lucide-react';
+
+export interface Spatial3DSector {
+  id: string;
+  label: string;
+  shortDesc: string;
+  icon: string;
+  targetAnglePrompt: string;
+  angleRange: { minYaw?: number; maxYaw?: number; minPitch?: number; maxPitch?: number; minRoll?: number; maxRoll?: number; minSmile?: number };
+}
+
+export const SPATIAL_3D_SECTORS: Spatial3DSector[] = [
+  { id: 'front', label: 'Frontal Center', shortDesc: 'Direct 0° gaze', icon: '😐', targetAnglePrompt: 'Look directly straight ahead at the camera', angleRange: { minYaw: -10, maxYaw: 10, minPitch: -10, maxPitch: 10 } },
+  { id: 'left_slight', label: 'Left 15°', shortDesc: 'Slight left glance', icon: '↖️', targetAnglePrompt: 'Turn head slightly to the LEFT ⬅️', angleRange: { minYaw: 10, maxYaw: 24, minPitch: -12, maxPitch: 12 } },
+  { id: 'left_profile', label: 'Left Profile', shortDesc: 'Left cheek profile', icon: '⬅️', targetAnglePrompt: 'Turn head further to the LEFT profile ⬅️', angleRange: { minYaw: 24, maxYaw: 60 } },
+  { id: 'right_slight', label: 'Right 15°', shortDesc: 'Slight right glance', icon: '↗️', targetAnglePrompt: 'Turn head slightly to the RIGHT ➡️', angleRange: { minYaw: -24, maxYaw: -10, minPitch: -12, maxPitch: 12 } },
+  { id: 'right_profile', label: 'Right Profile', shortDesc: 'Right cheek profile', icon: '➡️', targetAnglePrompt: 'Turn head further to the RIGHT profile ➡️', angleRange: { minYaw: -60, maxYaw: -24 } },
+  { id: 'chin_down', label: 'Chin Down', shortDesc: 'Downward pitch', icon: '⬇️', targetAnglePrompt: 'Gently tilt chin DOWN ⬇️', angleRange: { minPitch: 7, maxPitch: 45 } },
+  { id: 'chin_up', label: 'Chin Up', shortDesc: 'Upward pitch', icon: '⬆️', targetAnglePrompt: 'Gently tilt chin UP ⬆️', angleRange: { minPitch: -45, maxPitch: -7 } },
+  { id: 'tilt_left', label: 'Tilt Left', shortDesc: 'Left ear to shoulder', icon: '🔄', targetAnglePrompt: 'Tilt head slightly toward left shoulder', angleRange: { minRoll: 8, maxRoll: 40 } },
+  { id: 'tilt_right', label: 'Tilt Right', shortDesc: 'Right ear to shoulder', icon: '🔁', targetAnglePrompt: 'Tilt head slightly toward right shoulder', angleRange: { minRoll: -40, maxRoll: -8 } },
+  { id: 'down_left', label: 'Down-Left', shortDesc: 'Lower-left orbit', icon: '↙️', targetAnglePrompt: 'Angle chin down and to the left ↙️', angleRange: { minYaw: 8, minPitch: 6 } },
+  { id: 'down_right', label: 'Down-Right', shortDesc: 'Lower-right orbit', icon: '↘️', targetAnglePrompt: 'Angle chin down and to the right ↘️', angleRange: { maxYaw: -8, minPitch: 6 } },
+  { id: 'up_left', label: 'Up-Left', shortDesc: 'Upper-left orbit', icon: '↖️', targetAnglePrompt: 'Angle chin up and to the left ↖️', angleRange: { minYaw: 8, maxPitch: -6 } },
+  { id: 'up_right', label: 'Up-Right', shortDesc: 'Upper-right orbit', icon: '↗️', targetAnglePrompt: 'Angle chin up and to the right ↗️', angleRange: { maxYaw: -8, maxPitch: -6 } },
+  { id: 'smile', label: 'Natural Smile', shortDesc: 'Dynamic expression', icon: '😊', targetAnglePrompt: 'Look straight and give a natural SMILE 😊', angleRange: { minSmile: 0.43 } },
+];
 
 interface NeuralFaceMeshOverlayProps {
   videoRef: React.RefObject<HTMLVideoElement>;
@@ -8,32 +34,36 @@ interface NeuralFaceMeshOverlayProps {
   isAutoScan?: boolean;
   facingMode?: 'user' | 'environment';
   scanProgress?: number;
-  onQualityUpdate?: (quality: { score: number; status: string; yaw: number; pitch: number }) => void;
+  lockedSectors?: string[];
+  onQualityUpdate?: (quality: { score: number; status: string; yaw: number; pitch: number; roll: number; sector: string }) => void;
   onPoseLock?: (angle: string) => void;
 }
 
 export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
   videoRef,
   isActive,
-  targetAngle = 'front',
+  targetAngle,
   isAutoScan = true,
   facingMode = 'user',
   scanProgress = 0,
+  lockedSectors = [],
   onQualityUpdate,
   onPoseLock,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hudEnabled, setHudEnabled] = useState(true);
-  const [poseFeedback, setPoseFeedback] = useState<string>('Position your face inside the target');
+  const [poseFeedback, setPoseFeedback] = useState<string>('Position face in 3D capture ring');
   const [faceDetected, setFaceDetected] = useState(false);
-  const [telemetry, setTelemetry] = useState({ yaw: 0, pitch: 0, quality: 98 });
+  const [activeSectorId, setActiveSectorId] = useState<string>('front');
   const animFrameRef = useRef<number | null>(null);
 
   // Auto-scan lock tracking
   const matchedHoldFrames = useRef<number>(0);
   const lockProgress = useRef<number>(0);
+  const lastEmittedSector = useRef<string | null>(null);
+  const lastEmitTime = useRef<number>(0);
 
-  // Gentle audio chime for Face ID lock
+  // Gentle high-tech audio chime for 3D Sector Lock
   const playLockChime = () => {
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
@@ -42,14 +72,14 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.12);
-      gain.gain.setValueAtTime(0.08, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+      osc.frequency.setValueAtTime(920, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1480, ctx.currentTime + 0.14);
+      gain.gain.setValueAtTime(0.09, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.16);
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start();
-      osc.stop(ctx.currentTime + 0.16);
+      osc.stop(ctx.currentTime + 0.17);
     } catch (_) {}
   };
 
@@ -91,7 +121,7 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
 
         faceMeshInstance.onResults((results: any) => {
           if (!isSubscribed) return;
-          drawCyberHud(results);
+          drawContinuous3DManifoldHud(results);
         });
 
         const processVideo = async () => {
@@ -106,8 +136,8 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
       }
     };
 
-    // ── High-Tech Face ID / Lenskart 3D HUD Renderer ──
-    const drawCyberHud = (results: any) => {
+    // ── Continuous 3D Virtual Face & Spatial Manifold HUD ──
+    const drawContinuous3DManifoldHud = (results: any) => {
       const canvas = canvasRef.current;
       if (!canvas || !videoRef.current) return;
       const ctx = canvas.getContext('2d');
@@ -119,7 +149,7 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
 
       if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
         setFaceDetected(false);
-        setPoseFeedback('Position your face inside the target');
+        setPoseFeedback('Position face inside 3D capture ring');
         matchedHoldFrames.current = 0;
         lockProgress.current = 0;
         drawSearchingHud(ctx, w, h);
@@ -136,8 +166,8 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
       const rightCheek = lm[454];
       const chin = lm[152];
       const forehead = lm[10];
-      const upperLip = lm[0];
-      const lowerLip = lm[17];
+      const leftEyeOuter = lm[33];
+      const rightEyeOuter = lm[263];
       const leftMouth = lm[61];
       const rightMouth = lm[291];
 
@@ -165,79 +195,110 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
       const dLeft = Math.abs(noseTip.x - leftCheek.x);
       const dRight = Math.abs(rightCheek.x - noseTip.x);
       const rawYaw = Math.round(((dLeft - dRight) / (dLeft + dRight + 0.001)) * 90);
-      // In front (mirrored) mode: rawYaw > 0 is user's left. In rear camera: rawYaw < 0 is user's left.
       const yaw = isMirrored ? rawYaw : -rawYaw;
 
       const dTop = Math.abs(noseTip.y - forehead.y);
       const dBot = Math.abs(chin.y - noseTip.y);
-      // Pitch: dTop > dBot (> 0) indicates chin down; dBot > dTop (< 0) indicates chin up
       const pitch = Math.round(((dTop - dBot) / (dTop + dBot + 0.001)) * 90);
 
-      // Smile detection (mouth width to face width ratio)
+      // Roll estimation
+      const eyeDx = (rightEyeOuter.x - leftEyeOuter.x);
+      const eyeDy = (rightEyeOuter.y - leftEyeOuter.y);
+      const rawRoll = Math.round(Math.atan2(eyeDy, eyeDx) * (180 / Math.PI));
+      const roll = isMirrored ? -rawRoll : rawRoll;
+
+      // Smile detection
       const mouthWidth = Math.abs(rightMouth.x - leftMouth.x);
       const faceWidth = Math.abs(rightCheek.x - leftCheek.x);
       const smileRatio = mouthWidth / (faceWidth + 0.001);
       const isSmiling = smileRatio > 0.44;
 
-      setTelemetry({ yaw, pitch, quality: 98 });
-      if (onQualityUpdate) {
-        onQualityUpdate({ score: 98, status: 'OPTIMAL', yaw, pitch });
-      }
-
-      // Guidance Check based on target angle
-      let isAngleMatched = false;
-      let detectedAngle = targetAngle || 'front';
-      let prompt = 'Center your face in view';
-
-      if (targetAngle === 'front') {
-        isAngleMatched = Math.abs(yaw) <= 14 && Math.abs(pitch) <= 12;
-        prompt = isAngleMatched ? '✓ Looking Straight (Holding...)' : 'Look directly straight at camera';
-      } else if (targetAngle === 'left') {
-        isAngleMatched = yaw > 7;
-        prompt = isAngleMatched ? '✓ Left Profile (Holding...)' : 'Slowly turn head to the LEFT ⬅️';
-      } else if (targetAngle === 'right') {
-        isAngleMatched = yaw < -7;
-        prompt = isAngleMatched ? '✓ Right Profile (Holding...)' : 'Slowly turn head to the RIGHT ➡️';
-      } else if (targetAngle === 'chin_down' || targetAngle === 'down') {
-        // Generous, natural pitch trigger for chin down (> 3 degrees or dTop > dBot + 0.02)
-        isAngleMatched = pitch > 3 || (dTop - dBot) > 0.02;
-        prompt = isAngleMatched ? '✓ Chin Down (Holding...)' : 'Gently tilt chin DOWN ⬇️';
-      } else if (targetAngle === 'smile') {
-        isAngleMatched = isSmiling || (Math.abs(yaw) <= 14 && Math.abs(pitch) <= 14);
-        prompt = isAngleMatched ? '✓ Smile / Expression (Holding...)' : 'Face camera and give a natural SMILE 😊';
+      // Determine the active 3D spatial sector
+      let currentSector = 'front';
+      if (isSmiling && Math.abs(yaw) <= 18 && Math.abs(pitch) <= 18) {
+        currentSector = 'smile';
+      } else if (yaw > 22) {
+        currentSector = 'left_profile';
+      } else if (yaw < -22) {
+        currentSector = 'right_profile';
+      } else if (yaw > 9 && pitch > 6) {
+        currentSector = 'down_left';
+      } else if (yaw < -9 && pitch > 6) {
+        currentSector = 'down_right';
+      } else if (yaw > 9 && pitch < -6) {
+        currentSector = 'up_left';
+      } else if (yaw < -9 && pitch < -6) {
+        currentSector = 'up_right';
+      } else if (yaw > 9) {
+        currentSector = 'left_slight';
+      } else if (yaw < -9) {
+        currentSector = 'right_slight';
+      } else if (pitch > 6 || (dTop - dBot) > 0.02) {
+        currentSector = 'chin_down';
+      } else if (pitch < -7) {
+        currentSector = 'chin_up';
+      } else if (roll > 10) {
+        currentSector = 'tilt_left';
+      } else if (roll < -10) {
+        currentSector = 'tilt_right';
       } else {
-        // Auto mode fallback
-        if (yaw > 7) {
-          detectedAngle = 'left';
-          isAngleMatched = true;
-          prompt = '✓ Left Profile (Holding...)';
-        } else if (yaw < -7) {
-          detectedAngle = 'right';
-          isAngleMatched = true;
-          prompt = '✓ Right Profile (Holding...)';
-        } else if (pitch > 3) {
-          detectedAngle = 'chin_down';
-          isAngleMatched = true;
-          prompt = '✓ Chin Down (Holding...)';
-        } else if (isSmiling) {
-          detectedAngle = 'smile';
-          isAngleMatched = true;
-          prompt = '✓ Smiling Expression (Holding...)';
-        } else {
-          detectedAngle = 'front';
-          isAngleMatched = true;
-          prompt = '✓ Face Aligned (Holding...)';
-        }
+        currentSector = 'front';
       }
 
-      // Auto-scan continuous lock trigger (8 frames ~ 0.35s for snappy Face ID response)
+      setActiveSectorId(currentSector);
+
+      if (onQualityUpdate) {
+        onQualityUpdate({ score: 98, status: 'OPTIMAL', yaw, pitch, roll, sector: currentSector });
+      }
+
+      // Check if target is satisfied or continuous 3D lock
+      let isAngleMatched = false;
+      let prompt = 'Rotate head smoothly to fill 3D Face ID ring';
+
+      if (targetAngle) {
+        const sectorDef = SPATIAL_3D_SECTORS.find(s => s.id === targetAngle);
+        if (targetAngle === 'front') {
+          isAngleMatched = currentSector === 'front' || (Math.abs(yaw) <= 12 && Math.abs(pitch) <= 10);
+        } else if (targetAngle === 'left') {
+          isAngleMatched = currentSector.includes('left') || yaw > 7;
+        } else if (targetAngle === 'right') {
+          isAngleMatched = currentSector.includes('right') || yaw < -7;
+        } else if (targetAngle === 'chin_down') {
+          isAngleMatched = currentSector === 'chin_down' || pitch > 4;
+        } else if (targetAngle === 'chin_up') {
+          isAngleMatched = currentSector === 'chin_up' || pitch < -4;
+        } else if (targetAngle === 'smile') {
+          isAngleMatched = isSmiling || (currentSector === 'smile');
+        } else {
+          isAngleMatched = currentSector === targetAngle;
+        }
+        prompt = isAngleMatched
+          ? `✓ 3D ${sectorDef?.label || targetAngle} (Locking...)`
+          : (sectorDef?.targetAnglePrompt || `Align head with ${targetAngle}`);
+      } else {
+        // Continuous Hands-Free 3D Sweep mode
+        const isAlreadyLocked = lockedSectors.includes(currentSector);
+        isAngleMatched = true;
+        const matchedDef = SPATIAL_3D_SECTORS.find(s => s.id === currentSector);
+        prompt = isAlreadyLocked
+          ? `✓ ${matchedDef?.label || currentSector} Captured · Keep rotating head`
+          : `⚡ Capturing 3D ${matchedDef?.label || currentSector}...`;
+      }
+
+      // Auto-scan continuous 3D capture trigger (snappy 4 frames ~ 160ms hold)
+      const now = Date.now();
       if (isAngleMatched) {
         matchedHoldFrames.current += 1;
-        lockProgress.current = Math.min(1.0, matchedHoldFrames.current / 8);
+        lockProgress.current = Math.min(1.0, matchedHoldFrames.current / 5);
 
-        if (matchedHoldFrames.current === 8 && isAutoScan && onPoseLock) {
-          playLockChime();
-          onPoseLock(detectedAngle);
+        if (matchedHoldFrames.current >= 5 && isAutoScan && onPoseLock) {
+          const emitKey = targetAngle || currentSector;
+          if (lastEmittedSector.current !== emitKey || (now - lastEmitTime.current > 1200)) {
+            lastEmittedSector.current = emitKey;
+            lastEmitTime.current = now;
+            playLockChime();
+            onPoseLock(emitKey);
+          }
         }
       } else {
         matchedHoldFrames.current = 0;
@@ -248,22 +309,32 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
 
       if (!hudEnabled) return;
 
-      // ── Clean Apple Face ID / Lenskart 3D Radial Progress Ring ──
-      const radius = Math.max(bw, bh) * 0.62;
-      const numTicks = 32;
+      // ── Apple Face ID / Lenskart 3D Spatial Radial Ring ──
+      const radius = Math.max(bw, bh) * 0.65;
+      const numSegments = 32;
 
       ctx.save();
-      for (let i = 0; i < numTicks; i++) {
-        const angle = (i / numTicks) * Math.PI * 2 - Math.PI / 2;
-        const tickLength = i % 4 === 0 ? 10 : 6;
+      for (let i = 0; i < numSegments; i++) {
+        const angle = (i / numSegments) * Math.PI * 2 - Math.PI / 2;
+        const tickLength = i % 4 === 0 ? 12 : 7;
         const x1 = cx + Math.cos(angle) * radius;
         const y1 = cy + Math.sin(angle) * radius;
         const x2 = cx + Math.cos(angle) * (radius + tickLength);
         const y2 = cy + Math.sin(angle) * (radius + tickLength);
 
-        const isFilled = isAngleMatched && (i / numTicks <= (lockProgress.current || 0));
-        ctx.strokeStyle = isFilled ? '#10b981' : 'rgba(255, 255, 255, 0.28)';
-        ctx.lineWidth = isFilled ? 2.5 : 1.5;
+        // Map quadrant to 3D orientation for visual locking
+        const normAngle = (angle + Math.PI / 2 + Math.PI * 2) % (Math.PI * 2);
+        const quadrantIdx = Math.floor((normAngle / (Math.PI * 2)) * 8);
+        const isQuadrantLocked = lockedSectors.length > quadrantIdx || (i / numSegments <= (scanProgress / 100));
+
+        const isActivelyHolding = isAngleMatched && (i / numSegments <= (lockProgress.current || 0));
+        
+        ctx.strokeStyle = isActivelyHolding
+          ? '#10b981'
+          : isQuadrantLocked
+            ? '#06b6d4'
+            : 'rgba(255, 255, 255, 0.25)';
+        ctx.lineWidth = (isActivelyHolding || isQuadrantLocked) ? 2.8 : 1.4;
         ctx.lineCap = 'round';
         ctx.beginPath();
         ctx.moveTo(x1, y1);
@@ -271,22 +342,45 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
         ctx.stroke();
       }
 
-      // Soft subtle facial anchor points (correctly mapped to visual screen coordinates)
+      // ── Dynamic 3D Facial Geometry Cloud Nodes ──
       const keyNodes = [
-        lm[33], lm[263], // Eye outer corners
+        lm[33], lm[263], // Eye corners
         lm[1],           // Nose tip
         lm[61], lm[291], // Mouth corners
-        lm[152]          // Chin
+        lm[152],         // Chin
+        lm[10],          // Forehead
+        lm[234], lm[454] // Cheeks
       ];
 
       for (const node of keyNodes) {
         const nx = toScreenX(node.x);
         const ny = toScreenY(node.y);
-        ctx.fillStyle = isAngleMatched ? 'rgba(16, 185, 129, 0.85)' : 'rgba(255, 255, 255, 0.5)';
+        ctx.fillStyle = isAngleMatched ? 'rgba(16, 185, 129, 0.9)' : 'rgba(6, 182, 212, 0.7)';
         ctx.beginPath();
         ctx.arc(nx, ny, 2.5, 0, Math.PI * 2);
         ctx.fill();
       }
+
+      // Connect nose tip with cheeks and chin in 3D wireframe triangle
+      const nX = toScreenX(noseTip.x);
+      const nY = toScreenY(noseTip.y);
+      const lX = toScreenX(leftCheek.x);
+      const lY = toScreenY(leftCheek.y);
+      const rX = toScreenX(rightCheek.x);
+      const rY = toScreenY(rightCheek.y);
+      const cX = toScreenX(chin.x);
+      const cY = toScreenY(chin.y);
+
+      ctx.strokeStyle = 'rgba(6, 182, 212, 0.25)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(nX, nY);
+      ctx.lineTo(lX, lY);
+      ctx.moveTo(nX, nY);
+      ctx.lineTo(rX, rY);
+      ctx.moveTo(nX, nY);
+      ctx.lineTo(cX, cY);
+      ctx.stroke();
 
       ctx.restore();
     };
@@ -306,9 +400,9 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
       ctx.stroke();
 
       ctx.font = '12px system-ui, -apple-system, sans-serif';
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
       ctx.textAlign = 'center';
-      ctx.fillText('Center your face in the oval to begin', cx, cy + ry + 28);
+      ctx.fillText('Center your face in the oval to begin 3D scan', cx, cy + ry + 28);
       ctx.restore();
     };
 
@@ -337,13 +431,13 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       if (faceMeshInstance?.close) faceMeshInstance.close();
     };
-  }, [isActive, hudEnabled, targetAngle, isAutoScan, onPoseLock]);
+  }, [isActive, hudEnabled, targetAngle, isAutoScan, lockedSectors, scanProgress, onPoseLock]);
 
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
       <canvas ref={canvasRef} className="w-full h-full object-cover" />
 
-      {/* Top Right HUD Switch & Auto-Scan Badge */}
+      {/* Top Right HUD Switch */}
       <div className="pointer-events-auto absolute top-3 right-3 flex items-center gap-1.5">
         <button
           type="button"
@@ -351,11 +445,11 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
           className="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold bg-slate-950/80 hover:bg-slate-900 text-cyan-400 border border-cyan-500/30 backdrop-blur-md transition-all flex items-center gap-1.5 shadow-lg"
         >
           <Scan className="w-3 h-3 text-cyan-400" />
-          <span>{hudEnabled ? 'HUD On' : 'HUD Off'}</span>
+          <span>{hudEnabled ? '3D HUD On' : '3D HUD Off'}</span>
         </button>
       </div>
 
-      {/* Bottom Live Target Feedback */}
+      {/* Bottom Live Target Feedback HUD */}
       <div className="absolute bottom-3 inset-x-0 flex items-center justify-center pointer-events-none px-4">
         <div className="px-3.5 py-1.5 rounded-full text-xs font-mono font-semibold bg-slate-950/85 text-emerald-400 border border-emerald-500/40 backdrop-blur-md shadow-2xl flex items-center gap-2 max-w-sm text-center">
           <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />

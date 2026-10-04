@@ -146,29 +146,29 @@ class FaceMatcher:
     def calibrate_confidence(self, raw_cosine: float) -> float:
         """
         Accurately maps OpenCV SFace cosine similarity (-1.0 to 1.0) into realistic percentage:
-          - raw < 0.60: 5% - 25% (Stranger / Noise)
-          - 0.60 - 0.72: 25% - 50% (Unregistered / Lookalike)
-          - 0.72 - 0.80: 50% - 75% (Review Zone - ambiguous)
-          - 0.80 - 0.88: 75% - 93% (Confirmed High Match)
-          - 0.88+: 94% - 99% (Definitive 3D biometric lock)
+          - raw < 0.45: 5% - 25% (Stranger / Noise)
+          - 0.45 - 0.55: 25% - 50% (Unregistered / Lookalike)
+          - 0.55 - 0.65: 50% - 75% (Review Zone - ambiguous)
+          - 0.65 - 0.78: 75% - 92% (Confirmed High Match)
+          - 0.78+: 93% - 99% (Definitive 3D biometric lock)
         """
-        if raw_cosine <= 0.40:
+        if raw_cosine <= 0.35:
             return round(max(0.05, float(raw_cosine * 0.4)), 3)
-        elif raw_cosine < 0.60:
-            # Scale 0.40 -> 0.60 to 0.16 -> 0.25
-            return round(0.16 + (raw_cosine - 0.40) / (0.60 - 0.40) * 0.09, 3)
-        elif raw_cosine < 0.72:
-            # Scale 0.60 -> 0.72 to 0.25 -> 0.50
-            return round(0.25 + (raw_cosine - 0.60) / (0.72 - 0.60) * 0.25, 3)
-        elif raw_cosine < 0.80:
-            # Scale 0.72 -> 0.80 to 0.50 -> 0.75 (Review Zone)
-            return round(0.50 + (raw_cosine - 0.72) / (0.80 - 0.72) * 0.25, 3)
-        elif raw_cosine < 0.88:
-            # Scale 0.80 -> 0.88 to 0.75 -> 0.93 (Present Zone)
-            return round(0.75 + (raw_cosine - 0.80) / (0.88 - 0.80) * 0.18, 3)
+        elif raw_cosine < 0.48:
+            # Scale 0.35 -> 0.48 to 0.14 -> 0.28
+            return round(0.14 + (raw_cosine - 0.35) / (0.48 - 0.35) * 0.14, 3)
+        elif raw_cosine < 0.58:
+            # Scale 0.48 -> 0.58 to 0.28 -> 0.55
+            return round(0.28 + (raw_cosine - 0.48) / (0.58 - 0.48) * 0.27, 3)
+        elif raw_cosine < 0.65:
+            # Scale 0.58 -> 0.65 to 0.55 -> 0.75 (Review Zone)
+            return round(0.55 + (raw_cosine - 0.58) / (0.65 - 0.58) * 0.20, 3)
+        elif raw_cosine < 0.78:
+            # Scale 0.65 -> 0.78 to 0.75 -> 0.92 (Present Zone)
+            return round(0.75 + (raw_cosine - 0.65) / (0.78 - 0.65) * 0.17, 3)
         else:
-            # Scale 0.88 -> 1.0 to 0.93 -> 0.99
-            return min(0.99, round(0.93 + (raw_cosine - 0.88) / (1.0 - 0.88) * 0.06, 3))
+            # Scale 0.78 -> 1.0 to 0.92 -> 0.99
+            return min(0.99, round(0.92 + (raw_cosine - 0.78) / (1.0 - 0.78) * 0.07, 3))
 
     def batch_match_embeddings(
         self,
