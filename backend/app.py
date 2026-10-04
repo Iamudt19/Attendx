@@ -36,7 +36,7 @@ with gr.Blocks(title="AttendX AI API Gateway") as demo:
     test_btn.click(fn=zerogpu_face_inference_probe, outputs=status_box)
 
 # ---------------------------------------------------------------------------
-# Register FastAPI Routes onto Gradio ASGI Application
+# Register FastAPI Routes onto Gradio ASGI Application with Top Precedence
 # ---------------------------------------------------------------------------
 # Enable CORS so Vercel frontend can call all /api endpoints
 demo.app.add_middleware(
@@ -47,16 +47,21 @@ demo.app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register all FastAPI routes (auth, classes, subjects, students, attendance, export, student_portal)
-demo.app.include_router(fastapi_app.router)
-
 # Mount static storage for student photos & uploads
 os.makedirs(settings.STORAGE_DIR, exist_ok=True)
 demo.app.mount("/storage", StaticFiles(directory=settings.STORAGE_DIR), name="storage")
+
+# Prepend all FastAPI routes (including /api/*, /docs, /openapi.json, /api/health)
+# so they are evaluated BEFORE Gradio's internal catch-all redirects
+for route in reversed(fastapi_app.routes):
+    demo.app.routes.insert(0, route)
+    if hasattr(demo.app, "router") and hasattr(demo.app.router, "routes"):
+        demo.app.router.routes.insert(0, route)
 
 if __name__ == "__main__":
     demo.launch(
         server_name="0.0.0.0",
         server_port=7860
     )
+
 
