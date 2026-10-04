@@ -1,3 +1,4 @@
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Shield, Lock, Unlock, KeyRound, CheckCircle2, AlertCircle,
   Users, BookOpen, RefreshCw, Plus,
@@ -771,7 +772,7 @@ export const AdminPortal: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-[var(--border-color)]">
                     {sessions
-                      .filter(s => {
+                      .filter((s: AttendanceSessionOut) => {
                         const matchesClass = selectedSessionClassFilter === 'ALL' || s.class_id === selectedSessionClassFilter;
                         const matchesDate = !selectedSessionDateFilter || s.date === selectedSessionDateFilter;
                         const matchesSearch = !sessionSearch ||
@@ -781,7 +782,7 @@ export const AdminPortal: React.FC = () => {
                           s.date.includes(sessionSearch);
                         return matchesClass && matchesDate && matchesSearch;
                       })
-                      .map((sess) => {
+                      .map((sess: AttendanceSessionOut) => {
                         const total = sess.total_enrolled || (sess.present_count + sess.absent_count) || 1;
                         const pct = Math.round((sess.present_count / total) * 100);
                         return (
@@ -887,7 +888,7 @@ export const AdminPortal: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border-color)]">
-                    {pendingTeachers.map((teacher) => (
+                    {pendingTeachers.map((teacher: any) => (
                       <tr key={teacher.id} className="hover:bg-[var(--bg-inset)] transition-colors bg-amber-500/[0.03]">
                         <td className="py-3.5 px-4 font-bold text-[var(--text-primary)] font-sans">
                           {teacher.name}
@@ -940,7 +941,7 @@ export const AdminPortal: React.FC = () => {
             {/* Approved Faculty Section */}
             <div className="space-y-3 pt-4">
               <h3 className="text-sm font-mono font-bold uppercase tracking-wider text-[var(--text-primary)]">
-                Active Institutional Faculty ({allTeachers.filter(t => t.is_approved).length})
+                Active Institutional Faculty ({allTeachers.filter((t: any) => t.is_approved).length})
               </h3>
               <div className="swiss-card rounded-lg overflow-x-auto">
                 <table className="w-full text-left text-xs font-mono">
@@ -953,7 +954,7 @@ export const AdminPortal: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--border-color)]">
-                    {allTeachers.filter(t => t.is_approved).map((t) => (
+                    {allTeachers.filter((t: any) => t.is_approved).map((t: any) => (
                       <tr key={t.id} className="hover:bg-[var(--bg-inset)] transition-colors">
                         <td className="py-3 px-4 font-bold text-[var(--text-primary)] font-sans">{t.name}</td>
                         <td className="py-3 px-4 text-[var(--text-secondary)]">{t.email}</td>
@@ -967,7 +968,7 @@ export const AdminPortal: React.FC = () => {
                         </td>
                       </tr>
                     ))}
-                    {allTeachers.filter(t => t.is_approved).length === 0 && (
+                    {allTeachers.filter((t: any) => t.is_approved).length === 0 && (
                       <tr>
                         <td colSpan={4} className="p-6 text-center text-xs text-[var(--text-muted)]">
                           No active faculty accounts found.
@@ -1010,13 +1011,13 @@ export const AdminPortal: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border-color)]">
-                  {classes.map((cls) => (
+                  {classes.map((cls: ClassItem) => (
                     <tr key={cls.id} className="hover:bg-[var(--bg-inset)] transition-colors">
                       <td className="py-3 px-4 font-bold text-[var(--text-primary)] font-sans">{cls.name}</td>
                       <td className="py-3 px-4">{cls.section}</td>
                       <td className="py-3 px-4">{cls.academic_year}</td>
                       <td className="py-3 px-4">
-                        {students.filter(s => s.class_id === cls.id).length} Enrolled
+                        {students.filter((s: StudentItem) => s.class_id === cls.id).length} Enrolled
                       </td>
                       <td className="py-3 px-4 text-right">
                         <button
@@ -1069,7 +1070,7 @@ export const AdminPortal: React.FC = () => {
                 className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-lg px-3 py-2 text-xs text-[var(--text-primary)] font-mono"
               >
                 <option value="ALL">All Classrooms</option>
-                {classes.map((c) => (
+                {classes.map((c: ClassItem) => (
                   <option key={c.id} value={c.id}>
                     {c.name} {c.section}
                   </option>
@@ -1089,7 +1090,7 @@ export const AdminPortal: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border-color)]">
-                  {filteredStudents.map((s) => (
+                  {filteredStudents.map((s: StudentItem) => (
                     <tr key={s.id} className="hover:bg-[var(--bg-inset)] transition-colors">
                       <td className="py-3 px-4 font-bold text-[var(--text-primary)] font-sans">{s.name}</td>
                       <td className="py-3 px-4">{s.roll_number}</td>
@@ -1149,8 +1150,8 @@ export const AdminPortal: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border-color)]">
-                  {subjects.map((sub) => {
-                    const cls = classes.find(c => c.id === sub.class_id);
+                  {subjects.map((sub: SubjectItem) => {
+                    const cls = classes.find((c: ClassItem) => c.id === sub.class_id);
                     return (
                       <tr key={sub.id} className="hover:bg-[var(--bg-inset)] transition-colors">
                         <td className="py-3 px-4 font-bold text-[var(--text-primary)] font-sans">{sub.name}</td>
@@ -1301,7 +1302,7 @@ export const AdminPortal: React.FC = () => {
                   onChange={(e) => setNewStudentClassId(Number(e.target.value))}
                   className="w-full bg-[var(--bg-inset)] border border-[var(--border-color)] rounded-lg px-3 py-2 text-[var(--text-primary)]"
                 >
-                  {classes.map((c) => (
+                  {classes.map((c: ClassItem) => (
                     <option key={c.id} value={c.id}>
                       {c.name} {c.section} ({c.academic_year})
                     </option>
@@ -1359,7 +1360,7 @@ export const AdminPortal: React.FC = () => {
                   onChange={(e) => setNewSubjectClassId(Number(e.target.value))}
                   className="w-full bg-[var(--bg-inset)] border border-[var(--border-color)] rounded-lg px-3 py-2 text-[var(--text-primary)]"
                 >
-                  {classes.map((c) => (
+                  {classes.map((c: ClassItem) => (
                     <option key={c.id} value={c.id}>
                       {c.name} {c.section}
                     </option>
@@ -1419,13 +1420,13 @@ export const AdminPortal: React.FC = () => {
               <div>
                 <div className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase">Present Count</div>
                 <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
-                  {editableRecords.filter(r => r.status === 'PRESENT').length}
+                  {editableRecords.filter((r: AttendanceRecordOut) => r.status === 'PRESENT').length}
                 </div>
               </div>
               <div>
                 <div className="text-[10px] text-rose-600 dark:text-rose-400 uppercase">Absent Count</div>
                 <div className="text-lg font-bold text-rose-600 dark:text-rose-400">
-                  {editableRecords.filter(r => r.status === 'ABSENT').length}
+                  {editableRecords.filter((r: AttendanceRecordOut) => r.status === 'ABSENT').length}
                 </div>
               </div>
             </div>
@@ -1474,8 +1475,8 @@ export const AdminPortal: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-[var(--border-color)] bg-[var(--bg-surface)]">
                   {editableRecords
-                    .map((rec, origIdx) => ({ rec, origIdx }))
-                    .filter(({ rec }) => {
+                    .map((rec: AttendanceRecordOut, origIdx: number) => ({ rec, origIdx }))
+                    .filter(({ rec }: { rec: AttendanceRecordOut; origIdx: number }) => {
                       if (!sessionRecordSearch) return true;
                       const q = sessionRecordSearch.toLowerCase();
                       return (
@@ -1484,7 +1485,7 @@ export const AdminPortal: React.FC = () => {
                         (rec.student_code && rec.student_code.toLowerCase().includes(q))
                       );
                     })
-                    .map(({ rec, origIdx }) => {
+                    .map(({ rec, origIdx }: { rec: AttendanceRecordOut; origIdx: number }) => {
                       const isPresent = rec.status === 'PRESENT';
                       return (
                         <tr
