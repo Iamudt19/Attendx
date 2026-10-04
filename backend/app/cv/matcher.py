@@ -145,24 +145,30 @@ class FaceMatcher:
 
     def calibrate_confidence(self, raw_cosine: float) -> float:
         """
-        Calibrate OpenCV SFace cosine similarity (-1.0 to 1.0) into a realistic 0.0 - 1.0 probability.
-        OpenCV SFace standard FAR/FRR operating curve:
-          - raw < 0.30: impostor/stranger (0% - 35%)
-          - 0.30 - 0.38: review zone (35% - 60%)
-          - 0.38 - 0.50: strong match (60% - 85%)
-          - > 0.50: definitive match (85% - 99%)
+        Accurately maps OpenCV SFace cosine similarity (-1.0 to 1.0) into a realistic percentage:
+          - raw < 0.25: 5% - 20% (Stranger/Noise)
+          - 0.25 - 0.38: 20% - 40% (Unknown / Unregistered)
+          - 0.38 - 0.50: 40% - 65% (Review Zone - ambiguous)
+          - 0.50 - 0.65: 65% - 88% (Confirmed High Match)
+          - 0.65 - 0.85: 88% - 98% (Extremely High Fidelity)
+          - 0.85+: 99% (Definitive identity lock)
         """
         if raw_cosine <= 0.20:
-            return max(0.0, float(raw_cosine * 1.5))
-        elif raw_cosine < 0.36:
-            # Scale 0.20 -> 0.36 to 0.30 -> 0.55
-            return round(0.30 + (raw_cosine - 0.20) / (0.36 - 0.20) * 0.25, 3)
-        elif raw_cosine < 0.48:
-            # Scale 0.36 -> 0.48 to 0.55 -> 0.85
-            return round(0.55 + (raw_cosine - 0.36) / (0.48 - 0.36) * 0.30, 3)
+            return round(max(0.05, float(raw_cosine * 0.8)), 3)
+        elif raw_cosine < 0.38:
+            # Scale 0.20 -> 0.38 to 0.16 -> 0.40
+            return round(0.16 + (raw_cosine - 0.20) / (0.38 - 0.20) * 0.24, 3)
+        elif raw_cosine < 0.50:
+            # Scale 0.38 -> 0.50 to 0.40 -> 0.65 (Review Zone)
+            return round(0.40 + (raw_cosine - 0.38) / (0.50 - 0.38) * 0.25, 3)
+        elif raw_cosine < 0.65:
+            # Scale 0.50 -> 0.65 to 0.65 -> 0.88 (Present Zone)
+            return round(0.65 + (raw_cosine - 0.50) / (0.65 - 0.50) * 0.23, 3)
+        elif raw_cosine < 0.85:
+            # Scale 0.65 -> 0.85 to 0.88 -> 0.98
+            return round(0.88 + (raw_cosine - 0.65) / (0.85 - 0.65) * 0.10, 3)
         else:
-            # Scale 0.48 -> 0.70+ to 0.85 -> 0.99
-            return min(0.99, round(0.85 + (raw_cosine - 0.48) / (0.70 - 0.48) * 0.14, 3))
+            return min(0.99, round(0.98 + (raw_cosine - 0.85) * 0.05, 3))
 
     def batch_match_embeddings(
         self,
@@ -171,7 +177,7 @@ class FaceMatcher:
         quality_assessments: Optional[List[Dict[str, Any]]] = None
     ) -> List[Dict[str, Any]]:
         """
-        High-Speed Vectorized Batch Matching with Strict 1-to-1 Bipartite Unique Assignment.
+        High-Speed Vectorized Batch Matching with Multi-Vector Consensus & Strict 1-to-1 Bipartite Unique Assignment.
         Guarantees that no single student can be claimed by multiple face boxes in the same photo.
         """
         if not candidate_embeddings:
@@ -218,16 +224,29 @@ class FaceMatcher:
         # Cosine similarity matrix: (N, M)
         sim_matrix = np.dot(cand_matrix, ref_matrix.T)
 
-        # Build candidate ranked score lists
+        # Build candidate ranked score lists with multi-vector consensus
         cand_ranked_students = []
         for i in range(len(candidate_embeddings)):
             row_sims = sim_matrix[i]
-            # Max similarity per unique student
-            student_scores_dict: Dict[int, float] = {}
+            # Collect all similarities per unique student
+            student_raw_sims: Dict[int, List[float]] = {}
             for j, s_id in enumerate(student_ids):
                 sim = float(row_sims[j])
-                if s_id not in student_scores_dict or sim > student_scores_dict[s_id]:
-                    student_scores_dict[s_id] = sim
+                if s_id not in student_raw_sims:
+                    student_raw_sims[s_id] = []
+                student_raw_sims[s_id].append(sim)
+
+            student_scores_dict: Dict[int, float] = {}
+            for s_id, s_sims in student_raw_sims.items():
+                s_sims.sort(reverse=True)
+                top1 = s_sims[0]
+                if len(s_sims) >= 3:
+                    # Consensus scoring: 80% Top-1 + 20% Top-2 to reject single-vector impostor anomalies
+                    top2 = s_sims[1]
+                    consensus = 0.80 * top1 + 0.20 * top2
+                    student_scores_dict[s_id] = consensus
+                else:
+                    student_scores_dict[s_id] = top1
 
             sorted_scores = sorted(student_scores_dict.items(), key=lambda x: x[1], reverse=True)
             cand_ranked_students.append(sorted_scores)
@@ -261,31 +280,31 @@ class FaceMatcher:
 
             calibrated_conf = self.calibrate_confidence(score)
 
-            # Strict SFace thresholds:
-            # PRESENT: score >= 0.42 and margin >= 0.06
-            # NEEDS_REVIEW: score >= 0.35
-            # UNKNOWN: score < 0.35
-            if score < 0.35:
+            # Strict calibrated thresholds:
+            # PRESENT: score >= match_threshold (0.50) and margin >= min_margin (0.08) and not is_poor_quality
+            # NEEDS_REVIEW: score >= review_threshold (0.38)
+            # UNKNOWN: score < review_threshold (0.38)
+            if score < self.review_threshold:
                 status_str = "UNKNOWN"
                 final_sid = None
-                reason = f"Low facial similarity ({score:.3f} < 0.35) - Unregistered or unrecognizable face."
-            elif score >= 0.42 and margin >= 0.06 and not is_poor_quality:
+                reason = f"Low similarity ({score:.3f} < {self.review_threshold:.2f}) — Unregistered stranger."
+            elif score >= self.match_threshold and (margin >= self.min_margin or len(ranked) == 1) and not is_poor_quality:
                 status_str = "PRESENT"
                 final_sid = s_id
                 claimed_students.add(s_id)
-                reason = f"Verified Match (sim {score:.3f}, margin {margin:.3f})."
+                reason = f"High-Confidence Match ({score:.3f}, margin {margin:.3f})."
             else:
                 status_str = "NEEDS_REVIEW"
                 final_sid = s_id
                 claimed_students.add(s_id)
                 reasons = []
-                if score < 0.42:
-                    reasons.append(f"Borderline similarity ({score:.3f})")
-                if margin < 0.06:
-                    reasons.append(f"Ambiguous match (margin {margin:.3f})")
+                if score < self.match_threshold:
+                    reasons.append(f"Borderline similarity ({score:.3f} < {self.match_threshold:.2f})")
+                if margin < self.min_margin and len(ranked) > 1:
+                    reasons.append(f"Ambiguous match (margin {margin:.3f} < {self.min_margin:.2f})")
                 if is_poor_quality:
                     reasons.append(f"Image quality warning ({q_assessment.get('reason', '')})")
-                reason = "; ".join(reasons)
+                reason = "; ".join(reasons) if reasons else "Borderline match flagged for teacher review."
 
             assigned_faces[cand_idx] = {
                 "student_id": final_sid,
@@ -313,7 +332,7 @@ class FaceMatcher:
                     "confidence": 0.0,
                     "status": "UNKNOWN",
                     "quality_status": q_assessment.get("overall", "GOOD") if q_assessment else "GOOD",
-                    "reason": "Unassigned face box — Unregistered stranger or duplicate candidate."
+                    "reason": "Unassigned face crop — Unregistered stranger or duplicate face."
                 })
 
         return results

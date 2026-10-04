@@ -186,13 +186,14 @@ class RecognitionPipeline:
                 match_data = detected_student_matches[s_id]
                 match_status = match_data["status"]
                 score = match_data["match_score"]
+                conf = match_data.get("confidence", score)
 
                 if match_status == "PRESENT":
                     final_status = "PRESENT"
                     v_status = "AUTO"
                     present_count += 1
                 elif match_status == "NEEDS_REVIEW":
-                    final_status = "PRESENT"
+                    final_status = "ABSENT"
                     v_status = "NEEDS_REVIEW"
                     needs_review_count += 1
                 else:
@@ -202,6 +203,7 @@ class RecognitionPipeline:
             else:
                 final_status = "ABSENT"
                 score = 0.0
+                conf = 0.0
                 v_status = "AUTO"
                 absent_count += 1
 
@@ -212,7 +214,7 @@ class RecognitionPipeline:
                 "roll_number": student["roll_number"],
                 "status": final_status,
                 "match_score": score,
-                "confidence": score,
+                "confidence": conf,
                 "verification_status": v_status
             })
 
@@ -309,13 +311,14 @@ class RecognitionPipeline:
                 match_data = detected_student_matches[s_id]
                 match_status = match_data["status"]
                 score = match_data["match_score"]
+                conf = match_data.get("confidence", score)
 
                 if match_status == "PRESENT":
                     final_status = "PRESENT"
                     v_status = "AUTO"
                     present_count += 1
                 elif match_status == "NEEDS_REVIEW":
-                    final_status = "PRESENT"
+                    final_status = "ABSENT"
                     v_status = "NEEDS_REVIEW"
                     needs_review_count += 1
                 else:
@@ -325,6 +328,7 @@ class RecognitionPipeline:
             else:
                 final_status = "ABSENT"
                 score = 0.0
+                conf = 0.0
                 v_status = "AUTO"
                 absent_count += 1
 
@@ -335,7 +339,7 @@ class RecognitionPipeline:
                 "roll_number": student["roll_number"],
                 "status": final_status,
                 "match_score": score,
-                "confidence": score,
+                "confidence": conf,
                 "verification_status": v_status
             })
 

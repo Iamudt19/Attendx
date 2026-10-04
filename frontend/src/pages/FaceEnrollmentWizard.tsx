@@ -124,6 +124,7 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const [availableDevices, setAvailableDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState<string>('');
+  const [isAutoScan, setIsAutoScan] = useState<boolean>(true);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -736,7 +737,17 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
                       muted
                       className={`w-full h-full object-cover max-h-[420px] ${facingMode === 'user' ? '-scale-x-100' : ''}`}
                     />
-                    <NeuralFaceMeshOverlay videoRef={videoRef} isActive={isWebcamActive} targetAngle={selectedTrainingPreset} />
+                    <NeuralFaceMeshOverlay
+                      videoRef={videoRef}
+                      isActive={isWebcamActive}
+                      targetAngle={selectedTrainingPreset}
+                      isAutoScan={isAutoScan}
+                      onPoseLock={(lockedPreset) => {
+                        if (frameStatus === 'idle') {
+                          captureAndSubmit(lockedPreset);
+                        }
+                      }}
+                    />
 
                     {/* Camera Info Badge */}
                     <div className="absolute top-3 left-3 flex items-center gap-2 px-2.5 py-1 rounded-full bg-black/75 backdrop-blur-md border border-white/15 text-[11px] font-mono text-cyan-400 z-10 pointer-events-none shadow-md">
@@ -1074,13 +1085,24 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
             </div>
           </div>
 
-          {/* Camera Lens Selector Toolbar */}
+          {/* Camera Lens & Auto-Scan Selector Toolbar */}
           <div className={`flex flex-col sm:flex-row items-center justify-between gap-2 px-6 py-2.5 border-b text-xs ${
             isDark ? 'bg-zinc-950/60 border-white/10' : 'bg-slate-50 border-slate-100'
           }`}>
-            <div className="flex items-center gap-1.5 font-mono text-[11px] text-[var(--text-secondary)]">
-              <Camera className="w-3.5 h-3.5 text-blue-500" />
-              <span>Lens Source:</span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsAutoScan(!isAutoScan)}
+                className={`px-3 py-1 rounded-lg border font-mono text-[11px] font-semibold flex items-center gap-1.5 transition-all ${
+                  isAutoScan
+                    ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-zinc-800/40 border-white/10 text-zinc-400'
+                }`}
+                title="Continuous Face ID tracks and auto-captures head movements"
+              >
+                <Zap className="w-3 h-3 text-emerald-500" />
+                <span>{isAutoScan ? 'Continuous Face ID: ON' : 'Manual Snap: ON'}</span>
+              </button>
             </div>
 
             <div className="flex items-center gap-1.5 w-full sm:w-auto">
@@ -1141,7 +1163,17 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
                   muted
                   className={`w-full h-full object-cover ${facingMode === 'user' ? '-scale-x-100' : ''}`}
                 />
-                <NeuralFaceMeshOverlay videoRef={videoRef} isActive={isWebcamActive} targetAngle={currentAngle} />
+                <NeuralFaceMeshOverlay
+                  videoRef={videoRef}
+                  isActive={isWebcamActive}
+                  targetAngle={currentAngle}
+                  isAutoScan={isAutoScan}
+                  onPoseLock={(lockedAngle) => {
+                    if (frameStatus === 'idle') {
+                      captureAndSubmit(lockedAngle);
+                    }
+                  }}
+                />
 
                 {/* Floating Optical Badge */}
                 <div className="absolute top-3 left-3 flex items-center gap-2 px-2.5 py-1 rounded-full bg-slate-950/80 backdrop-blur-md border border-white/15 text-[11px] font-mono text-cyan-400 z-10 pointer-events-none shadow-md">
@@ -1211,15 +1243,23 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({ stud
               id="capture-frame-btn"
               onClick={() => captureAndSubmit()}
               disabled={!isWebcamActive || frameStatus !== 'idle'}
-              className="w-full py-4 px-4 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-bold text-sm rounded-2xl shadow-sm flex items-center justify-center gap-2.5 transition-all disabled:opacity-40"
+              className={`w-full py-4 px-4 font-bold text-sm rounded-2xl shadow-sm flex items-center justify-center gap-2.5 transition-all disabled:opacity-40 ${
+                isAutoScan 
+                  ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-emerald-600 hover:brightness-110 text-white shadow-blue-500/20' 
+                  : 'bg-[#2563EB] hover:bg-[#1D4ED8] text-white'
+              }`}
             >
               {frameStatus === 'capturing' || frameStatus === 'uploading' ? (
-                <><RefreshCw className="w-4 h-4 animate-spin" /><span>Processing...</span></>
+                <><RefreshCw className="w-4 h-4 animate-spin" /><span>Processing Biometric Vector...</span></>
+              ) : isAutoScan ? (
+                <><Sparkles className="w-4 h-4 animate-pulse text-amber-300" /><span>Continuous Face ID: Hold Pose to Auto-Scan (or Click Now)</span></>
               ) : (
                 <><Camera className="w-4 h-4" /><span>Capture — {ANGLE_LABELS[currentAngle]} ({facingMode === 'user' ? 'Front' : 'Back'})</span></>
               )}
             </button>
-            <p className={`text-center text-xs mt-2 ${isDark ? 'text-zinc-500' : 'text-slate-400'}`}>Make sure your face is clearly inside the oval guide before capturing.</p>
+            <p className={`text-center text-xs mt-2 ${isDark ? 'text-zinc-500' : 'text-slate-400'}`}>
+              {isAutoScan ? '⚡ Continuous AI tracking: rotate your head naturally to trigger auto-locks.' : 'Make sure your face is clearly inside the oval guide before capturing.'}
+            </p>
           </div>
         </div>
       </main>
