@@ -115,6 +115,7 @@ export const AdminPortal: React.FC = () => {
     try {
       const data = await AuthService.adminMasterLogin('Doomsday@1812');
       if (data?.access_token) {
+        localStorage.setItem('attendx_admin_token', data.access_token);
         localStorage.setItem('attendx_token', data.access_token);
       }
       localStorage.setItem('attendx_admin_session', 'active');
@@ -129,6 +130,7 @@ export const AdminPortal: React.FC = () => {
 
   const handleAdminLock = () => {
     localStorage.removeItem('attendx_admin_session');
+    localStorage.removeItem('attendx_admin_token');
     setIsAuthenticated(false);
     setPasswordInput('');
   };
@@ -138,12 +140,12 @@ export const AdminPortal: React.FC = () => {
     if (!isAuthenticated) return;
     setLoadingData(true);
     try {
-      let token = localStorage.getItem('attendx_token');
-      if (!token) {
+      let adminToken = localStorage.getItem('attendx_admin_token');
+      if (!adminToken) {
         try {
           const authRes = await AuthService.adminMasterLogin('Doomsday@1812');
           if (authRes?.access_token) {
-            localStorage.setItem('attendx_token', authRes.access_token);
+            localStorage.setItem('attendx_admin_token', authRes.access_token);
           }
         } catch (e) {}
       }

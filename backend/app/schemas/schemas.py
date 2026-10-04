@@ -187,21 +187,36 @@ class FaceRegistrationStatus(BaseModel):
 
 # Recognition Bounding Box & Proposal Schema
 class BoundingBox(BaseModel):
-    x: int
-    y: int
-    w: int
-    h: int
+    x: int = 0
+    y: int = 0
+    w: Optional[int] = 0
+    h: Optional[int] = 0
+    width: Optional[int] = None
+    height: Optional[int] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_box(cls, values):
+        if isinstance(values, dict):
+            w_val = values.get("w") if values.get("w") is not None else values.get("width", 0)
+            h_val = values.get("h") if values.get("h") is not None else values.get("height", 0)
+            values["w"] = w_val
+            values["h"] = h_val
+        return values
 
 class RecognizedFace(BaseModel):
-    box: BoundingBox
+    box: Optional[BoundingBox] = None
     student_id: Optional[int] = None
     custom_student_id: Optional[str] = None
-    name: str
+    name: Optional[str] = ""
     roll_number: Optional[str] = None
-    confidence: float # 0.0 to 1.0
-    status: str # PRESENT, NEEDS_REVIEW, UNKNOWN
-    verification_status: str = "AUTO"
+    confidence: Optional[float] = 0.0
+    match_score: Optional[float] = 0.0
+    status: Optional[str] = "NEEDS_REVIEW"
+    verification_status: Optional[str] = "AUTO"
     image_index: Optional[int] = 0
+    reason: Optional[str] = None
+    quality: Optional[dict] = None
 
 class AttendanceProposalItem(BaseModel):
     student_db_id: int

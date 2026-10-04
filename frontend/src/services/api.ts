@@ -27,7 +27,15 @@ export const api = axios.create({
 
 // Interceptor for JWT auth token header
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('attendx_token');
+  const adminToken = localStorage.getItem('attendx_admin_token');
+  const teacherToken = localStorage.getItem('attendx_token');
+  const isAdminRoute = config.url?.includes('/auth/pending-teachers') ||
+                       config.url?.includes('/auth/teachers') ||
+                       config.url?.includes('/auth/approve-teacher') ||
+                       config.url?.includes('/auth/reject-teacher') ||
+                       config.url?.includes('/auth/teacher/');
+
+  const token = (isAdminRoute && adminToken) ? adminToken : (teacherToken || adminToken);
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
