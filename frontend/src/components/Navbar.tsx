@@ -8,6 +8,7 @@ import { User, ClassItem } from '../types';
 import { ClassService } from '../services/api';
 import { Logo } from './Logo';
 import { ThemeToggle, CursorToggle } from './ThemeToggle';
+import { InstallAppButton } from './InstallAppButton';
 
 interface NavbarProps {
   user: User | null;
@@ -172,6 +173,9 @@ export const Navbar: React.FC<NavbarProps> = ({
           >
             <Search className="w-4.5 h-4.5" />
           </button>
+
+          {/* PWA Mobile App Install Button */}
+          <InstallAppButton variant="header" />
 
           {/* Custom Animated Cursor Toggle */}
           <CursorToggle size="sm" />

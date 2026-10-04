@@ -1,188 +1,131 @@
----
-title: AttendX API
-emoji: 📸
-colorFrom: indigo
-colorTo: blue
-sdk: gradio
-sdk_version: "5.9.1"
-app_file: app.py
-pinned: false
----
+# AttendX — AI Biometric Classroom Attendance Platform & Progressive Web App (PWA)
 
-# AttendX — AI-Powered Classroom Attendance System
+> **"One Photo. Complete Attendance. Instant Biometric Precision."**
 
-> **"One Photo. Complete Attendance."**
-
-
-AttendX is a production-grade full-stack classroom attendance system built with FastAPI, React, TypeScript, and a high-precision deep facial recognition pipeline (OpenCV YuNet + SFace ONNX).
+AttendX is a production-grade, full-stack AI attendance platform built with **FastAPI**, **React 18 / TypeScript / Vite**, and a high-precision biometric pipeline (**OpenCV YuNet + SFace 128-D ONNX**). It features permanent cloud persistence (**Supabase PostgreSQL**), zero-data-loss automated live backups, a calibrated bipartite face matcher, and an installable **Progressive Web App (PWA)** for mobile & desktop devices.
 
 ---
 
-## 📸 Architectural Overview & Pipeline
+## 🌐 Live Deployments
 
-The AttendX facial recognition pipeline is designed with a **conservative recognition principle**:
-> **A wrong positive recognition (wrong student marked present) is far worse than an uncertain result (NEEDS_REVIEW or UNKNOWN).**
+| Component | Provider | Live URL | Description |
+| :--- | :--- | :--- | :--- |
+| **Frontend WebApp** | Vercel | [one-attendx.vercel.app](https://one-attendx.vercel.app) | Responsive React PWA with Cyber Biometric HUD |
+| **Backend REST API** | Render | [attendx-cw9l.onrender.com](https://attendx-cw9l.onrender.com) | FastAPI + OpenCV SFace + Uvicorn |
+| **Database** | Supabase | AWS ap-south-1 (Mumbai Pooler) | PostgreSQL permanent persistence (Port 5432) |
+| **Interactive Docs** | Render | [attendx-cw9l.onrender.com/docs](https://attendx-cw9l.onrender.com/docs) | OpenAPI / Swagger REST Explorer |
+
+---
+
+## 📱 Progressive Web App (PWA) & Mobile Installation
+
+AttendX is a certified **Progressive Web App** designed to run seamlessly as a native application on smartphones, tablets, and laptops:
+
+- **1-Tap Native Installation:** Install directly onto your iOS / Android home screen or Desktop (Chrome/Edge/Safari) with zero app store downloads.
+- **Header & Floating Install Banners:** Interactive `<InstallAppButton />` and `<FloatingMobileInstallBanner />` trigger native browser prompts and iOS step-by-step guidance.
+- **Mobile Camera Optimization:** High-resolution rear & front camera streaming with automatic orientation lock and touch-focused biometric scanning.
+- **Offline App Shell:** Service Worker caching (`sw.js` + `manifest.json`) ensures instant loads even on low-bandwidth classroom networks.
+
+---
+
+## 📸 Architectural Overview & Computer Vision Pipeline
+
+AttendX operates under a **Conservative Recognition Principle**:
+> *A false positive (marking the wrong student present) is unacceptable; uncertain faces fall back to `NEEDS_REVIEW` or `UNKNOWN`.*
 
 ```text
-Classroom Image
-      ↓
-1. Face Detection (OpenCV YuNet ONNX with 5-point facial landmarks)
-      ↓
-2. Face Quality Assessment (Size, Blur/Laplacian Var, Brightness, Aspect Ratio)
-      ↓
-3. 5-Point Landmark Affine Alignment (112x112 canonical reference frame)
-      ↓
-4. Deep Feature Extraction (OpenCV SFace 128-d ResNet ONNX)
-      ↓
-5. L2 Vector Normalization (Unit sphere: ||v|| = 1.0)
-      ↓
-6. Class-Scoped Cosine Similarity (Compare only against enrolled students)
-      ↓
-7. Top-1 vs Top-2 Match Margin Check (margin = best_score - second_best_score)
-      ↓
-8. 3-State Classification (PRESENT / NEEDS_REVIEW / UNKNOWN)
-      ↓
-9. Teacher Interactive Verification (Manual override authority & Face Reassignment)
-      ↓
-10. Active Learning Loop (Teacher-verified crops saved to student embedding pool)
-      ↓
-Final Attendance Record + Audit Log + Multi-Sheet Excel Export
+Classroom Group Photo or Video Stream
+              ↓
+1. Face Detection (OpenCV YuNet ONNX 640x640 with 5-point facial landmarks)
+              ↓
+2. Biometric Quality Assessment (Laplacian Blur Filter, Face Area, Brightness Check)
+              ↓
+3. 5-Point Landmark Affine Alignment (112x112 canonical biometric reference frame)
+              ↓
+4. Deep Feature Extraction (OpenCV SFace ResNet ONNX generating 128-D float vector)
+              ↓
+5. L2 Vector Normalization (Unit hypersphere projection: ||v|| = 1.0)
+              ↓
+6. Class-Scoped Cosine Similarity Matrix (Evaluated against enrolled student gallery)
+              ↓
+7. Strict 1-to-1 Greedy Bipartite Assignment (Prevents duplicate face claims)
+              ↓
+8. 3-State Calibrated Classification:
+   - PRESENT:      Cosine ≥ 0.42 AND Margin Gap ≥ 0.06
+   - NEEDS_REVIEW: Cosine 0.35 – 0.42 OR Margin Gap < 0.06
+   - UNKNOWN:      Cosine < 0.35 (Stranger / Non-enrolled face)
+              ↓
+9. Cyber Biometric HUD & Teacher Verification (Face Reassignment Authority)
+              ↓
+10. Permanent Cloud Sync (Supabase PostgreSQL + Live Audit Trail + Multi-Sheet Excel Export)
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## ⚡ System Diagnostics & Backend Spindown Monitor
 
-### Frontend
-- **Framework**: React 18 + TypeScript + Vite
-- **Styling**: Tailwind CSS (Modern Slate Theme)
-- **Icons**: Lucide React
-- **HTTP Client**: Axios with JWT interceptors
-- **Router**: React Router v6
+Render's free tier enters sleep mode after 15 minutes of inactivity. AttendX provides built-in real-time telemetry:
 
-### Backend
-- **Framework**: FastAPI (Python 3.10+)
-- **Database**: SQLite (default) / PostgreSQL support via SQLAlchemy ORM
-- **Security**: PyJWT + Bcrypt password hashing
-- **Excel Engine**: OpenPyXL + Pandas
-
-### Computer Vision (CV) Module (`backend/app/cv/`)
-- `detector.py`: **YuNet FaceDetectorYN** (official OpenCV ONNX model) with 5-point facial landmark detection.
-- `aligner.py`: 5-point affine transformation aligning eyes, nose, and mouth corners into canonical 112x112 crops.
-- `embedder.py`: **SFace FaceRecognizerSF** deep convolutional network generating 128-dimensional L2-normalized vector embeddings.
-- `quality.py`: Face size check, Laplacian variance blur detection, and brightness filtering.
-- `matcher.py`: Normalized cosine similarity computation with Top-1 vs Top-2 margin gating and 3-state classification.
-- `pipeline.py`: Orchestrates detection, alignment, embedding, and scoped matching against class enrollments.
+1. **Live Header Pulse Badge:** Displays real-time status (`🟢 Backend Live · 48ms`, `🟡 Spinning Up...`, or `🔴 Spun Down`).
+2. **System Diagnostics Console (`/admin`):**
+   - Interactive **⚡ Test Ping / Wake** button to measure exact roundtrip latency.
+   - **Auto Keep-Alive Heartbeat:** Pings backend every 60 seconds while open to prevent container sleep.
+   - **Database Metric Counters:** Live tallies of students, face vectors, classes, and sessions.
+   - **Live Backup Download:** 1-click export of the entire PostgreSQL database to `.json`.
 
 ---
 
-## ⚙️ Recognition Configuration & Calibration
+## 🛡️ Disaster Recovery & Live Backups
 
-All computer vision thresholds are configurable via environment variables in `backend/.env`:
+All biometric embeddings, credentials, and attendance histories are permanently safeguarded:
 
-| Parameter | Default | Description |
-|---|---|---|
-| `FACE_MATCH_THRESHOLD` | `0.45` | Minimum cosine similarity required to propose `PRESENT`. |
-| `FACE_REVIEW_THRESHOLD` | `0.35` | Minimum cosine similarity to propose `NEEDS_REVIEW` (below is `UNKNOWN`). |
-| `FACE_MIN_MARGIN` | `0.08` | Minimum gap required between Top-1 and Top-2 match (`score1 - score2`). |
-| `FACE_MIN_SIZE` | `24` | Minimum face crop width/height in pixels. |
-| `FACE_BLUR_THRESHOLD` | `45.0` | Minimum Laplacian variance to consider a face sharp. |
-| `FACE_DETECTION_THRESHOLD` | `0.45` | Confidence threshold for YuNet face detector. |
-
-### Running the Calibration & Benchmark Tool
-You can evaluate intra-class genuine pairs vs cross-class impostor pairs at any time:
-
-```bash
-cd backend
-python scripts/evaluate_face_recognition.py
-```
-
-Outputs detailed False Acceptance Rate (FAR), False Rejection Rate (FRR), Precision, and Recall across various threshold levels and saves a JSON report to `exports/face_evaluation_report.json`.
+- **Supabase Cloud PostgreSQL:** Permanent remote database host (zero container wipeouts on redeploys).
+- **Automated Live Backup Daemon:** `python scripts/live_backup_daemon.py` periodically captures database state locally.
+- **Instant Snapshot CLI:** `python scripts/backup_database.py` generates timestamped backups in `backups/`.
+- **1-Click Database Restore:** `python scripts/restore_database.py` restores your database anytime from a JSON snapshot.
+- **REST API Endpoint:** `GET /api/export/backup/download` for authenticated admin backup downloads.
 
 ---
 
-## 🚀 Quickstart & Setup
+## 🔑 Default Credentials & Access Portals
 
-### Prerequisites
-- Python 3.10+
-- Node.js 18+ and npm
+| Role | Portal URL | Credentials |
+| :--- | :--- | :--- |
+| **Institutional Master Key** | `/admin` | Master Key: `Doomsday@1812` |
+| **Faculty / Educator Portal** | `/login` | Email: `nms@gmail.com` / Password: `nms123` |
+| **Student Face Portal** | `/student` | Student ID: `001` / Password: `udit123` |
 
-### 1. Backend Setup
+---
 
+## 🛠️ Local Development Setup
+
+### 1. Prerequisites
+- **Node.js**: v18+
+- **Python**: v3.10+
+- **Git**
+
+### 2. Backend Setup
 ```bash
 cd backend
+python -m venv venv
+# Windows:
+venv\Scripts\activate
+# Linux/macOS:
+source venv/bin/activate
 
-# Install dependencies
 pip install -r requirements.txt
-
-# Run Database Seed Script (Pre-populates classes, subjects, and students)
-python seed.py
-
-# Start FastAPI server
 uvicorn app.main:app --reload --port 8000
 ```
 
-The API server runs at `http://localhost:8000` (Swagger UI at `http://localhost:8000/docs`).
-
-#### 🔐 Credentials:
-- **Teacher**: `teacher@attendx.edu` / `teacher123`
-- **Admin**: `admin@attendx.edu` / `admin123`
-- **Student**: `STU001` / `STU001` (or self-registered credentials)
-
----
-
-### 2. Frontend Setup
-
+### 3. Frontend Setup
 ```bash
 cd frontend
-
-# Install Node dependencies
 npm install
-
-# Start Vite Development Server
 npm run dev
 ```
-
-Open `http://localhost:5173` in your web browser.
-
----
-
-## 🧪 Automated Testing
-
-Run unit and integration tests with pytest:
-
-```bash
-cd backend
-python -m pytest tests/ -v
-```
-
-Tests verify:
-- Teacher authentication & student portal auth
-- Student class registration and switching
-- Face quality metrics (Laplacian blur, brightness, sub-minimum size rejection)
-- High match score + clear margin $\to$ `PRESENT`
-- Ambiguous match (small margin $< 0.08$) $\to$ `NEEDS_REVIEW`
-- Non-enrolled / low similarity $\to$ `UNKNOWN`
-- Multi-sheet Excel workbook export
+Visit `http://localhost:5173` in your browser.
 
 ---
 
-## 🔄 Active Learning & Continuous Model Improvement
-
-AttendX features an **active feedback loop**:
-1. When a teacher reviews attendance and manually confirms or reassigns an ambiguous/unknown face to a student, the cropped and aligned face is embedded and appended to that student's biometric profile (labeled `source="teacher_verified"`).
-2. The student profile maintains a sliding pool of up to 12 verified embeddings spanning diverse angles, lighting conditions, and days.
-3. Every manual teacher correction is logged in the `AttendanceAuditLog` table with initial AI status, final teacher status, and timestamp.
-
----
-
-## ⚠️ Known Limitations & Best Practices
-
-- **Lighting**: Strong backlighting (e.g., windows behind students) can underexpose faces. Frontal or ambient diffused classroom lighting produces the best results.
-- **Occlusions & Distance**: Extreme angles (profiles $> 45^\circ$) or distant faces under 24x24 pixels will be automatically routed to `NEEDS_REVIEW` or `UNKNOWN`.
-- **Teacher Authority**: AI recognition proposals are never auto-finalized. The teacher always verifies and submits the attendance session.
-
----
-
-## 📜 License
-MIT License. Created for classroom productivity and attendance automation.
+## 📜 License & Compliance
+Built with ❤️ by the AttendX Engineering Team. Released under the MIT License.

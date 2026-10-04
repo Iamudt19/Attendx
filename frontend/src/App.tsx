@@ -19,6 +19,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { CustomCursor } from './components/CustomCursor';
+import { FloatingMobileInstallBanner } from './components/InstallAppButton';
 
 // ── Admin Portal Root ─────────────────────────────────────────────────────────
 const AdminPortalRoot: React.FC = () => <AdminPortal />;
@@ -168,6 +169,7 @@ const AppContent: React.FC = () => {
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <FloatingMobileInstallBanner />
     </BrowserRouter>
   );
 };

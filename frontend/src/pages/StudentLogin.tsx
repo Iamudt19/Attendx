@@ -6,6 +6,7 @@ import { StudentUser, StudentPublicClass } from '../types';
 import { extractErrorMessage } from '../utils/error';
 import { Logo } from '../components/Logo';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { InstallAppButton } from '../components/InstallAppButton';
 import { useTheme } from '../context/ThemeContext';
 
 interface StudentLoginProps {
@@ -128,6 +129,8 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
         </div>
 
         <div className="flex items-center gap-3">
+          <InstallAppButton variant="header" />
+
           {/* Theme Toggle Slider */}
           <ThemeToggle variant="slider" size="sm" />
 

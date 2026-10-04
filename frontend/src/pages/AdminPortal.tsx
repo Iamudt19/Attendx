@@ -17,6 +17,7 @@ import { ClassItem, StudentItem, SubjectItem, AttendanceSessionOut, AttendanceRe
 import { extractErrorMessage } from '../utils/error';
 import { Logo } from '../components/Logo';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { InstallAppButton } from '../components/InstallAppButton';
 
 type AdminTab = 'overview' | 'attendance' | 'teachers' | 'classes' | 'students' | 'subjects' | 'diagnostics';
 
@@ -570,6 +571,7 @@ export const AdminPortal: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            <InstallAppButton variant="header" />
             <ThemeToggle variant="slider" size="sm" />
             
             <button

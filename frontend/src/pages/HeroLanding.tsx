@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { InstallAppButton } from '../components/InstallAppButton';
 
 export const HeroLanding: React.FC = () => {
   const navigate = useNavigate();
@@ -47,7 +48,8 @@ export const HeroLanding: React.FC = () => {
             </nav>
           </div>
 
-          <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <InstallAppButton variant="header" />
             <ThemeToggle variant="slider" size="sm" />
             
             <button
