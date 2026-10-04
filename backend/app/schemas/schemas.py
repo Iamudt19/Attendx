@@ -47,6 +47,11 @@ class ClassCreate(BaseModel):
     section: str
     academic_year: str
 
+class ClassUpdate(BaseModel):
+    name: Optional[str] = None
+    section: Optional[str] = None
+    academic_year: Optional[str] = None
+
 class ClassOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -61,6 +66,11 @@ class SubjectCreate(BaseModel):
     name: str
     code: str
     class_id: int
+
+class SubjectUpdate(BaseModel):
+    name: Optional[str] = None
+    code: Optional[str] = None
+    class_id: Optional[int] = None
 
 class SubjectOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)

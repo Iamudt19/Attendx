@@ -43,6 +43,33 @@ def get_class_students(class_id: int, db: Session = Depends(get_db), token: dict
         results.append(s_out)
     return results
 
+@router.put("/{class_id}", response_model=ClassOut)
+@router.patch("/{class_id}", response_model=ClassOut)
+def update_class(
+    class_id: int,
+    req: ClassUpdate,
+    db: Session = Depends(get_db),
+    token: dict = Depends(get_current_user_token)
+):
+    cls = db.query(Class).filter(Class.id == class_id).first()
+    if not cls:
+        raise HTTPException(status_code=404, detail="Class not found")
+
+    if req.name is not None:
+        cls.name = req.name
+    if req.section is not None:
+        cls.section = req.section
+    if req.academic_year is not None:
+        cls.academic_year = req.academic_year
+
+    db.commit()
+    db.refresh(cls)
+
+    student_count = db.query(Student).filter(Student.class_id == cls.id, Student.active == True).count()
+    cls_out = ClassOut.model_validate(cls)
+    cls_out.student_count = student_count
+    return cls_out
+
 @router.delete("/{class_id}")
 def delete_class(class_id: int, db: Session = Depends(get_db), token: dict = Depends(get_current_user_token)):
     cls = db.query(Class).filter(Class.id == class_id).first()

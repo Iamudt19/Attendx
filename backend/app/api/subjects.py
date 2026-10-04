@@ -27,6 +27,29 @@ def create_subject(req: SubjectCreate, db: Session = Depends(get_db), token: dic
     db.refresh(subject)
     return subject
 
+@router.put("/{subject_id}", response_model=SubjectOut)
+@router.patch("/{subject_id}", response_model=SubjectOut)
+def update_subject(
+    subject_id: int,
+    req: SubjectUpdate,
+    db: Session = Depends(get_db),
+    token: dict = Depends(get_current_user_token)
+):
+    subject = db.query(Subject).filter(Subject.id == subject_id).first()
+    if not subject:
+        raise HTTPException(status_code=404, detail="Subject not found")
+
+    if req.name is not None:
+        subject.name = req.name
+    if req.code is not None:
+        subject.code = req.code
+    if req.class_id is not None:
+        subject.class_id = req.class_id
+
+    db.commit()
+    db.refresh(subject)
+    return subject
+
 @router.delete("/{subject_id}")
 def delete_subject(subject_id: int, db: Session = Depends(get_db), token: dict = Depends(get_current_user_token)):
     subject = db.query(Subject).filter(Subject.id == subject_id).first()

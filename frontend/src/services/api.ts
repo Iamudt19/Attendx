@@ -77,6 +77,10 @@ export const ClassService = {
     const res = await api.post('/classes', data);
     return res.data;
   },
+  updateClass: async (classId: number, data: { name?: string; section?: string; academic_year?: string }): Promise<ClassItem> => {
+    const res = await api.put(`/classes/${classId}`, data);
+    return res.data;
+  },
   deleteClass: async (classId: number) => {
     const res = await api.delete(`/classes/${classId}`);
     return res.data;
@@ -94,6 +98,10 @@ export const SubjectService = {
   },
   createSubject: async (data: { name: string; code: string; class_id: number }): Promise<SubjectItem> => {
     const res = await api.post('/subjects', data);
+    return res.data;
+  },
+  updateSubject: async (subjectId: number, data: { name?: string; code?: string; class_id?: number }): Promise<SubjectItem> => {
+    const res = await api.put(`/subjects/${subjectId}`, data);
     return res.data;
   },
   deleteSubject: async (subjectId: number) => {
