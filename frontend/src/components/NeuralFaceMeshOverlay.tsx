@@ -6,6 +6,7 @@ interface NeuralFaceMeshOverlayProps {
   isActive: boolean;
   targetAngle?: string;
   isAutoScan?: boolean;
+  facingMode?: 'user' | 'environment';
   scanProgress?: number;
   onQualityUpdate?: (quality: { score: number; status: string; yaw: number; pitch: number }) => void;
   onPoseLock?: (angle: string) => void;
@@ -16,6 +17,7 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
   isActive,
   targetAngle = 'front',
   isAutoScan = true,
+  facingMode = 'user',
   scanProgress = 0,
   onQualityUpdate,
   onPoseLock,
@@ -26,13 +28,9 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
   const [faceDetected, setFaceDetected] = useState(false);
   const [telemetry, setTelemetry] = useState({ yaw: 0, pitch: 0, quality: 98 });
   const animFrameRef = useRef<number | null>(null);
-  const scanBeamY = useRef<number>(0);
-  const scanDirection = useRef<number>(1);
-  const rotationAngle = useRef<number>(0);
 
   // Auto-scan lock tracking
   const matchedHoldFrames = useRef<number>(0);
-  const lastTriggeredAngle = useRef<string | null>(null);
   const lockProgress = useRef<number>(0);
 
   // Gentle audio chime for Face ID lock
@@ -130,6 +128,7 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
 
       setFaceDetected(true);
       const lm = results.multiFaceLandmarks[0];
+      const isMirrored = facingMode === 'user';
 
       // Key landmark indices
       const noseTip = lm[1];
@@ -142,28 +141,36 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
       const leftMouth = lm[61];
       const rightMouth = lm[291];
 
-      // Bounding box calculation
-      let minX = 1, maxX = 0, minY = 1, maxY = 0;
+      // Coordinate mapper for mirroring Front camera video
+      const toScreenX = (xNorm: number) => isMirrored ? (1 - xNorm) * w : xNorm * w;
+      const toScreenY = (yNorm: number) => yNorm * h;
+
+      // Accurate Bounding Box on screen
+      let minX = w, maxX = 0, minY = h, maxY = 0;
       for (const p of lm) {
-        if (p.x < minX) minX = p.x;
-        if (p.x > maxX) maxX = p.x;
-        if (p.y < minY) minY = p.y;
-        if (p.y > maxY) maxY = p.y;
+        const sx = toScreenX(p.x);
+        const sy = toScreenY(p.y);
+        if (sx < minX) minX = sx;
+        if (sx > maxX) maxX = sx;
+        if (sy < minY) minY = sy;
+        if (sy > maxY) maxY = sy;
       }
 
-      const bx = minX * w;
-      const by = minY * h;
-      const bw = (maxX - minX) * w;
-      const bh = (maxY - minY) * h;
-      const cx = bx + bw / 2;
-      const cy = by + bh / 2;
+      const bw = Math.max(10, maxX - minX);
+      const bh = Math.max(10, maxY - minY);
+      const cx = minX + bw / 2;
+      const cy = minY + bh / 2;
 
       // Real-time 3D Pose estimation
       const dLeft = Math.abs(noseTip.x - leftCheek.x);
       const dRight = Math.abs(rightCheek.x - noseTip.x);
-      const yaw = Math.round(((dLeft - dRight) / (dLeft + dRight + 0.001)) * 90);
+      const rawYaw = Math.round(((dLeft - dRight) / (dLeft + dRight + 0.001)) * 90);
+      // In front (mirrored) mode: rawYaw > 0 is user's left. In rear camera: rawYaw < 0 is user's left.
+      const yaw = isMirrored ? rawYaw : -rawYaw;
+
       const dTop = Math.abs(noseTip.y - forehead.y);
       const dBot = Math.abs(chin.y - noseTip.y);
+      // Pitch: dTop > dBot (> 0) indicates chin down; dBot > dTop (< 0) indicates chin up
       const pitch = Math.round(((dTop - dBot) / (dTop + dBot + 0.001)) * 90);
 
       // Smile detection (mouth width to face width ratio)
@@ -183,31 +190,32 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
       let prompt = 'Center your face in view';
 
       if (targetAngle === 'front') {
-        isAngleMatched = Math.abs(yaw) <= 12 && Math.abs(pitch) <= 12;
+        isAngleMatched = Math.abs(yaw) <= 14 && Math.abs(pitch) <= 12;
         prompt = isAngleMatched ? '✓ Looking Straight (Holding...)' : 'Look directly straight at camera';
       } else if (targetAngle === 'left') {
-        isAngleMatched = yaw > 10;
+        isAngleMatched = yaw > 7;
         prompt = isAngleMatched ? '✓ Left Profile (Holding...)' : 'Slowly turn head to the LEFT ⬅️';
       } else if (targetAngle === 'right') {
-        isAngleMatched = yaw < -10;
+        isAngleMatched = yaw < -7;
         prompt = isAngleMatched ? '✓ Right Profile (Holding...)' : 'Slowly turn head to the RIGHT ➡️';
       } else if (targetAngle === 'chin_down' || targetAngle === 'down') {
-        isAngleMatched = pitch < -7;
+        // Generous, natural pitch trigger for chin down (> 3 degrees or dTop > dBot + 0.02)
+        isAngleMatched = pitch > 3 || (dTop - dBot) > 0.02;
         prompt = isAngleMatched ? '✓ Chin Down (Holding...)' : 'Gently tilt chin DOWN ⬇️';
       } else if (targetAngle === 'smile') {
         isAngleMatched = isSmiling || (Math.abs(yaw) <= 14 && Math.abs(pitch) <= 14);
         prompt = isAngleMatched ? '✓ Smile / Expression (Holding...)' : 'Face camera and give a natural SMILE 😊';
       } else {
         // Auto mode fallback
-        if (yaw > 12) {
+        if (yaw > 7) {
           detectedAngle = 'left';
           isAngleMatched = true;
           prompt = '✓ Left Profile (Holding...)';
-        } else if (yaw < -12) {
+        } else if (yaw < -7) {
           detectedAngle = 'right';
           isAngleMatched = true;
           prompt = '✓ Right Profile (Holding...)';
-        } else if (pitch < -8) {
+        } else if (pitch > 3) {
           detectedAngle = 'chin_down';
           isAngleMatched = true;
           prompt = '✓ Chin Down (Holding...)';
@@ -263,7 +271,7 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
         ctx.stroke();
       }
 
-      // Soft subtle facial anchor points
+      // Soft subtle facial anchor points (correctly mapped to visual screen coordinates)
       const keyNodes = [
         lm[33], lm[263], // Eye outer corners
         lm[1],           // Nose tip
@@ -272,11 +280,11 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
       ];
 
       for (const node of keyNodes) {
-        const nx = node.x * w;
-        const ny = node.y * h;
-        ctx.fillStyle = isAngleMatched ? 'rgba(16, 185, 129, 0.7)' : 'rgba(255, 255, 255, 0.4)';
+        const nx = toScreenX(node.x);
+        const ny = toScreenY(node.y);
+        ctx.fillStyle = isAngleMatched ? 'rgba(16, 185, 129, 0.85)' : 'rgba(255, 255, 255, 0.5)';
         ctx.beginPath();
-        ctx.arc(nx, ny, 2, 0, Math.PI * 2);
+        ctx.arc(nx, ny, 2.5, 0, Math.PI * 2);
         ctx.fill();
       }
 

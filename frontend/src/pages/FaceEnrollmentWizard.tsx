@@ -778,6 +778,7 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({
                     isActive={isWebcamActive}
                     targetAngle={SCAN_ANGLES[currentAngleIdx] || 'front'}
                     isAutoScan={true}
+                    facingMode={facingMode}
                     onPoseLock={(lockedPreset) => {
                       if (frameStatus === 'idle') {
                         captureAndSubmit(lockedPreset);
@@ -1202,6 +1203,7 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({
                 isActive={isWebcamActive}
                 targetAngle={currentAngle}
                 isAutoScan={true}
+                facingMode={facingMode}
                 onPoseLock={(lockedAngle) => {
                   if (frameStatus === 'idle') {
                     captureAndSubmit(lockedAngle);
