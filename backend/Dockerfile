@@ -34,12 +34,12 @@ RUN curl -fsSL -o /app/storage/models/face_detection_yunet_2023mar.onnx \
 # Copy application source code
 COPY . .
 
-# Expose default port
-EXPOSE 8000
+# Expose default Hugging Face Spaces port
+EXPOSE 7860
 
 # Health check to ensure service is responding
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD curl -f http://localhost:8000/api/health || exit 1
+    CMD curl -f http://localhost:7860/api/health || exit 1
 
-# Start production server using Gunicorn with Uvicorn workers
-CMD ["gunicorn", "app.main:app", "--workers", "2", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--timeout", "120"]
+# Start production server using Gunicorn with Uvicorn workers on port 7860
+CMD ["gunicorn", "app.main:app", "--workers", "2", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:7860", "--timeout", "120"]
