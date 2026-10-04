@@ -28,11 +28,11 @@ export const HeroLanding: React.FC = () => {
     <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-primary)] selection:bg-blue-600 selection:text-white transition-colors">
       {/* ── Swiss Hairline Header ─────────────────────────────────────────── */}
       <header className="sticky top-0 z-50 bg-[var(--bg-main)]/90 backdrop-blur-md border-b border-[var(--border-color)]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-6">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-6 shrink-0">
             <div 
               onClick={() => navigate('/')} 
-              className="cursor-pointer flex items-center gap-2"
+              className="cursor-pointer flex items-center gap-1.5 sm:gap-2 shrink-0"
             >
               <Logo size="sm" showSubtitle={false} />
               <span className="hidden sm:inline-block font-mono text-[10px] px-1.5 py-0.5 rounded border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-muted)] font-medium">

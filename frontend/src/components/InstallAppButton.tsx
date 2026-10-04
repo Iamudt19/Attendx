@@ -104,11 +104,11 @@ export const InstallAppButton: React.FC<InstallAppButtonProps> = ({ variant = 'h
       {variant === 'header' && (
         <button
           onClick={handleClick}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 transition-all shadow-sm ${className}`}
+          className={`inline-flex items-center justify-center gap-1.5 p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-mono font-bold bg-blue-600/10 hover:bg-blue-600/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 transition-all shadow-sm shrink-0 ${className}`}
           title="Install AttendX Mobile App"
         >
-          <Smartphone className="w-3.5 h-3.5 animate-pulse" />
-          <span>Install App</span>
+          <Smartphone className="w-3.5 h-3.5 animate-pulse shrink-0" />
+          <span className="hidden sm:inline">Install App</span>
         </button>
       )}
 
