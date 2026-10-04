@@ -3,16 +3,17 @@ import {
   Shield, Lock, Unlock, KeyRound, CheckCircle2, AlertCircle,
   Users, BookOpen, RefreshCw, Plus,
   Trash2, Search, ArrowRight, Activity,
-  Sliders, Eye, EyeOff, Cpu, ChevronLeft
+  Sliders, Eye, EyeOff, Cpu, ChevronLeft,
+  FileSpreadsheet, Edit3, Save, Check, RotateCcw, X, Calendar, Download
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { AuthService, ClassService, StudentService, SubjectService, api } from '../services/api';
-import { ClassItem, StudentItem, SubjectItem } from '../types';
+import { AuthService, ClassService, StudentService, SubjectService, AttendanceService, api } from '../services/api';
+import { ClassItem, StudentItem, SubjectItem, AttendanceSessionOut, AttendanceRecordOut } from '../types';
 import { extractErrorMessage } from '../utils/error';
 import { Logo } from '../components/Logo';
 import { ThemeToggle } from '../components/ThemeToggle';
 
-type AdminTab = 'overview' | 'classes' | 'students' | 'subjects' | 'diagnostics';
+type AdminTab = 'overview' | 'attendance' | 'classes' | 'students' | 'subjects' | 'diagnostics';
 
 export const AdminPortal: React.FC = () => {
   const navigate = useNavigate();
@@ -33,8 +34,20 @@ export const AdminPortal: React.FC = () => {
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [students, setStudents] = useState<StudentItem[]>([]);
   const [subjects, setSubjects] = useState<SubjectItem[]>([]);
+  const [sessions, setSessions] = useState<AttendanceSessionOut[]>([]);
   const [loadingData, setLoadingData] = useState<boolean>(false);
+  const [loadingSessions, setLoadingSessions] = useState<boolean>(false);
   const [systemHealth, setSystemHealth] = useState<{ status: string; database: string; version: string } | null>(null);
+
+  // Attendance Editing State
+  const [selectedSessionForEdit, setSelectedSessionForEdit] = useState<AttendanceSessionOut | null>(null);
+  const [editableRecords, setEditableRecords] = useState<AttendanceRecordOut[]>([]);
+  const [sessionSearch, setSessionSearch] = useState<string>('');
+  const [sessionRecordSearch, setSessionRecordSearch] = useState<string>('');
+  const [selectedSessionClassFilter, setSelectedSessionClassFilter] = useState<number | 'ALL'>('ALL');
+  const [selectedSessionDateFilter, setSelectedSessionDateFilter] = useState<string>('');
+  const [isSavingAttendance, setIsSavingAttendance] = useState<boolean>(false);
+  const [attendanceSaveMessage, setAttendanceSaveMessage] = useState<string | null>(null);
 
   // Filters & Search
   const [studentSearch, setStudentSearch] = useState<string>('');
@@ -115,14 +128,16 @@ export const AdminPortal: React.FC = () => {
         } catch (e) {}
       }
 
-      const [clsList, stuList, subList] = await Promise.all([
+      const [clsList, stuList, subList, sessList] = await Promise.all([
         ClassService.getClasses().catch(() => []),
         StudentService.getStudents().catch(() => []),
         SubjectService.getSubjects().catch(() => []),
+        AttendanceService.getSessions().catch(() => []),
       ]);
       setClasses(clsList || []);
       setStudents(stuList || []);
       setSubjects(subList || []);
+      setSessions(sessList || []);
 
       if (clsList && clsList.length > 0) {
         if (!newStudentClassId) setNewStudentClassId(clsList[0].id);
@@ -142,6 +157,73 @@ export const AdminPortal: React.FC = () => {
       refreshAllData();
     }
   }, [isAuthenticated, refreshAllData]);
+
+  // Attendance Handlers
+  const handleOpenSessionEditor = async (sessionItem: AttendanceSessionOut) => {
+    setAttendanceSaveMessage(null);
+    try {
+      const detail = await AttendanceService.getSessionDetail(sessionItem.id);
+      setSelectedSessionForEdit(detail);
+      setEditableRecords(detail.records ? JSON.parse(JSON.stringify(detail.records)) : []);
+    } catch (err) {
+      setSelectedSessionForEdit(sessionItem);
+      setEditableRecords(sessionItem.records ? JSON.parse(JSON.stringify(sessionItem.records)) : []);
+    }
+  };
+
+  const handleToggleRecordStatus = (index: number) => {
+    setEditableRecords(prev => {
+      const copy = [...prev];
+      const cur = copy[index];
+      const nextStatus = cur.status === 'PRESENT' ? 'ABSENT' : 'PRESENT';
+      copy[index] = {
+        ...cur,
+        status: nextStatus,
+        verification_status: 'TEACHER_VERIFIED'
+      };
+      return copy;
+    });
+  };
+
+  const handleMarkAllStatus = (status: 'PRESENT' | 'ABSENT') => {
+    setEditableRecords(prev =>
+      prev.map(r => ({
+        ...r,
+        status,
+        verification_status: 'TEACHER_VERIFIED'
+      }))
+    );
+  };
+
+  const handleSaveAttendanceRecords = async () => {
+    if (!selectedSessionForEdit) return;
+    setIsSavingAttendance(true);
+    setAttendanceSaveMessage(null);
+    try {
+      const recordsToUpdate = editableRecords.map((r) => ({
+        student_id: r.student_id,
+        status: r.status,
+        confidence: r.confidence ?? 1.0,
+        verification_status: r.verification_status ?? 'TEACHER_VERIFIED'
+      }));
+
+      const updated = await AttendanceService.updateSessionRecords(
+        selectedSessionForEdit.id,
+        recordsToUpdate
+      );
+      setSelectedSessionForEdit(updated);
+      setEditableRecords(updated.records ? JSON.parse(JSON.stringify(updated.records)) : []);
+      notify(`Attendance for session #${selectedSessionForEdit.id} successfully updated.`);
+      setAttendanceSaveMessage('Attendance updated & synchronized with Supabase database.');
+      refreshAllData();
+      setTimeout(() => setAttendanceSaveMessage(null), 3500);
+    } catch (err: any) {
+      console.error('Failed to update session records in admin:', err);
+      notify(extractErrorMessage(err, 'Failed to update attendance records.'), 'error');
+    } finally {
+      setIsSavingAttendance(false);
+    }
+  };
 
   // Class Handlers
   const handleCreateClass = async (e: React.FormEvent) => {
@@ -437,6 +519,7 @@ export const AdminPortal: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex gap-1 overflow-x-auto border-t border-[var(--border-color)] py-1 bg-[var(--bg-surface)] text-xs font-mono">
           {[
             { id: 'overview', label: 'Overview & Telemetry', icon: Activity },
+            { id: 'attendance', label: `Attendance Ledger (${sessions.length})`, icon: FileSpreadsheet },
             { id: 'classes', label: `Classes (${classes.length})`, icon: BookOpen },
             { id: 'students', label: `Students (${students.length})`, icon: Users },
             { id: 'subjects', label: `Subjects (${subjects.length})`, icon: Sliders },
@@ -491,11 +574,11 @@ export const AdminPortal: React.FC = () => {
 
               <div className="swiss-card p-5 rounded-lg space-y-2">
                 <div className="flex items-center justify-between text-[var(--text-muted)]">
-                  <span className="text-[11px] font-mono font-bold uppercase tracking-wider">Biometric Database</span>
-                  <Shield className="w-4 h-4 text-blue-600" />
+                  <span className="text-[11px] font-mono font-bold uppercase tracking-wider">Attendance Sessions</span>
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
                 </div>
-                <div className="text-3xl font-extrabold text-[var(--text-primary)] font-mono">{totalFacesStored}</div>
-                <div className="text-xs text-[var(--text-secondary)] font-mono">OpenCV SFace 128-D vectors</div>
+                <div className="text-3xl font-extrabold text-[var(--text-primary)] font-mono">{sessions.length}</div>
+                <div className="text-xs text-[var(--text-secondary)] font-mono">Real-time roll-call sessions</div>
               </div>
 
               <div className="swiss-card p-5 rounded-lg space-y-2">
@@ -512,7 +595,22 @@ export const AdminPortal: React.FC = () => {
             </div>
 
             {/* Quick Management Shortcuts */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="swiss-card p-5 rounded-lg space-y-3">
+                <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                  Attendance Ledger
+                </h3>
+                <p className="text-xs text-[var(--text-secondary)]">Review session logs and directly edit present/absent student statuses.</p>
+                <button
+                  onClick={() => setActiveTab('attendance')}
+                  className="btn-secondary w-full py-2 text-xs font-mono flex items-center justify-center gap-1.5 text-emerald-600 dark:text-emerald-400"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                  <span>Edit Attendance</span>
+                </button>
+              </div>
+
               <div className="swiss-card p-5 rounded-lg space-y-3">
                 <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
                   <BookOpen className="w-4 h-4 text-blue-600" />
@@ -556,6 +654,150 @@ export const AdminPortal: React.FC = () => {
                   <Plus className="w-3.5 h-3.5" />
                   <span>Add Subject Code</span>
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB: ATTENDANCE LEDGER & EDITING ──────────────────────────────── */}
+        {activeTab === 'attendance' && (
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
+                  <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
+                  Attendance Ledger & Direct Edit
+                </h2>
+                <p className="text-xs text-[var(--text-secondary)]">
+                  Audit institutional attendance sessions and modify present/absent student records with immediate database sync.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => navigate('/take-attendance')}
+                  className="btn-primary text-xs px-3.5 py-2 flex items-center gap-1.5 font-mono"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>New Roll-Call Scan</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Filter Bar */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="relative">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                <input
+                  type="text"
+                  placeholder="Search class, subject, date..."
+                  value={sessionSearch}
+                  onChange={(e) => setSessionSearch(e.target.value)}
+                  className="w-full bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-lg pl-9 pr-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-blue-600 font-mono"
+                />
+              </div>
+
+              <div>
+                <select
+                  value={selectedSessionClassFilter}
+                  onChange={(e) => setSelectedSessionClassFilter(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+                  className="w-full bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-lg px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-blue-600 font-mono"
+                >
+                  <option value="ALL">All Class Cohorts ({sessions.length} sessions)</option>
+                  {classes.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} {c.section}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <input
+                  type="date"
+                  value={selectedSessionDateFilter}
+                  onChange={(e) => setSelectedSessionDateFilter(e.target.value)}
+                  className="w-full bg-[var(--bg-surface)] border border-[var(--border-color)] rounded-lg px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-blue-600 font-mono"
+                />
+              </div>
+            </div>
+
+            {/* Sessions Table */}
+            <div className="swiss-card rounded-lg overflow-hidden border border-[var(--border-color)]">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs font-mono">
+                  <thead>
+                    <tr className="border-b border-[var(--border-color)] bg-[var(--bg-inset)] text-[11px] text-[var(--text-muted)] uppercase tracking-wider">
+                      <th className="p-3.5">Session ID & Date</th>
+                      <th className="p-3.5">Class Cohort</th>
+                      <th className="p-3.5">Course / Subject</th>
+                      <th className="p-3.5">Faculty In-Charge</th>
+                      <th className="p-3.5">Attendance Ratio</th>
+                      <th className="p-3.5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border-color)]">
+                    {sessions
+                      .filter(s => {
+                        const matchesClass = selectedSessionClassFilter === 'ALL' || s.class_id === selectedSessionClassFilter;
+                        const matchesDate = !selectedSessionDateFilter || s.date === selectedSessionDateFilter;
+                        const matchesSearch = !sessionSearch ||
+                          (s.class_name && s.class_name.toLowerCase().includes(sessionSearch.toLowerCase())) ||
+                          (s.subject_name && s.subject_name.toLowerCase().includes(sessionSearch.toLowerCase())) ||
+                          (s.teacher_name && s.teacher_name.toLowerCase().includes(sessionSearch.toLowerCase())) ||
+                          s.date.includes(sessionSearch);
+                        return matchesClass && matchesDate && matchesSearch;
+                      })
+                      .map((sess) => {
+                        const total = sess.total_enrolled || (sess.present_count + sess.absent_count) || 1;
+                        const pct = Math.round((sess.present_count / total) * 100);
+                        return (
+                          <tr key={sess.id} className="hover:bg-[var(--bg-inset)]/50 transition-colors">
+                            <td className="p-3.5">
+                              <div className="font-bold text-[var(--text-primary)]">#{sess.id} · {sess.date}</div>
+                              <div className="text-[10px] text-[var(--text-muted)]">{sess.start_time || '09:00'}</div>
+                            </td>
+                            <td className="p-3.5 font-medium text-[var(--text-primary)]">
+                              {sess.class_name}
+                            </td>
+                            <td className="p-3.5 text-[var(--text-secondary)]">
+                              {sess.subject_name}
+                            </td>
+                            <td className="p-3.5 text-[var(--text-muted)]">
+                              {sess.teacher_name || 'Faculty'}
+                            </td>
+                            <td className="p-3.5">
+                              <div className="flex items-center gap-2">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                  pct >= 75
+                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                                }`}>
+                                  {pct}% ({sess.present_count}/{total})
+                                </span>
+                              </div>
+                            </td>
+                            <td className="p-3.5 text-right space-x-2">
+                              <button
+                                onClick={() => handleOpenSessionEditor(sess)}
+                                className="btn-primary text-[11px] px-3 py-1.5 inline-flex items-center gap-1.5"
+                                title="Edit attendance records"
+                              >
+                                <Edit3 className="w-3 h-3" />
+                                <span>Edit Records</span>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    {sessions.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-xs text-[var(--text-muted)]">
+                          No attendance sessions found. Run a roll-call scan to record sessions.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -959,6 +1201,190 @@ export const AdminPortal: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL: ATTENDANCE RECORD EDITOR ── */}
+      {selectedSessionForEdit && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+          <div className="swiss-card max-w-4xl w-full rounded-2xl border border-[var(--border-color)] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden my-auto animate-in fade-in zoom-in-95">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-[var(--border-color)] bg-[var(--bg-inset)] flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-600 text-white">
+                    SESSION #{selectedSessionForEdit.id}
+                  </span>
+                  <span className="text-xs font-mono font-bold text-[var(--text-muted)]">
+                    {selectedSessionForEdit.date} · {selectedSessionForEdit.start_time || '09:00'}
+                  </span>
+                </div>
+                <h3 className="text-base sm:text-lg font-bold text-[var(--text-primary)] mt-1">
+                  {selectedSessionForEdit.class_name} — {selectedSessionForEdit.subject_name}
+                </h3>
+              </div>
+              <button
+                onClick={() => setSelectedSessionForEdit(null)}
+                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-surface)] transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Dynamic Metric Bar */}
+            <div className="grid grid-cols-3 divide-x divide-[var(--border-color)] border-b border-[var(--border-color)] bg-[var(--bg-surface)] font-mono text-center py-2.5">
+              <div>
+                <div className="text-[10px] text-[var(--text-muted)] uppercase">Total Enrolled</div>
+                <div className="text-lg font-bold text-[var(--text-primary)]">{editableRecords.length}</div>
+              </div>
+              <div>
+                <div className="text-[10px] text-emerald-600 dark:text-emerald-400 uppercase">Present Count</div>
+                <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                  {editableRecords.filter(r => r.status === 'PRESENT').length}
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] text-rose-600 dark:text-rose-400 uppercase">Absent Count</div>
+                <div className="text-lg font-bold text-rose-600 dark:text-rose-400">
+                  {editableRecords.filter(r => r.status === 'ABSENT').length}
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Actions & Search */}
+            <div className="p-3 sm:p-4 border-b border-[var(--border-color)] bg-[var(--bg-surface)] flex flex-wrap items-center justify-between gap-2.5">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
+                <input
+                  type="text"
+                  placeholder="Filter student by name or roll..."
+                  value={sessionRecordSearch}
+                  onChange={(e) => setSessionRecordSearch(e.target.value)}
+                  className="w-full bg-[var(--bg-inset)] border border-[var(--border-color)] rounded-lg pl-8 pr-3 py-1.5 text-xs text-[var(--text-primary)] focus:outline-none focus:border-blue-600 font-mono"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 font-mono text-xs">
+                <button
+                  type="button"
+                  onClick={() => handleMarkAllStatus('PRESENT')}
+                  className="px-2.5 py-1.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-colors font-bold"
+                >
+                  Mark All Present
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleMarkAllStatus('ABSENT')}
+                  className="px-2.5 py-1.5 rounded bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition-colors font-bold"
+                >
+                  Mark All Absent
+                </button>
+              </div>
+            </div>
+
+            {/* Attendance Records Table */}
+            <div className="flex-1 overflow-y-auto max-h-[420px] p-0">
+              <table className="w-full text-left border-collapse text-xs font-mono">
+                <thead className="sticky top-0 bg-[var(--bg-inset)] z-10 border-b border-[var(--border-color)]">
+                  <tr className="text-[11px] text-[var(--text-muted)] uppercase tracking-wider">
+                    <th className="p-3">Roll & ID</th>
+                    <th className="p-3">Student Name</th>
+                    <th className="p-3">Confidence / Method</th>
+                    <th className="p-3 text-right">Attendance Status (Click to Toggle)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border-color)] bg-[var(--bg-surface)]">
+                  {editableRecords
+                    .map((rec, origIdx) => ({ rec, origIdx }))
+                    .filter(({ rec }) => {
+                      if (!sessionRecordSearch) return true;
+                      const q = sessionRecordSearch.toLowerCase();
+                      return (
+                        (rec.student_name && rec.student_name.toLowerCase().includes(q)) ||
+                        (rec.roll_number && rec.roll_number.toLowerCase().includes(q)) ||
+                        (rec.student_code && rec.student_code.toLowerCase().includes(q))
+                      );
+                    })
+                    .map(({ rec, origIdx }) => {
+                      const isPresent = rec.status === 'PRESENT';
+                      return (
+                        <tr
+                          key={rec.id || `rec-${rec.student_id}-${origIdx}`}
+                          className="hover:bg-[var(--bg-inset)]/60 transition-colors"
+                        >
+                          <td className="p-3">
+                            <span className="font-bold text-[var(--text-primary)]">{rec.roll_number || '—'}</span>
+                            <span className="text-[10px] text-[var(--text-muted)] ml-2">({rec.student_code || `#${rec.student_id}`})</span>
+                          </td>
+                          <td className="p-3 font-semibold text-[var(--text-primary)]">
+                            {rec.student_name || `Student #${rec.student_id}`}
+                          </td>
+                          <td className="p-3 text-[var(--text-muted)]">
+                            <span className="text-[10px]">
+                              {rec.confidence ? `${Math.round(rec.confidence * 100)}% Match` : '—'}
+                              {rec.verification_status === 'TEACHER_VERIFIED' && ' · Teacher Verified'}
+                            </span>
+                          </td>
+                          <td className="p-3 text-right">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleRecordStatus(origIdx)}
+                              className={`px-4 py-1.5 rounded-md font-bold text-xs transition-all active:scale-95 shadow-sm inline-flex items-center gap-1.5 ${
+                                isPresent
+                                  ? 'bg-emerald-600 text-white hover:bg-emerald-500 ring-2 ring-emerald-500/20'
+                                  : 'bg-rose-600 text-white hover:bg-rose-500 ring-2 ring-rose-500/20'
+                              }`}
+                            >
+                              {isPresent ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
+                              <span>{rec.status}</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  {editableRecords.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="p-8 text-center text-xs text-[var(--text-muted)]">
+                        No enrolled student records found in this session.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-[var(--border-color)] bg-[var(--bg-inset)] flex flex-wrap items-center justify-between gap-3">
+              <div className="text-xs font-mono text-[var(--text-muted)]">
+                {attendanceSaveMessage ? (
+                  <span className="text-emerald-500 font-bold flex items-center gap-1">
+                    <CheckCircle2 className="w-4 h-4" /> {attendanceSaveMessage}
+                  </span>
+                ) : (
+                  <span>Click any student status badge to toggle between Present and Absent.</span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setSelectedSessionForEdit(null)}
+                  className="btn-secondary px-4 py-2 text-xs font-mono"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveAttendanceRecords}
+                  disabled={isSavingAttendance}
+                  className="btn-primary px-5 py-2 text-xs font-mono font-bold flex items-center gap-1.5 shadow-md disabled:opacity-50"
+                >
+                  <Save className={`w-3.5 h-3.5 ${isSavingAttendance ? 'animate-spin' : ''}`} />
+                  <span>{isSavingAttendance ? 'Saving to Database...' : 'Save Attendance Changes'}</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

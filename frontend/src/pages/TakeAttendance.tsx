@@ -38,11 +38,22 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
   const [activePreviewIndex, setActivePreviewIndex] = useState<number>(0);
 
   const [isWebcamActive, setIsWebcamActive] = useState<boolean>(false);
+  const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   const [analyzing, setAnalyzing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Cleanup camera stream and object URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const loadClasses = async () => {
@@ -108,6 +119,10 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
 
   const removeStagedPhoto = (id: string) => {
     setStagedPhotos((prev) => {
+      const target = prev.find(p => p.id === id);
+      if (target?.previewUrl?.startsWith('blob:')) {
+        try { URL.revokeObjectURL(target.previewUrl); } catch (e) {}
+      }
       const next = prev.filter((p) => p.id !== id);
       if (activePreviewIndex >= next.length) {
         setActivePreviewIndex(Math.max(0, next.length - 1));
@@ -117,24 +132,64 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
   };
 
   const clearAllPhotos = () => {
+    stagedPhotos.forEach(p => {
+      if (p.previewUrl?.startsWith('blob:')) {
+        try { URL.revokeObjectURL(p.previewUrl); } catch (e) {}
+      }
+    });
     setStagedPhotos([]);
     setActivePreviewIndex(0);
   };
 
-  const startWebcam = async () => {
+  const startWebcam = async (mode: 'environment' | 'user' = facingMode) => {
     try {
       setError(null);
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1920 }, height: { ideal: 1080 }, facingMode: 'environment' }
-      });
+      // Stop any existing stream first
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+
+      let stream: MediaStream;
+      try {
+        // Attempt with desired resolution & facingMode
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 1920, min: 640 },
+            height: { ideal: 1080, min: 480 },
+            facingMode: mode
+          }
+        });
+      } catch (modeErr) {
+        console.warn(`Targeted facingMode (${mode}) failed, falling back to basic camera:`, modeErr);
+        // Fallback for laptops/desktops where facingMode constraint throws OverconstrainedError
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true
+        });
+      }
+
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(e => console.warn("Video play notice:", e));
       }
       setIsWebcamActive(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Webcam access error:", err);
-      setError("Unable to access camera. Check device permissions.");
+      setError(
+        err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError'
+          ? "Camera permission was denied. Please allow camera access in your browser settings."
+          : "Unable to access camera hardware. Verify that another application isn't using it."
+      );
+      setIsWebcamActive(false);
+    }
+  };
+
+  const toggleFacingMode = () => {
+    const nextMode = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(nextMode);
+    if (isWebcamActive) {
+      startWebcam(nextMode);
     }
   };
 
@@ -143,22 +198,33 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
       streamRef.current.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
     setIsWebcamActive(false);
   };
 
   const captureWebcamFrame = (keepCameraOpen: boolean = false) => {
     if (!videoRef.current) return;
     const video = videoRef.current;
+    const w = video.videoWidth || 1280;
+    const h = video.videoHeight || 720;
     const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth || 1280;
-    canvas.height = video.videoHeight || 720;
+    canvas.width = w;
+    canvas.height = h;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     const sectionTags = ['Left Wing', 'Center Rows', 'Right Wing', 'Rear Tier', 'Section 5'];
     const currentCount = stagedPhotos.length;
 
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    // Flip horizontally if front camera for natural mirroring
+    if (facingMode === 'user') {
+      ctx.translate(w, 0);
+      ctx.scale(-1, 1);
+    }
+
+    ctx.drawImage(video, 0, 0, w, h);
     canvas.toBlob((blob) => {
       if (blob) {
         const file = new File([blob], `capture_${currentCount + 1}.jpg`, { type: 'image/jpeg' });
@@ -359,7 +425,8 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
                   </button>
                 ) : (
                   <button
-                    onClick={startWebcam}
+                    type="button"
+                    onClick={() => startWebcam()}
                     className="inline-flex items-center gap-1 text-xs text-blue-600 dark:text-cyan-400 hover:underline font-semibold transition-colors"
                   >
                     <Camera className="w-3.5 h-3.5" />
@@ -377,19 +444,42 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
                   autoPlay
                   playsInline
                   muted
-                  className="w-full h-full object-cover"
+                  className={`w-full h-full object-cover ${facingMode === 'user' ? '-scale-x-100' : ''}`}
                 />
                 <div className="absolute top-3 left-3 flex items-center gap-2 px-2.5 py-1 rounded-full bg-slate-950/80 backdrop-blur-md border border-slate-800 text-[11px] font-mono text-cyan-400">
                   <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-                  <span>Optical Stream Live</span>
+                  <span>Optical Stream Live ({facingMode === 'user' ? 'Front Camera' : 'Auditorium/Rear Camera'})</span>
                 </div>
+
+                <div className="absolute top-3 right-3 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={toggleFacingMode}
+                    className="p-2 rounded-full bg-slate-950/80 hover:bg-slate-900 border border-slate-700 text-slate-200 text-xs font-mono flex items-center gap-1.5 transition-all shadow-md active:scale-95"
+                    title="Switch camera"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span className="text-[10px] hidden sm:inline">Flip Camera</span>
+                  </button>
+                </div>
+
                 <div className="absolute bottom-4 inset-x-0 flex items-center justify-center gap-3">
                   <button
+                    type="button"
                     onClick={() => captureWebcamFrame(false)}
                     className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 font-bold text-xs shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center gap-2"
                   >
                     <Camera className="w-4 h-4" />
-                    <span>Capture Photo</span>
+                    <span>Capture & Close</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => captureWebcamFrame(true)}
+                    className="px-4 py-2.5 rounded-xl bg-slate-900/90 border border-cyan-500/40 text-cyan-300 hover:text-white font-semibold text-xs shadow-md hover:bg-slate-850 active:scale-95 transition-all flex items-center gap-1.5"
+                    title="Capture photo and keep camera open for multiple angles"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Add Angle</span>
                   </button>
                 </div>
               </div>
