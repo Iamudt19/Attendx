@@ -49,6 +49,22 @@ export const AuthService = {
   getMe: async (): Promise<User> => {
     const res = await api.get('/auth/me');
     return res.data;
+  },
+  getPendingTeachers: async () => {
+    const res = await api.get('/auth/pending-teachers');
+    return res.data;
+  },
+  approveTeacher: async (teacherId: number) => {
+    const res = await api.post(`/auth/approve-teacher/${teacherId}`);
+    return res.data;
+  },
+  rejectTeacher: async (teacherId: number) => {
+    const res = await api.post(`/auth/reject-teacher/${teacherId}`);
+    return res.data;
+  },
+  getAllTeachers: async () => {
+    const res = await api.get('/auth/teachers');
+    return res.data;
   }
 };
 
@@ -247,11 +263,17 @@ export const AttendanceService = {
       const res = await api.post('/attendance/sessions', data);
       return res.data;
     } catch (err: any) {
-      // If server returns "already been recorded" from an older backend version,
-      // gracefully fetch the existing session and overwrite its records
+      // If server returns "already been recorded" from an older backend version or unique constraint,
+      // seamlessly find the existing session and overwrite its records with the newly submitted data
       const errMsg = err.response?.data?.detail || err.message || '';
-      if (errMsg.includes('already been recorded') || errMsg.includes('already exists')) {
-        console.warn("Session already exists for this date/class, performing client fallback overwrite:", errMsg);
+      if (
+        errMsg.toLowerCase().includes('already been recorded') || 
+        errMsg.toLowerCase().includes('already exists') ||
+        errMsg.toLowerCase().includes('already marked') ||
+        err.response?.status === 400 ||
+        err.response?.status === 409
+      ) {
+        console.warn("Session already recorded for this date/class, performing seamless overwrite:", errMsg);
         try {
           const existingSessions = await AttendanceService.getSessions({
             class_id: data.class_id,
@@ -263,7 +285,7 @@ export const AttendanceService = {
             return await AttendanceService.updateSessionRecords(targetSession.id, data.records);
           }
         } catch (fallbackErr) {
-          console.error("Fallback session overwrite failed:", fallbackErr);
+          console.error("Fallback session overwrite error:", fallbackErr);
         }
       }
       throw err;
@@ -286,33 +308,32 @@ export const AttendanceService = {
       verification_status?: string;
     }>
   ): Promise<AttendanceSessionOut> => {
-    // 1. Try POST to /attendance/sessions/{id}/records (universally supported by firewalls & standard proxies)
-    try {
-      const res = await api.post(`/attendance/sessions/${sessionId}/records`, { records });
-      return res.data;
-    } catch (err1: any) {
-      if (err1.response?.status === 405 || err1.response?.status === 404) {
-        // 2. Try PATCH to /attendance/sessions/{id}/records
-        try {
-          const res = await api.patch(`/attendance/sessions/${sessionId}/records`, { records });
-          return res.data;
-        } catch (err2: any) {
-          if (err2.response?.status === 405 || err2.response?.status === 404) {
-            // 3. Try POST to /attendance/sessions/{id}
-            try {
-              const res = await api.post(`/attendance/sessions/${sessionId}`, { records });
-              return res.data;
-            } catch (err3: any) {
-              // 4. Try PUT to /attendance/sessions/{id}
-              const res = await api.put(`/attendance/sessions/${sessionId}`, { records });
-              return res.data;
-            }
-          }
-          throw err2;
+    const payload = { records };
+    // Try multiple endpoint styles (PUT / POST / PATCH) to ensure compatibility across proxies and server versions
+    const attempts = [
+      () => api.put(`/attendance/sessions/${sessionId}`, payload),
+      () => api.post(`/attendance/sessions/${sessionId}/update`, payload),
+      () => api.put(`/attendance/sessions/${sessionId}/records`, payload),
+      () => api.post(`/attendance/sessions/${sessionId}/records`, payload),
+      () => api.patch(`/attendance/sessions/${sessionId}`, payload),
+      () => api.post(`/attendance/sessions/${sessionId}`, payload),
+    ];
+
+    let lastError: any = null;
+    for (const attempt of attempts) {
+      try {
+        const res = await attempt();
+        return res.data;
+      } catch (err: any) {
+        lastError = err;
+        // If 405 (Method Not Allowed) or 404 (Not Found), try next endpoint variant
+        if (err.response?.status === 405 || err.response?.status === 404) {
+          continue;
         }
+        throw err;
       }
-      throw err1;
     }
+    throw lastError;
   },
   getStudentAttendanceLog: async (studentId: number) => {
     const res = await api.get(`/attendance/students/${studentId}`);

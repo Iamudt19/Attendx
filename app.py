@@ -139,7 +139,17 @@ demo.launch(
     ssr_mode=False,
 )
 
-# ── 2. Attach all FastAPI routers to the running Gradio app ──────────────────
+# ── 2. Attach CORS Middleware & all FastAPI routers to running Gradio app ────
+from fastapi.middleware.cors import CORSMiddleware
+
+demo.app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 demo.app.include_router(auth.router, prefix="/api")
 demo.app.include_router(classes.router, prefix="/api")
 demo.app.include_router(subjects.router, prefix="/api")

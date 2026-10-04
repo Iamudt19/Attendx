@@ -1,10 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
 import {
   Shield, Lock, Unlock, KeyRound, CheckCircle2, AlertCircle,
   Users, BookOpen, RefreshCw, Plus,
   Trash2, Search, ArrowRight, Activity,
   Sliders, Eye, EyeOff, Cpu, ChevronLeft,
-  FileSpreadsheet, Edit3, Save, Check, RotateCcw, X, Calendar, Download
+  FileSpreadsheet, Edit3, Save, Check, RotateCcw, X, Calendar, Download, UserCheck
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AuthService, ClassService, StudentService, SubjectService, AttendanceService, api } from '../services/api';
@@ -13,7 +12,7 @@ import { extractErrorMessage } from '../utils/error';
 import { Logo } from '../components/Logo';
 import { ThemeToggle } from '../components/ThemeToggle';
 
-type AdminTab = 'overview' | 'attendance' | 'classes' | 'students' | 'subjects' | 'diagnostics';
+type AdminTab = 'overview' | 'attendance' | 'teachers' | 'classes' | 'students' | 'subjects' | 'diagnostics';
 
 export const AdminPortal: React.FC = () => {
   const navigate = useNavigate();
@@ -35,6 +34,8 @@ export const AdminPortal: React.FC = () => {
   const [students, setStudents] = useState<StudentItem[]>([]);
   const [subjects, setSubjects] = useState<SubjectItem[]>([]);
   const [sessions, setSessions] = useState<AttendanceSessionOut[]>([]);
+  const [pendingTeachers, setPendingTeachers] = useState<any[]>([]);
+  const [allTeachers, setAllTeachers] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState<boolean>(false);
   const [loadingSessions, setLoadingSessions] = useState<boolean>(false);
   const [systemHealth, setSystemHealth] = useState<{ status: string; database: string; version: string } | null>(null);
@@ -78,20 +79,20 @@ export const AdminPortal: React.FC = () => {
     setTimeout(() => setActionMessage(null), 3500);
   };
 
-  // Authenticate with master password 2026/
+  // Authenticate with master password Doomsday@1812
   const handleAdminLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setAuthError(null);
     setAuthLoading(true);
 
-    if (passwordInput.trim() !== '2026/') {
+    if (passwordInput.trim() !== 'Doomsday@1812') {
       setAuthError('Access Denied: Invalid Master Password.');
       setAuthLoading(false);
       return;
     }
 
     try {
-      const data = await AuthService.adminMasterLogin('2026/');
+      const data = await AuthService.adminMasterLogin('Doomsday@1812');
       if (data?.access_token) {
         localStorage.setItem('attendx_token', data.access_token);
       }
@@ -99,9 +100,7 @@ export const AdminPortal: React.FC = () => {
       setIsAuthenticated(true);
       setPasswordInput('');
     } catch (err: any) {
-      localStorage.setItem('attendx_admin_session', 'active');
-      setIsAuthenticated(true);
-      setPasswordInput('');
+      setAuthError(extractErrorMessage(err, 'Failed to authenticate with master password.'));
     } finally {
       setAuthLoading(false);
     }
@@ -121,23 +120,27 @@ export const AdminPortal: React.FC = () => {
       let token = localStorage.getItem('attendx_token');
       if (!token) {
         try {
-          const authRes = await AuthService.adminMasterLogin('2026/');
+          const authRes = await AuthService.adminMasterLogin('Doomsday@1812');
           if (authRes?.access_token) {
             localStorage.setItem('attendx_token', authRes.access_token);
           }
         } catch (e) {}
       }
 
-      const [clsList, stuList, subList, sessList] = await Promise.all([
+      const [clsList, stuList, subList, sessList, pendingTchs, allTchs] = await Promise.all([
         ClassService.getClasses().catch(() => []),
         StudentService.getStudents().catch(() => []),
         SubjectService.getSubjects().catch(() => []),
         AttendanceService.getSessions().catch(() => []),
+        AuthService.getPendingTeachers().catch(() => []),
+        AuthService.getAllTeachers().catch(() => []),
       ]);
       setClasses(clsList || []);
       setStudents(stuList || []);
       setSubjects(subList || []);
       setSessions(sessList || []);
+      setPendingTeachers(pendingTchs || []);
+      setAllTeachers(allTchs || []);
 
       if (clsList && clsList.length > 0) {
         if (!newStudentClassId) setNewStudentClassId(clsList[0].id);
@@ -151,6 +154,27 @@ export const AdminPortal: React.FC = () => {
       setLoadingData(false);
     }
   }, [isAuthenticated, newStudentClassId, newSubjectClassId]);
+
+  const handleApproveTeacher = async (teacherId: number, teacherName: string) => {
+    try {
+      await AuthService.approveTeacher(teacherId);
+      notify(`Educator "${teacherName}" approved and activated.`);
+      refreshAllData();
+    } catch (err: any) {
+      notify(extractErrorMessage(err, 'Failed to approve teacher account.'), 'error');
+    }
+  };
+
+  const handleRejectTeacher = async (teacherId: number, teacherName: string) => {
+    if (!window.confirm(`Are you sure you want to reject the registration for "${teacherName}"?`)) return;
+    try {
+      await AuthService.rejectTeacher(teacherId);
+      notify(`Registration for "${teacherName}" has been rejected.`);
+      refreshAllData();
+    } catch (err: any) {
+      notify(extractErrorMessage(err, 'Failed to reject teacher registration.'), 'error');
+    }
+  };
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -383,7 +407,7 @@ export const AdminPortal: React.FC = () => {
                       value={passwordInput}
                       onChange={(e) => setPasswordInput(e.target.value)}
                       autoFocus
-                      placeholder="Default: 2026/"
+                      placeholder="Enter Master Password..."
                       required
                       className="w-full bg-[var(--bg-inset)] border border-[var(--border-color)] rounded-lg pl-10 pr-10 py-2.5 text-xs text-[var(--text-primary)] focus:outline-none focus:border-blue-600 transition-colors font-mono"
                     />
@@ -395,34 +419,6 @@ export const AdminPortal: React.FC = () => {
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
-                </div>
-
-                {/* Quick Keypad */}
-                <div className="grid grid-cols-4 gap-1.5 pt-1">
-                  {['2', '0', '2', '6', '/'].map((char, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => setPasswordInput((prev) => prev + char)}
-                      className="btn-secondary py-2 text-xs font-mono font-bold"
-                    >
-                      {char}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => setPasswordInput((prev) => prev.slice(0, -1))}
-                    className="btn-secondary py-2 text-xs font-mono font-bold text-rose-500"
-                  >
-                    DEL
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPasswordInput('')}
-                    className="btn-secondary col-span-2 py-2 text-xs font-mono font-bold text-[var(--text-muted)]"
-                  >
-                    CLEAR
-                  </button>
                 </div>
 
                 <button
@@ -520,6 +516,12 @@ export const AdminPortal: React.FC = () => {
           {[
             { id: 'overview', label: 'Overview & Telemetry', icon: Activity },
             { id: 'attendance', label: `Attendance Ledger (${sessions.length})`, icon: FileSpreadsheet },
+            { 
+              id: 'teachers', 
+              label: pendingTeachers.length > 0 ? `Teacher Approvals (${pendingTeachers.length})` : `Teachers (${allTeachers.length})`, 
+              icon: UserCheck,
+              highlight: pendingTeachers.length > 0 
+            },
             { id: 'classes', label: `Classes (${classes.length})`, icon: BookOpen },
             { id: 'students', label: `Students (${students.length})`, icon: Users },
             { id: 'subjects', label: `Subjects (${subjects.length})`, icon: Sliders },
@@ -534,7 +536,9 @@ export const AdminPortal: React.FC = () => {
                 className={`py-1.5 px-3 rounded-md flex items-center gap-2 transition-colors shrink-0 ${
                   isActive
                     ? 'bg-[var(--accent-primary)] text-white font-bold'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-inset)]'
+                    : tab.highlight
+                      ? 'text-amber-500 hover:text-amber-400 bg-amber-500/10 font-bold border border-amber-500/30'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-inset)]'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -595,7 +599,37 @@ export const AdminPortal: React.FC = () => {
             </div>
 
             {/* Quick Management Shortcuts */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              <div className="swiss-card p-5 rounded-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
+                    <UserCheck className="w-4 h-4 text-blue-600" />
+                    Teacher Approvals
+                  </h3>
+                  {pendingTeachers.length > 0 && (
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 font-bold animate-pulse">
+                      {pendingTeachers.length} New
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-[var(--text-secondary)]">
+                  {pendingTeachers.length > 0
+                    ? `${pendingTeachers.length} educator account(s) waiting for access approval.`
+                    : 'All faculty accounts are verified.'}
+                </p>
+                <button
+                  onClick={() => setActiveTab('teachers')}
+                  className={`w-full py-2 text-xs font-mono flex items-center justify-center gap-1.5 rounded-lg ${
+                    pendingTeachers.length > 0
+                      ? 'bg-amber-600 hover:bg-amber-500 text-white font-bold'
+                      : 'btn-secondary'
+                  }`}
+                >
+                  <UserCheck className="w-3.5 h-3.5" />
+                  <span>{pendingTeachers.length > 0 ? 'Review Approvals' : 'Manage Teachers'}</span>
+                </button>
+              </div>
+
               <div className="swiss-card p-5 rounded-lg space-y-3">
                 <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
                   <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
@@ -793,6 +827,150 @@ export const AdminPortal: React.FC = () => {
                       <tr>
                         <td colSpan={6} className="p-8 text-center text-xs text-[var(--text-muted)]">
                           No attendance sessions found. Run a roll-call scan to record sessions.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── TAB: TEACHERS & APPROVALS MANAGEMENT ───────────────────────── */}
+        {activeTab === 'teachers' && (
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
+                  <UserCheck className="w-5 h-5 text-blue-600" />
+                  Educator Accounts & Access Governance
+                </h2>
+                <p className="text-xs text-[var(--text-secondary)]">
+                  Review pending faculty registrations, grant verified access, or manage institutional educators.
+                </p>
+              </div>
+              <button
+                onClick={refreshAllData}
+                className="btn-secondary text-xs px-3 py-1.5 font-mono flex items-center gap-1.5"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Refresh Queue</span>
+              </button>
+            </div>
+
+            {/* Pending Approvals Section */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full ${pendingTeachers.length > 0 ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
+                  <h3 className="text-sm font-mono font-bold uppercase tracking-wider text-[var(--text-primary)]">
+                    Pending Teacher Registrations ({pendingTeachers.length})
+                  </h3>
+                </div>
+                {pendingTeachers.length > 0 && (
+                  <span className="text-[11px] font-mono text-amber-500 bg-amber-500/10 px-2.5 py-0.5 rounded border border-amber-500/20 font-bold">
+                    Action Required
+                  </span>
+                )}
+              </div>
+
+              <div className="swiss-card rounded-lg overflow-x-auto">
+                <table className="w-full text-left text-xs font-mono">
+                  <thead className="bg-[var(--bg-inset)] border-b border-[var(--border-color)] text-[var(--text-muted)] uppercase">
+                    <tr>
+                      <th className="py-3 px-4">Educator Name</th>
+                      <th className="py-3 px-4">Institutional Email</th>
+                      <th className="py-3 px-4">Role</th>
+                      <th className="py-3 px-4">Registered On</th>
+                      <th className="py-3 px-4 text-right">Approval Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border-color)]">
+                    {pendingTeachers.map((teacher) => (
+                      <tr key={teacher.id} className="hover:bg-[var(--bg-inset)] transition-colors bg-amber-500/[0.03]">
+                        <td className="py-3.5 px-4 font-bold text-[var(--text-primary)] font-sans">
+                          {teacher.name}
+                        </td>
+                        <td className="py-3.5 px-4 text-[var(--text-secondary)]">
+                          {teacher.email}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                            {teacher.role}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-[var(--text-muted)]">
+                          {teacher.created_at ? new Date(teacher.created_at).toLocaleString() : 'Recent'}
+                        </td>
+                        <td className="py-3.5 px-4 text-right space-x-2">
+                          <button
+                            type="button"
+                            onClick={() => handleApproveTeacher(teacher.id, teacher.name)}
+                            className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm inline-flex items-center gap-1.5 transition-colors"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>Approve Account</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRejectTeacher(teacher.id, teacher.name)}
+                            className="px-3 py-1.5 rounded-lg bg-rose-600/10 hover:bg-rose-600/20 text-rose-500 border border-rose-500/20 font-bold text-xs inline-flex items-center gap-1.5 transition-colors"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                            <span>Reject</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {pendingTeachers.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="py-10 text-center text-xs text-[var(--text-muted)]">
+                          <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto mb-2 opacity-80" />
+                          <div className="font-bold text-[var(--text-primary)]">No Pending Registrations</div>
+                          <div>All educator accounts are verified and up to date.</div>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Approved Faculty Section */}
+            <div className="space-y-3 pt-4">
+              <h3 className="text-sm font-mono font-bold uppercase tracking-wider text-[var(--text-primary)]">
+                Active Institutional Faculty ({allTeachers.filter(t => t.is_approved).length})
+              </h3>
+              <div className="swiss-card rounded-lg overflow-x-auto">
+                <table className="w-full text-left text-xs font-mono">
+                  <thead className="bg-[var(--bg-inset)] border-b border-[var(--border-color)] text-[var(--text-muted)] uppercase">
+                    <tr>
+                      <th className="py-3 px-4">Faculty Name</th>
+                      <th className="py-3 px-4">Institutional Email</th>
+                      <th className="py-3 px-4">Status</th>
+                      <th className="py-3 px-4">Registration Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border-color)]">
+                    {allTeachers.filter(t => t.is_approved).map((t) => (
+                      <tr key={t.id} className="hover:bg-[var(--bg-inset)] transition-colors">
+                        <td className="py-3 px-4 font-bold text-[var(--text-primary)] font-sans">{t.name}</td>
+                        <td className="py-3 px-4 text-[var(--text-secondary)]">{t.email}</td>
+                        <td className="py-3 px-4">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                            ✓ ACTIVE &amp; APPROVED
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-[var(--text-muted)]">
+                          {t.created_at ? new Date(t.created_at).toLocaleDateString() : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                    {allTeachers.filter(t => t.is_approved).length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="p-6 text-center text-xs text-[var(--text-muted)]">
+                          No active faculty accounts found.
                         </td>
                       </tr>
                     )}

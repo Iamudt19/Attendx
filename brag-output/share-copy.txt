@@ -1,0 +1,8 @@
+Say goodbye to 15-minute roll calls. AttendX takes one classroom photo, runs YuNet + SFace face recognition, and gives you verified attendance in seconds. 📸✨
+
+• Real-time 5-point face alignment & 128-d L2 cosine matching
+• Conservative 3-state classification (Present / Review / Unknown)
+• Teacher-in-the-loop active feedback loop
+• Instant multi-sheet Excel export
+
+Check it out: https://github.com/Iamudt19/Attendx

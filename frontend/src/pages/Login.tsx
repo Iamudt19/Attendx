@@ -76,29 +76,28 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         password: regPassword,
         role: role,
       });
-      localStorage.setItem('attendx_token', data.access_token);
-      setSuccessMsg('Account created successfully! Redirecting to dashboard...');
-      setTimeout(() => {
-        onLoginSuccess(data.user, data.access_token);
-        navigate('/dashboard');
-      }, 600);
+      if (data.user?.is_approved && data.access_token) {
+        localStorage.setItem('attendx_token', data.access_token);
+        setSuccessMsg('Account created successfully! Redirecting to dashboard...');
+        setTimeout(() => {
+          onLoginSuccess(data.user, data.access_token);
+          navigate('/dashboard');
+        }, 600);
+      } else {
+        setSuccessMsg('Account registration submitted! Your educator account is pending administrator approval before you can sign in.');
+        setEmail(regEmail.trim());
+        setPassword('');
+        setName('');
+        setRegEmail('');
+        setRegPassword('');
+        setConfirmPassword('');
+        setActiveTab('signin');
+      }
     } catch (err: any) {
       setError(extractErrorMessage(err, 'Registration failed. Please try again with another email.'));
     } finally {
       setLoading(false);
     }
-  };
-
-  const fillDemoTeacher = () => {
-    setEmail('teacher@attendx.edu');
-    setPassword('teacher123');
-    setActiveTab('signin');
-  };
-
-  const fillDemoAdmin = () => {
-    setEmail('admin@attendx.edu');
-    setPassword('admin123');
-    setActiveTab('signin');
   };
 
   return (
@@ -246,7 +245,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="teacher@attendx.edu"
+                      placeholder="faculty@institution.edu"
                       className={`w-full pl-10 pr-4 py-2.5 rounded-xl text-sm transition-all focus:outline-none ${
                         isDark 
                           ? 'bg-black/60 border border-white/15 text-white placeholder-zinc-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20' 
@@ -293,39 +292,6 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                     </>
                   )}
                 </button>
-
-                {/* Quick Demo Logins Bar */}
-                <div className={`pt-4 border-t ${isDark ? 'border-white/10' : 'border-slate-100'}`}>
-                  <div className={`text-[11px] font-semibold uppercase tracking-wider text-center mb-2.5 ${
-                    isDark ? 'text-zinc-400' : 'text-slate-400'
-                  }`}>
-                    Quick Demo Autofill
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={fillDemoTeacher}
-                      className={`text-xs font-semibold py-2 px-3 rounded-xl border transition-colors ${
-                        isDark 
-                          ? 'border-white/10 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white' 
-                          : 'border-slate-200 bg-slate-50/70 hover:bg-slate-100 text-slate-700'
-                      }`}
-                    >
-                      Demo Teacher
-                    </button>
-                    <button
-                      type="button"
-                      onClick={fillDemoAdmin}
-                      className={`text-xs font-semibold py-2 px-3 rounded-xl border transition-colors ${
-                        isDark 
-                          ? 'border-white/10 bg-white/5 hover:bg-white/10 text-zinc-300 hover:text-white' 
-                          : 'border-slate-200 bg-slate-50/70 hover:bg-slate-100 text-slate-700'
-                      }`}
-                    >
-                      Demo Admin
-                    </button>
-                  </div>
-                </div>
               </form>
             ) : (
               <form onSubmit={handleSignUp} className="space-y-4">

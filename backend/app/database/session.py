@@ -43,6 +43,37 @@ engine = create_safe_engine(db_url)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+def run_auto_migrations(target_engine):
+    """Safely apply non-destructive schema additions to existing databases without dropping tables."""
+    try:
+        with target_engine.connect() as conn:
+            # Check users table columns
+            if target_engine.dialect.name == "sqlite":
+                res = conn.execute(text("PRAGMA table_info(users)")).fetchall()
+                existing_cols = {row[1] for row in res}
+                if "is_approved" not in existing_cols and len(existing_cols) > 0:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN is_approved BOOLEAN DEFAULT 1"))
+                    conn.commit()
+                if "approved_by" not in existing_cols and len(existing_cols) > 0:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN approved_by INTEGER"))
+                    conn.commit()
+                if "approved_at" not in existing_cols and len(existing_cols) > 0:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN approved_at TIMESTAMP"))
+                    conn.commit()
+            elif target_engine.dialect.name == "postgresql":
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT TRUE"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_by INTEGER"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS approved_at TIMESTAMP"))
+                conn.commit()
+    except Exception as e:
+        print(f"Auto-migration notice (non-fatal): {e}")
+
+# Run schema sync safely
+try:
+    run_auto_migrations(engine)
+except Exception:
+    pass
+
 def get_db():
     db = SessionLocal()
     try:

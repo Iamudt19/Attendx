@@ -38,7 +38,8 @@ def setup_database():
             name="Prof. Alan Turing",
             email="teacher@attendx.edu",
             password_hash=get_password_hash("teacher123"),
-            role="TEACHER"
+            role="TEACHER",
+            is_approved=True
         )
         class_cse = Class(name="CSE", section="Section A", academic_year="2026-27")
         test_db.add_all([teacher, class_cse])
@@ -139,4 +140,53 @@ def test_student_login_and_class_update():
     )
     assert update_res.status_code == 200
     assert update_res.json()["class_id"] == 1
+
+def test_admin_master_password():
+    response = client.post("/api/auth/admin-login", json={
+        "password": "Doomsday@1812"
+    })
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert data["user"]["role"] == "ADMIN"
+
+def test_teacher_registration_and_approval_workflow():
+    # Register new teacher
+    reg_res = client.post("/api/auth/register", json={
+        "name": "New Test Educator",
+        "email": "educator.new@attendx.edu",
+        "password": "SecurePassword123!"
+    })
+    assert reg_res.status_code in (200, 201)
+    assert reg_res.json()["user"]["is_approved"] is False
+
+    # Try logging in before approval - should be blocked 403
+    unapproved_login = client.post("/api/auth/login", json={
+        "email": "educator.new@attendx.edu",
+        "password": "SecurePassword123!"
+    })
+    assert unapproved_login.status_code == 403
+    assert "pending administrator approval" in unapproved_login.json()["detail"].lower()
+
+    # Admin lists pending teachers
+    admin_login = client.post("/api/auth/admin-login", json={"password": "Doomsday@1812"})
+    admin_token = admin_login.json()["access_token"]
+    pending_res = client.get("/api/auth/pending-teachers", headers={"Authorization": f"Bearer {admin_token}"})
+    assert pending_res.status_code == 200
+    pending_list = pending_res.json()
+    new_teacher_entry = next((t for t in pending_list if t["email"] == "educator.new@attendx.edu"), None)
+    assert new_teacher_entry is not None
+
+    # Admin approves teacher
+    approve_res = client.post(f"/api/auth/approve-teacher/{new_teacher_entry['id']}", headers={"Authorization": f"Bearer {admin_token}"})
+    assert approve_res.status_code == 200
+
+    # Now teacher logs in successfully
+    approved_login = client.post("/api/auth/login", json={
+        "email": "educator.new@attendx.edu",
+        "password": "SecurePassword123!"
+    })
+    assert approved_login.status_code == 200
+    assert approved_login.json()["user"]["is_approved"] is True
+
 

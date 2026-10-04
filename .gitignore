@@ -67,6 +67,8 @@ backend/storage/models/*
 !backend/storage/models/.gitkeep
 backend/exports/*
 !backend/exports/.gitkeep
+exports/*
+!exports/.gitkeep
 
 # IDEs and Editors
 .idea/

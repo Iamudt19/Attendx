@@ -28,6 +28,17 @@ class UserOut(BaseModel):
     name: str
     email: str
     role: str
+    is_approved: bool = True
+    approved_at: Optional[datetime] = None
+    approved_by: Optional[int] = None
+    created_at: datetime
+
+class TeacherApprovalItem(BaseModel):
+    id: int
+    name: str
+    email: str
+    role: str
+    is_approved: bool
     created_at: datetime
 
 # Class Schemas

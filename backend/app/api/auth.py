@@ -1,11 +1,15 @@
+import datetime
+from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.models.models import User
-from app.schemas.schemas import LoginRequest, UserCreate, TokenResponse, UserOut
+from app.schemas.schemas import LoginRequest, UserCreate, TokenResponse, UserOut, TeacherApprovalItem
 from app.core.security import verify_password, get_password_hash, create_access_token, get_current_user_token
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
+
+ADMIN_MASTER_PASSWORD = "Doomsday@1812"
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 def register(req: UserCreate, db: Session = Depends(get_db)):
@@ -22,18 +26,23 @@ def register(req: UserCreate, db: Session = Depends(get_db)):
     if role not in ["TEACHER", "ADMIN"]:
         role = "TEACHER"
 
+    # For production security: Teachers require Admin approval before they can sign in.
+    is_approved = False if role == "TEACHER" else True
+
     # Create new user
     new_user = User(
         name=req.name.strip(),
         email=req.email.lower().strip(),
         password_hash=get_password_hash(req.password),
-        role=role
+        role=role,
+        is_approved=is_approved,
+        created_at=datetime.datetime.utcnow()
     )
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
 
-    access_token = create_access_token(subject=new_user.id)
+    access_token = create_access_token(subject=new_user.id) if is_approved else ""
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -48,7 +57,14 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password"
         )
-    
+
+    # Teacher approval check
+    if user.role == "TEACHER" and not user.is_approved:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your educator account is pending administrator approval. Please contact your institution administrator to activate your access."
+        )
+
     access_token = create_access_token(subject=user.id)
     return {
         "access_token": access_token,
@@ -57,10 +73,11 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
     }
 
 @router.post("/admin-master-login", response_model=TokenResponse)
+@router.post("/admin-login", response_model=TokenResponse)
 def admin_master_login(req: dict, db: Session = Depends(get_db)):
     """Authenticate to Admin Portal using Master Access Password."""
     pwd = req.get("password", "")
-    if pwd != "2026/":
+    if pwd != ADMIN_MASTER_PASSWORD:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid master admin password. Access denied."
@@ -72,12 +89,20 @@ def admin_master_login(req: dict, db: Session = Depends(get_db)):
         admin_user = User(
             name="System Administrator",
             email="admin@attendx.local",
-            password_hash=get_password_hash("2026/"),
-            role="ADMIN"
+            password_hash=get_password_hash(ADMIN_MASTER_PASSWORD),
+            role="ADMIN",
+            is_approved=True,
+            approved_at=datetime.datetime.utcnow()
         )
         db.add(admin_user)
         db.commit()
         db.refresh(admin_user)
+    else:
+        # Guarantee admin is approved
+        if not admin_user.is_approved:
+            admin_user.is_approved = True
+            db.commit()
+            db.refresh(admin_user)
 
     access_token = create_access_token(subject=admin_user.id)
     return {
@@ -85,6 +110,83 @@ def admin_master_login(req: dict, db: Session = Depends(get_db)):
         "token_type": "bearer",
         "user": admin_user
     }
+
+# ── Teacher Approval Management (Admin Only) ──────────────────────────────────
+
+@router.get("/pending-teachers", response_model=List[TeacherApprovalItem])
+def get_pending_teachers(
+    token_payload: dict = Depends(get_current_user_token),
+    db: Session = Depends(get_db)
+):
+    """List all educator accounts waiting for administrator approval."""
+    caller_id = token_payload.get("sub")
+    caller = db.query(User).filter(User.id == int(caller_id)).first()
+    if not caller or caller.role != "ADMIN":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
+
+    pending = db.query(User).filter(
+        User.role == "TEACHER",
+        User.is_approved == False
+    ).order_by(User.created_at.desc()).all()
+
+    return pending
+
+@router.post("/approve-teacher/{teacher_id}", response_model=UserOut)
+def approve_teacher(
+    teacher_id: int,
+    token_payload: dict = Depends(get_current_user_token),
+    db: Session = Depends(get_db)
+):
+    """Approve a pending teacher account."""
+    caller_id = token_payload.get("sub")
+    caller = db.query(User).filter(User.id == int(caller_id)).first()
+    if not caller or caller.role != "ADMIN":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
+
+    teacher = db.query(User).filter(User.id == teacher_id).first()
+    if not teacher:
+        raise HTTPException(status_code=404, detail="Teacher account not found.")
+
+    teacher.is_approved = True
+    teacher.approved_by = caller.id
+    teacher.approved_at = datetime.datetime.utcnow()
+    db.commit()
+    db.refresh(teacher)
+    return teacher
+
+@router.post("/reject-teacher/{teacher_id}")
+def reject_teacher(
+    teacher_id: int,
+    token_payload: dict = Depends(get_current_user_token),
+    db: Session = Depends(get_db)
+):
+    """Reject and remove a pending teacher registration."""
+    caller_id = token_payload.get("sub")
+    caller = db.query(User).filter(User.id == int(caller_id)).first()
+    if not caller or caller.role != "ADMIN":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
+
+    teacher = db.query(User).filter(User.id == teacher_id, User.is_approved == False).first()
+    if not teacher:
+        raise HTTPException(status_code=404, detail="Pending teacher account not found.")
+
+    db.delete(teacher)
+    db.commit()
+    return {"message": f"Pending registration for {teacher.name} ({teacher.email}) has been rejected."}
+
+@router.get("/teachers", response_model=List[TeacherApprovalItem])
+def list_all_teachers(
+    token_payload: dict = Depends(get_current_user_token),
+    db: Session = Depends(get_db)
+):
+    """List all registered teachers and their approval status."""
+    caller_id = token_payload.get("sub")
+    caller = db.query(User).filter(User.id == int(caller_id)).first()
+    if not caller or caller.role != "ADMIN":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
+
+    teachers = db.query(User).filter(User.role == "TEACHER").order_by(User.created_at.desc()).all()
+    return teachers
 
 @router.get("/me", response_model=UserOut)
 def get_me(token_payload: dict = Depends(get_current_user_token), db: Session = Depends(get_db)):

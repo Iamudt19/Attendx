@@ -11,6 +11,9 @@ class User(Base):
     email = Column(String(100), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     role = Column(String(20), default="TEACHER") # TEACHER or ADMIN
+    is_approved = Column(Boolean, default=False, nullable=False) # Requires Admin approval for teachers
+    approved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    approved_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     sessions = relationship("AttendanceSession", back_populates="teacher")
