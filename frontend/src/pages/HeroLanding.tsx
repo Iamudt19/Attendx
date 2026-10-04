@@ -1,10 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Camera,
   ArrowRight,
   Sliders,
   FileSpreadsheet,
+  GraduationCap,
+  ShieldCheck,
+  ChevronDown,
+  ScanFace,
+  School,
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -15,6 +20,18 @@ export const HeroLanding: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'scan' | 'ledger' | 'export'>('scan');
   const [mockScanning, setMockScanning] = useState(false);
   const [detectedCount, setDetectedCount] = useState(42);
+  const [showPortalDropdown, setShowPortalDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowPortalDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleSimulateScan = () => {
     setMockScanning(true);
@@ -52,9 +69,115 @@ export const HeroLanding: React.FC = () => {
             <InstallAppButton variant="header" />
             <ThemeToggle variant="slider" size="sm" />
             
+            {/* Portals Dropdown Switcher */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                type="button"
+                onClick={() => setShowPortalDropdown(!showPortalDropdown)}
+                className={`text-xs font-semibold px-2.5 sm:px-3 py-2 rounded-xl border flex items-center gap-1.5 transition-all ${
+                  showPortalDropdown
+                    ? 'bg-blue-500/10 border-blue-500/40 text-blue-600 dark:text-blue-400 shadow-sm'
+                    : 'bg-[var(--bg-surface)] border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-inset)]'
+                }`}
+              >
+                <GraduationCap className="w-3.5 h-3.5 text-blue-500" />
+                <span>Portals</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showPortalDropdown ? 'rotate-180 text-blue-500' : 'opacity-60'}`} />
+              </button>
+
+              {showPortalDropdown && (
+                <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-[var(--border-color)] bg-[var(--bg-surface)]/95 backdrop-blur-xl shadow-2xl p-2 z-50 animate-fadeIn space-y-1">
+                  <div className="px-2.5 py-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-[var(--text-muted)] border-b border-[var(--border-color)]/60">
+                    Select Access Portal
+                  </div>
+
+                  {/* Student Portal Item */}
+                  <button
+                    type="button"
+                    onClick={() => { setShowPortalDropdown(false); navigate('/student'); }}
+                    className="w-full text-left p-2.5 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors flex items-start gap-3 group border border-transparent hover:border-blue-200 dark:hover:border-blue-800/40"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
+                      <ScanFace className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-[var(--text-primary)] group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                          Student Portal
+                        </span>
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-600 dark:text-blue-400 font-semibold">
+                          Self Scan
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-[var(--text-muted)] leading-tight mt-0.5">
+                        Continuous 3D Face ID, self-enroll &amp; view attendance
+                      </p>
+                    </div>
+                  </button>
+
+                  {/* Faculty Portal Item */}
+                  <button
+                    type="button"
+                    onClick={() => { setShowPortalDropdown(false); navigate('/login'); }}
+                    className="w-full text-left p-2.5 rounded-xl hover:bg-purple-50 dark:hover:bg-purple-950/40 transition-colors flex items-start gap-3 group border border-transparent hover:border-purple-200 dark:hover:border-purple-800/40"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-[var(--text-primary)] group-hover:text-purple-600 dark:group-hover:text-purple-400">
+                          Faculty Portal
+                        </span>
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 font-semibold">
+                          Teacher
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-[var(--text-muted)] leading-tight mt-0.5">
+                        Optical roll-call, review queue &amp; roster reports
+                      </p>
+                    </div>
+                  </button>
+
+                  {/* Admin Portal Item */}
+                  <button
+                    type="button"
+                    onClick={() => { setShowPortalDropdown(false); navigate('/admin'); }}
+                    className="w-full text-left p-2.5 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors flex items-start gap-3 group border border-transparent hover:border-emerald-200 dark:hover:border-emerald-800/40"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
+                      <School className="w-4 h-4" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-[var(--text-primary)] group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
+                          Institution Admin
+                        </span>
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold">
+                          Admin
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-[var(--text-muted)] leading-tight mt-0.5">
+                        Department classes, student directories &amp; policies
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Direct Student Portal Link on medium/large screens */}
+            <button
+              onClick={() => navigate('/student')}
+              className="hidden md:inline-flex text-xs font-semibold px-2.5 py-2 text-[var(--text-secondary)] hover:text-blue-500 transition-colors"
+            >
+              Student Portal
+            </button>
+
+            {/* Direct Faculty Link on larger screens */}
             <button
               onClick={() => navigate('/login')}
-              className="hidden sm:inline-flex text-xs font-semibold px-3 py-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+              className="hidden lg:inline-flex text-xs font-semibold px-2.5 py-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
             >
               Faculty Portal
             </button>
