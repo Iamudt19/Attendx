@@ -20,7 +20,13 @@ app = FastAPI(
 # CORS Middleware setup
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    allow_origins=[
+        "https://one-attendx.vercel.app",
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://localhost:8000"
+    ],
+    allow_origin_regex=r"https://.*\.vercel\.app|http://localhost:\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

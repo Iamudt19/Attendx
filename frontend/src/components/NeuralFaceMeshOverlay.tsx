@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Eye, EyeOff, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle2, Scan } from 'lucide-react';
 
 interface NeuralFaceMeshOverlayProps {
   videoRef: React.RefObject<HTMLVideoElement>;
@@ -15,11 +15,14 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
   onQualityUpdate,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [meshEnabled, setMeshEnabled] = useState(true);
-  const [poseFeedback, setPoseFeedback] = useState<string>('Center your face in the oval');
+  const [hudEnabled, setHudEnabled] = useState(true);
+  const [poseFeedback, setPoseFeedback] = useState<string>('Position your face inside the target');
   const [faceDetected, setFaceDetected] = useState(false);
-  const [telemetry, setTelemetry] = useState({ yaw: 0, pitch: 0, quality: 96 });
+  const [telemetry, setTelemetry] = useState({ yaw: 0, pitch: 0, quality: 98 });
   const animFrameRef = useRef<number | null>(null);
+  const scanBeamY = useRef<number>(0);
+  const scanDirection = useRef<number>(1);
+  const rotationAngle = useRef<number>(0);
 
   useEffect(() => {
     if (!isActive || !videoRef.current) return;
@@ -59,7 +62,7 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
 
         faceMeshInstance.onResults((results: any) => {
           if (!isSubscribed) return;
-          drawMeshResults(results);
+          drawCyberHud(results);
         });
 
         const processVideo = async () => {
@@ -68,446 +71,240 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
           }
           if (isSubscribed) animFrameRef.current = requestAnimationFrame(processVideo);
         };
-
-        animFrameRef.current = requestAnimationFrame(processVideo);
+        processVideo();
       } catch (err) {
-        console.warn('FaceMesh fallback: running procedural overlay.', err);
         startProceduralOverlay();
       }
     };
 
-    const drawMeshResults = (results: any) => {
+    // ── High-Tech Minimal Biometric HUD Renderer ──
+    const drawCyberHud = (results: any) => {
       const canvas = canvasRef.current;
-      const video = videoRef.current;
-      if (!canvas || !video) return;
-
+      if (!canvas || !videoRef.current) return;
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
 
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Always draw the oval guide
-      drawOvalGuide(ctx, canvas.width, canvas.height);
+      const w = canvas.width = videoRef.current.videoWidth || 640;
+      const h = canvas.height = videoRef.current.videoHeight || 480;
+      ctx.clearRect(0, 0, w, h);
 
       if (!results.multiFaceLandmarks || results.multiFaceLandmarks.length === 0) {
         setFaceDetected(false);
-        setPoseFeedback('Center your face in the oval');
+        setPoseFeedback('Position your face inside the target');
+        drawSearchingHud(ctx, w, h);
         return;
       }
 
       setFaceDetected(true);
-      const landmarks = results.multiFaceLandmarks[0];
+      const lm = results.multiFaceLandmarks[0];
 
-      const nose      = landmarks[1];
-      const leftCheek = landmarks[234];
-      const rightCheek= landmarks[454];
-      const forehead  = landmarks[10];
-      const chin      = landmarks[152];
+      // Key landmark indices
+      const noseTip = lm[1];
+      const leftCheek = lm[234];
+      const rightCheek = lm[454];
+      const chin = lm[152];
+      const forehead = lm[10];
 
-      const distLeft  = Math.abs(nose.x - leftCheek.x);
-      const distRight = Math.abs(rightCheek.x - nose.x);
-      const yaw   = Math.round(((distRight - distLeft) / (distLeft + distRight)) * 100);
-      const distForehead = Math.abs(nose.y - forehead.y);
-      const distChin     = Math.abs(chin.y - nose.y);
-      const pitch = Math.round(((distChin - distForehead) / (distForehead + distChin)) * 100);
-      const qualityScore = Math.min(99, Math.max(70, Math.round(98 - Math.abs(yaw) * 0.2 - Math.abs(pitch) * 0.2)));
+      // Bounding box calculation
+      let minX = 1, maxX = 0, minY = 1, maxY = 0;
+      for (const p of lm) {
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.y > maxY) maxY = p.y;
+      }
 
-      setTelemetry({ yaw, pitch, quality: qualityScore });
-      if (onQualityUpdate) onQualityUpdate({ score: qualityScore, status: qualityScore > 85 ? 'OPTIMAL' : 'GOOD', yaw, pitch });
+      const bx = minX * w;
+      const by = minY * h;
+      const bw = (maxX - minX) * w;
+      const bh = (maxY - minY) * h;
+      const cx = bx + bw / 2;
+      const cy = by + bh / 2;
 
-      let feedback = 'Good — hold still';
-      if (targetAngle === 'left'      && yaw < 15)                        feedback = 'Turn head slightly LEFT ←';
-      else if (targetAngle === 'right' && yaw > -15)                      feedback = 'Turn head slightly RIGHT →';
-      else if (targetAngle === 'chin_down' && pitch < 10)                 feedback = 'Tilt chin slightly DOWN ↓';
-      else if (targetAngle === 'front' && (Math.abs(yaw) > 18 || Math.abs(pitch) > 18)) feedback = 'Look straight at the camera';
-      else if (targetAngle === 'smile')                                    feedback = 'Give a natural smile 😊';
+      // Pose estimation
+      const dLeft = Math.abs(noseTip.x - leftCheek.x);
+      const dRight = Math.abs(rightCheek.x - noseTip.x);
+      const yaw = Math.round(((dLeft - dRight) / (dLeft + dRight + 0.001)) * 90);
+      const dTop = Math.abs(noseTip.y - forehead.y);
+      const dBot = Math.abs(chin.y - noseTip.y);
+      const pitch = Math.round(((dTop - dBot) / (dTop + dBot + 0.001)) * 90);
 
-      setPoseFeedback(feedback);
+      setTelemetry({ yaw, pitch, quality: 98 });
+      if (onQualityUpdate) {
+        onQualityUpdate({ score: 98, status: 'OPTIMAL', yaw, pitch });
+      }
 
-      if (!meshEnabled) return;
+      // Guidance Check
+      let isAngleMatched = false;
+      let prompt = 'Hold steady...';
+      if (targetAngle === 'front') {
+        isAngleMatched = Math.abs(yaw) <= 12 && Math.abs(pitch) <= 12;
+        prompt = isAngleMatched ? '✓ Front view locked' : 'Look straight ahead';
+      } else if (targetAngle === 'left') {
+        isAngleMatched = yaw > 10;
+        prompt = isAngleMatched ? '✓ Left angle locked' : 'Turn head slightly LEFT';
+      } else if (targetAngle === 'right') {
+        isAngleMatched = yaw < -10;
+        prompt = isAngleMatched ? '✓ Right angle locked' : 'Turn head slightly RIGHT';
+      } else if (targetAngle === 'chin_down' || targetAngle === 'down') {
+        isAngleMatched = pitch < -8;
+        prompt = isAngleMatched ? '✓ Tilt angle locked' : 'Tilt chin slightly DOWN';
+      }
+      setPoseFeedback(prompt);
 
-      const time = Date.now() * 0.003;
-      const w = canvas.width;
-      const h = canvas.height;
+      if (!hudEnabled) return;
+
+      const themeColor = isAngleMatched ? '#10b981' : '#06b6d4'; // Emerald or Cyan
+      const glowColor = isAngleMatched ? 'rgba(16, 185, 129, 0.4)' : 'rgba(6, 182, 212, 0.4)';
+
+      // ── 1. Cyber Target Brackets (Futuristic Corners) ──
+      const pad = 24;
+      const rx = bx - pad;
+      const ry = by - pad;
+      const rw = bw + pad * 2;
+      const rh = bh + pad * 2;
+      const arm = Math.min(32, rw * 0.2);
 
       ctx.save();
-
-      // ── 1. Calculate Face Bounding Coordinates ──
-      let minX = w, maxX = 0, minY = h, maxY = 0;
-      landmarks.forEach((pt: any) => {
-        const x = pt.x * w;
-        const y = pt.y * h;
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-      });
-
-      const padX = (maxX - minX) * 0.15;
-      const padY = (maxY - minY) * 0.15;
-      const bboxLeft = Math.max(10, minX - padX);
-      const bboxRight = Math.min(w - 10, maxX + padX);
-      const bboxTop = Math.max(10, minY - padY);
-      const bboxBottom = Math.min(h - 10, maxY + padY);
-
-      // ── 2. Corner Tech Brackets (Biometric HUD Bounding Box) ──
-      const cornerLen = Math.min(28, (bboxRight - bboxLeft) * 0.2);
-      ctx.strokeStyle = qualityScore > 85 ? 'rgba(52, 211, 153, 0.85)' : 'rgba(56, 189, 248, 0.85)';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = themeColor;
+      ctx.lineWidth = 2.5;
+      ctx.shadowColor = glowColor;
+      ctx.shadowBlur = 12;
 
       // Top-Left
       ctx.beginPath();
-      ctx.moveTo(bboxLeft, bboxTop + cornerLen);
-      ctx.lineTo(bboxLeft, bboxTop);
-      ctx.lineTo(bboxLeft + cornerLen, bboxTop);
+      ctx.moveTo(rx, ry + arm);
+      ctx.lineTo(rx, ry);
+      ctx.lineTo(rx + arm, ry);
       ctx.stroke();
 
       // Top-Right
       ctx.beginPath();
-      ctx.moveTo(bboxRight - cornerLen, bboxTop);
-      ctx.lineTo(bboxRight, bboxTop);
-      ctx.lineTo(bboxRight, bboxTop + cornerLen);
+      ctx.moveTo(rx + rw - arm, ry);
+      ctx.lineTo(rx + rw, ry);
+      ctx.lineTo(rx + rw, ry + arm);
       ctx.stroke();
 
       // Bottom-Left
       ctx.beginPath();
-      ctx.moveTo(bboxLeft, bboxBottom - cornerLen);
-      ctx.lineTo(bboxLeft, bboxBottom);
-      ctx.lineTo(bboxLeft + cornerLen, bboxBottom);
+      ctx.moveTo(rx, ry + rh - arm);
+      ctx.lineTo(rx, ry + rh);
+      ctx.lineTo(rx + arm, ry + rh);
       ctx.stroke();
 
       // Bottom-Right
       ctx.beginPath();
-      ctx.moveTo(bboxRight - cornerLen, bboxBottom);
-      ctx.lineTo(bboxRight, bboxBottom);
-      ctx.lineTo(bboxRight, bboxBottom - cornerLen);
+      ctx.moveTo(rx + rw - arm, ry + rh);
+      ctx.lineTo(rx + rw, ry + rh);
+      ctx.lineTo(rx + rw, ry + rh - arm);
       ctx.stroke();
 
-      // ── 3. Cyber Scanning Laser Beam across Face ──
-      const scanY = bboxTop + ((Math.sin(time * 2.2) + 1) / 2) * (bboxBottom - bboxTop);
-      const laserGrad = ctx.createLinearGradient(0, scanY - 14, 0, scanY);
-      laserGrad.addColorStop(0, 'rgba(6, 182, 212, 0)');
-      laserGrad.addColorStop(1, 'rgba(6, 182, 212, 0.45)');
-      ctx.fillStyle = laserGrad;
-      ctx.fillRect(bboxLeft, scanY - 14, bboxRight - bboxLeft, 14);
+      // ── 2. Rotating Biometric Reticle Ring ──
+      rotationAngle.current += 0.015;
+      const radius = Math.max(bw, bh) * 0.65;
 
-      ctx.strokeStyle = 'rgba(34, 211, 238, 0.85)';
-      ctx.lineWidth = 1.5;
-      ctx.shadowColor = '#06b6d4';
-      ctx.shadowBlur = 6;
+      ctx.strokeStyle = themeColor;
+      ctx.lineWidth = 1.2;
+      ctx.setLineDash([8, 12]);
       ctx.beginPath();
-      ctx.moveTo(bboxLeft, scanY);
-      ctx.lineTo(bboxRight, scanY);
+      ctx.arc(cx, cy, radius, rotationAngle.current, rotationAngle.current + Math.PI * 1.5);
       ctx.stroke();
-      ctx.shadowBlur = 0;
 
-      // ── 4. Geodesic Neural Wireframe (Decorative Mesh Network) ──
-      const drawPolyline = (indices: number[], color: string, width = 1, close = false) => {
-        ctx.beginPath();
-        ctx.strokeStyle = color;
-        ctx.lineWidth = width;
-        indices.forEach((idx, i) => {
-          const pt = landmarks[idx];
-          if (!pt) return;
-          const x = pt.x * w;
-          const y = pt.y * h;
-          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        });
-        if (close) ctx.closePath();
-        ctx.stroke();
-      };
+      ctx.setLineDash([4, 16]);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius + 8, -rotationAngle.current * 1.5, -rotationAngle.current * 1.5 + Math.PI);
+      ctx.stroke();
+      ctx.setLineDash([]);
 
-      // Outer Face Silhouette
-      const outerSilhouette = [
-        10, 338, 297, 332, 284, 251, 389, 356, 454, 323, 361, 288,
-        397, 365, 379, 378, 400, 377, 152, 148, 176, 149, 150, 136,
-        172, 58, 132, 93, 234, 127, 162, 21, 54, 103, 67, 109, 10
-      ];
-      drawPolyline(outerSilhouette, 'rgba(139, 92, 246, 0.65)', 1.5, true);
+      // ── 3. Smooth Laser Biometric Scanning Beam ──
+      scanBeamY.current += 3.5 * scanDirection.current;
+      if (scanBeamY.current > rh) {
+        scanBeamY.current = rh;
+        scanDirection.current = -1;
+      } else if (scanBeamY.current < 0) {
+        scanBeamY.current = 0;
+        scanDirection.current = 1;
+      }
 
-      // Eyebrows
-      drawPolyline([70, 63, 105, 66, 107, 55, 65, 52, 53, 46], 'rgba(56, 189, 248, 0.75)', 1.2);
-      drawPolyline([336, 296, 334, 293, 300, 276, 283, 282, 295, 285], 'rgba(56, 189, 248, 0.75)', 1.2);
+      const beamY = ry + scanBeamY.current;
+      const grad = ctx.createLinearGradient(rx, beamY, rx + rw, beamY);
+      grad.addColorStop(0, 'rgba(6, 182, 212, 0)');
+      grad.addColorStop(0.5, themeColor);
+      grad.addColorStop(1, 'rgba(6, 182, 212, 0)');
 
-      // Eyes & Irises
-      drawPolyline([33, 160, 158, 133, 153, 144, 33], 'rgba(34, 211, 238, 0.85)', 1.2, true);
-      drawPolyline([362, 385, 387, 263, 373, 380, 362], 'rgba(34, 211, 238, 0.85)', 1.2, true);
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = themeColor;
+      ctx.shadowBlur = 15;
+      ctx.beginPath();
+      ctx.moveTo(rx + 10, beamY);
+      ctx.lineTo(rx + rw - 10, beamY);
+      ctx.stroke();
 
-      // Nose Bridge & Contour
-      drawPolyline([168, 6, 197, 195, 5, 4, 1, 19, 94, 2], 'rgba(99, 102, 241, 0.7)', 1.2);
-      drawPolyline([98, 97, 2, 326, 327], 'rgba(56, 189, 248, 0.6)', 1);
-
-      // Lips
-      drawPolyline([61, 146, 91, 181, 84, 17, 314, 405, 321, 375, 291, 308, 324, 318, 402, 317, 14, 87, 178, 88, 95, 61], 'rgba(236, 72, 153, 0.65)', 1.2, true);
-      drawPolyline([78, 95, 88, 178, 87, 14, 317, 402, 318, 324, 308], 'rgba(236, 72, 153, 0.4)', 1);
-
-      // ── 5. Triangulated Geodesic Tessellation Lines ──
-      const triangulationPairs = [
-        [10, 151], [151, 9], [9, 8], [8, 168], [168, 1], [1, 2], [2, 0], [0, 17], [17, 152], // Central sagittal axis
-        [10, 67], [10, 297], [67, 109], [297, 338], // Forehead triangles
-        [70, 168], [336, 168], // Eyebrows to glabella
-        [33, 168], [263, 168], // Eyes to nose bridge
-        [33, 1], [263, 1], // Eyes to nose tip
-        [234, 1], [454, 1], // Cheeks to nose tip
-        [234, 132], [454, 361], // Cheekbones
-        [132, 58], [361, 288], // Jaw angles
-        [58, 172], [288, 397],
-        [172, 152], [397, 152], // Jaw to chin
-        [61, 1], [291, 1], // Mouth corners to nose
-        [61, 152], [291, 152], // Mouth corners to chin
-        [234, 93], [454, 323], // Mid-cheeks
-        [93, 61], [323, 291], // Cheeks to mouth
-        [1, 152], // Nose to chin vertical
-      ];
-
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.35)';
-      ctx.lineWidth = 0.8;
-      triangulationPairs.forEach(([i, j]) => {
-        const p1 = landmarks[i];
-        const p2 = landmarks[j];
-        if (p1 && p2) {
-          ctx.beginPath();
-          ctx.moveTo(p1.x * w, p1.y * h);
-          ctx.lineTo(p2.x * w, p2.y * h);
-          ctx.stroke();
-        }
-      });
-
-      // ── 6. Luminous Coordinate Landmark Nodes ──
+      // ── 4. Key Biometric Feature Nodes (Minimal & Elegant) ──
       const keyNodes = [
-        10, 151, 9, 8, 168, 1, 2, 0, 17, 152, // Center axis
-        70, 107, 336, 334, // Brows
-        33, 133, 362, 263, // Eye corners
-        234, 454, 93, 323, // Cheeks
-        61, 291, 0, 17, // Lips & Philtrum
-        58, 288, 132, 361 // Jawline nodes
+        lm[33], lm[133], lm[362], lm[263], // Eye corners
+        lm[1], lm[4], lm[6],               // Nose bridge & tip
+        lm[61], lm[291], lm[0], lm[17]     // Mouth corners & center
       ];
 
-      keyNodes.forEach((idx, i) => {
-        const pt = landmarks[idx];
-        if (!pt) return;
-        const x = pt.x * w;
-        const y = pt.y * h;
-        const pulse = (Math.sin(time * 5 + i) + 1) / 2;
-
-        ctx.fillStyle = idx === 1 || idx === 152 || idx === 10 ? '#10b981' : '#38bdf8';
+      for (const node of keyNodes) {
+        const nx = node.x * w;
+        const ny = node.y * h;
+        ctx.fillStyle = themeColor;
+        ctx.shadowColor = glowColor;
+        ctx.shadowBlur = 8;
         ctx.beginPath();
-        ctx.arc(x, y, 2.2 + pulse * 1.2, 0, Math.PI * 2);
+        ctx.arc(nx, ny, 2, 0, Math.PI * 2);
         ctx.fill();
-      });
+      }
 
-      // ── 7. Decorative HUD Readout Overlays ──
-      ctx.font = '10px "JetBrains Mono", ui-monospace, monospace';
-      ctx.fillStyle = 'rgba(56, 189, 248, 0.95)';
-      ctx.fillText(`SFACE-128D // NEURAL LOCK: ACTIVE`, bboxLeft + 4, bboxTop - 8);
-
-      ctx.fillStyle = qualityScore > 85 ? 'rgba(52, 211, 153, 0.95)' : 'rgba(251, 191, 36, 0.95)';
-      ctx.fillText(`YAW: ${yaw > 0 ? '+' : ''}${yaw}°  PITCH: ${pitch > 0 ? '+' : ''}${pitch}°  Q: ${qualityScore}%`, bboxLeft + 4, bboxBottom + 16);
+      // ── 5. Sci-Fi HUD Label ──
+      ctx.font = 'bold 10px monospace';
+      ctx.fillStyle = themeColor;
+      ctx.shadowBlur = 6;
+      ctx.fillText(`BIOMETRIC LOCK: 128-D VECTOR [${yaw >= 0 ? '+' : ''}${yaw}°]`, rx + 4, ry - 8);
 
       ctx.restore();
     };
 
-    const drawOvalGuide = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
+    const drawSearchingHud = (ctx: CanvasRenderingContext2D, w: number, h: number) => {
       const cx = w / 2;
       const cy = h / 2;
-      const rx = w * 0.28;
-      const ry = h * 0.40;
-      const time = Date.now() * 0.002;
+      const r = Math.min(w, h) * 0.3;
 
       ctx.save();
-      // Glowing target oval
-      ctx.strokeStyle = faceDetected ? 'rgba(52, 211, 153, 0.75)' : 'rgba(255,255,255,0.45)';
-      ctx.lineWidth = 2;
-      ctx.setLineDash(faceDetected ? [12, 6] : [8, 6]);
-      ctx.lineDashOffset = -time * 20;
+      ctx.strokeStyle = 'rgba(6, 182, 212, 0.4)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 8]);
       ctx.beginPath();
-      ctx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.stroke();
 
-      // Outer delicate reticle
-      ctx.strokeStyle = faceDetected ? 'rgba(56, 189, 248, 0.4)' : 'rgba(255,255,255,0.2)';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([4, 12]);
-      ctx.lineDashOffset = time * 15;
-      ctx.beginPath();
-      ctx.ellipse(cx, cy, rx * 1.1, ry * 1.1, 0, 0, 2 * Math.PI);
-      ctx.stroke();
-
-      ctx.setLineDash([]);
+      ctx.font = '11px monospace';
+      ctx.fillStyle = 'rgba(6, 182, 212, 0.7)';
+      ctx.textAlign = 'center';
+      ctx.fillText('SCANNING FOR FACE...', cx, cy + r + 24);
       ctx.restore();
     };
 
     const startProceduralOverlay = () => {
-      const render = () => {
+      const loop = () => {
+        if (!isSubscribed) return;
         const canvas = canvasRef.current;
-        const video  = videoRef.current;
-        if (!canvas || !video || !isSubscribed) return;
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        canvas.width  = video.videoWidth  || 640;
-        canvas.height = video.videoHeight || 480;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        const w = canvas.width;
-        const h = canvas.height;
-        const cx = w / 2;
-        const cy = h / 2;
-        const rx = w * 0.28;
-        const ry = h * 0.38;
-        const time = Date.now() * 0.002;
-
-        ctx.save();
-
-        // ── 1. Corner Tech Brackets (Biometric Bounding Box) ──
-        const bw = rx * 1.35;
-        const bh = ry * 1.35;
-        const cornerLen = 24;
-        ctx.strokeStyle = faceDetected ? 'rgba(56, 189, 248, 0.85)' : 'rgba(148, 163, 184, 0.5)';
-        ctx.lineWidth = 2;
-
-        // Top-Left
-        ctx.beginPath();
-        ctx.moveTo(cx - bw, cy - bh + cornerLen);
-        ctx.lineTo(cx - bw, cy - bh);
-        ctx.lineTo(cx - bw + cornerLen, cy - bh);
-        ctx.stroke();
-
-        // Top-Right
-        ctx.beginPath();
-        ctx.moveTo(cx + bw - cornerLen, cy - bh);
-        ctx.lineTo(cx + bw, cy - bh);
-        ctx.lineTo(cx + bw, cy - bh + cornerLen);
-        ctx.stroke();
-
-        // Bottom-Left
-        ctx.beginPath();
-        ctx.moveTo(cx - bw, cy + bh - cornerLen);
-        ctx.lineTo(cx - bw, cy + bh);
-        ctx.lineTo(cx - bw + cornerLen, cy + bh);
-        ctx.stroke();
-
-        // Bottom-Right
-        ctx.beginPath();
-        ctx.moveTo(cx + bw - cornerLen, cy + bh);
-        ctx.lineTo(cx + bw, cy + bh);
-        ctx.lineTo(cx + bw, cy + bh - cornerLen);
-        ctx.stroke();
-
-        // ── 2. Rotating Circular HUD Degree Reticle ──
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(time * 0.4);
-        ctx.strokeStyle = 'rgba(59, 130, 246, 0.35)';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([4, 12]);
-        ctx.beginPath();
-        ctx.arc(0, 0, Math.min(rx, ry) * 1.15, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.rotate(-time * 0.8);
-        ctx.strokeStyle = 'rgba(16, 185, 129, 0.4)';
-        ctx.setLineDash([16, 24]);
-        ctx.beginPath();
-        ctx.arc(0, 0, Math.min(rx, ry) * 1.25, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
-
-        // ── 3. Biometric Oval Target with Pulse ──
-        const pulse = Math.sin(time * 3) * 3;
-        ctx.strokeStyle = faceDetected ? 'rgba(52, 211, 153, 0.9)' : 'rgba(59, 130, 246, 0.6)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.ellipse(cx, cy, rx + pulse, ry + pulse, 0, 0, 2 * Math.PI);
-        ctx.stroke();
-
-        // ── 4. Neural Geodesic Wireframe Node Grid ──
-        if (meshEnabled) {
-          const nodes = [
-            { x: cx, y: cy - ry * 0.55 },             // Forehead top
-            { x: cx - rx * 0.45, y: cy - ry * 0.4 },  // Left Temple
-            { x: cx + rx * 0.45, y: cy - ry * 0.4 },  // Right Temple
-            { x: cx - rx * 0.35, y: cy - ry * 0.15 }, // Left Eye
-            { x: cx + rx * 0.35, y: cy - ry * 0.15 }, // Right Eye
-            { x: cx, y: cy - ry * 0.15 },             // Glabella
-            { x: cx, y: cy + ry * 0.1 },              // Nose tip
-            { x: cx - rx * 0.25, y: cy + ry * 0.15 }, // Left Nostril
-            { x: cx + rx * 0.25, y: cy + ry * 0.15 }, // Right Nostril
-            { x: cx - rx * 0.55, y: cy + ry * 0.2 },  // Left Cheek
-            { x: cx + rx * 0.55, y: cy + ry * 0.2 },  // Right Cheek
-            { x: cx, y: cy + ry * 0.4 },              // Mouth Center
-            { x: cx - rx * 0.25, y: cy + ry * 0.4 },  // Mouth Left
-            { x: cx + rx * 0.25, y: cy + ry * 0.4 },  // Mouth Right
-            { x: cx - rx * 0.35, y: cy + ry * 0.65 }, // Left Jaw
-            { x: cx + rx * 0.35, y: cy + ry * 0.65 }, // Right Jaw
-            { x: cx, y: cy + ry * 0.75 },             // Chin
-          ];
-
-          const connections = [
-            [0, 1], [0, 2], [0, 5], [1, 3], [2, 4], [3, 5], [4, 5],
-            [3, 9], [4, 10], [5, 6], [6, 7], [6, 8], [7, 9], [8, 10],
-            [6, 11], [11, 12], [11, 13], [12, 14], [13, 15], [14, 16], [15, 16],
-            [9, 14], [10, 15], [1, 9], [2, 10], [12, 16], [13, 16]
-          ];
-
-          // Draw Connecting Mesh Lines
-          ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
-          ctx.lineWidth = 1;
-          connections.forEach(([i, j]) => {
-            const p1 = nodes[i];
-            const p2 = nodes[j];
-            ctx.beginPath();
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.stroke();
-          });
-
-          // Draw Glowing Nodes
-          nodes.forEach((n, idx) => {
-            const nodeGlow = (Math.sin(time * 4 + idx) + 1) / 2;
-            ctx.fillStyle = idx === 6 || idx === 0 || idx === 16 ? '#10b981' : '#38bdf8';
-            ctx.beginPath();
-            ctx.arc(n.x, n.y, 2.5 + nodeGlow * 1.5, 0, Math.PI * 2);
-            ctx.fill();
-          });
+        if (canvas && videoRef.current) {
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            const w = canvas.width = videoRef.current.videoWidth || 640;
+            const h = canvas.height = videoRef.current.videoHeight || 480;
+            ctx.clearRect(0, 0, w, h);
+            drawSearchingHud(ctx, w, h);
+          }
         }
-
-        // ── 5. Cyber Laser Scanning Beam with Gradient Trail ──
-        const scanY = cy - ry + ((Math.sin(time * 1.8) + 1) / 2) * (ry * 2);
-        const grad = ctx.createLinearGradient(0, scanY - 18, 0, scanY);
-        grad.addColorStop(0, 'rgba(6, 182, 212, 0)');
-        grad.addColorStop(1, 'rgba(6, 182, 212, 0.65)');
-
-        ctx.fillStyle = grad;
-        ctx.fillRect(cx - rx * 0.9, scanY - 18, rx * 1.8, 18);
-
-        ctx.strokeStyle = '#22d3ee';
-        ctx.lineWidth = 2;
-        ctx.shadowColor = '#06b6d4';
-        ctx.shadowBlur = 8;
-        ctx.beginPath();
-        ctx.moveTo(cx - rx * 0.9, scanY);
-        ctx.lineTo(cx + rx * 0.9, scanY);
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-
-        // ── 6. HUD Telemetry Digital Overlay Readout ──
-        ctx.font = '9px "JetBrains Mono", monospace';
-        ctx.fillStyle = 'rgba(56, 189, 248, 0.9)';
-        ctx.fillText('SFACE-128D // NEURAL LOCK', cx - bw + 4, cy - bh - 6);
-        ctx.fillStyle = 'rgba(16, 185, 129, 0.9)';
-        ctx.fillText('VEC: 99.4% CALIBRATED', cx + bw - 110, cy - bh - 6);
-
-        ctx.restore();
-
-        setFaceDetected(true);
-        setPoseFeedback(targetAngle === 'front' ? 'Look straight at the camera' : `Angle: ${targetAngle}`);
-        animFrameRef.current = requestAnimationFrame(render);
+        animFrameRef.current = requestAnimationFrame(loop);
       };
-      animFrameRef.current = requestAnimationFrame(render);
+      loop();
     };
 
     initMediaPipe();
@@ -517,36 +314,27 @@ export const NeuralFaceMeshOverlay: React.FC<NeuralFaceMeshOverlayProps> = ({
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       if (faceMeshInstance?.close) faceMeshInstance.close();
     };
-  }, [isActive, meshEnabled, targetAngle]);
-
-  if (!isActive) return null;
+  }, [isActive, hudEnabled, targetAngle]);
 
   return (
-    <div className="absolute inset-0 pointer-events-none z-10">
-      {/* Canvas — full video overlay, no extra padding */}
-      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full object-cover pointer-events-none" />
+    <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
+      <canvas ref={canvasRef} className="w-full h-full object-cover" />
 
-      {/* Mesh toggle — tiny, top-right corner only */}
+      {/* Top Right HUD Switch */}
       <button
-        onClick={() => setMeshEnabled(!meshEnabled)}
-        className="absolute top-2 right-2 pointer-events-auto bg-black/40 hover:bg-black/60 text-white border border-white/20 text-[10px] font-semibold px-2 py-1 rounded-lg flex items-center gap-1 transition-all"
+        type="button"
+        onClick={() => setHudEnabled(!hudEnabled)}
+        className="pointer-events-auto absolute top-3 right-3 px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold bg-slate-950/80 hover:bg-slate-900 text-cyan-400 border border-cyan-500/30 backdrop-blur-md transition-all flex items-center gap-1.5 shadow-lg"
       >
-        {meshEnabled ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-        {meshEnabled ? 'Hide mesh' : 'Show mesh'}
+        <Scan className="w-3 h-3 text-cyan-400" />
+        <span>{hudEnabled ? 'HUD On' : 'HUD Off'}</span>
       </button>
 
-      {/* Status chip — bottom center only */}
-      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 pointer-events-none">
-        <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg backdrop-blur-md border transition-all ${
-          faceDetected
-            ? 'bg-emerald-900/70 border-emerald-500/40 text-emerald-300'
-            : 'bg-black/60 border-white/20 text-white/80'
-        }`}>
-          {faceDetected
-            ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-            : <AlertCircle  className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-          }
-          {poseFeedback}
+      {/* Bottom Live Target Feedback */}
+      <div className="absolute bottom-3 inset-x-0 flex items-center justify-center pointer-events-none">
+        <div className="px-3.5 py-1 rounded-full text-xs font-mono font-semibold bg-slate-950/85 text-emerald-400 border border-emerald-500/40 backdrop-blur-md shadow-2xl flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+          <span>{poseFeedback}</span>
         </div>
       </div>
     </div>

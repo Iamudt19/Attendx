@@ -270,7 +270,8 @@ def save_attendance_session(
                 # (same path as enrollment), preventing database corruption.
                 recovered_raw_face = None
                 try:
-                    if _face_detector.yunet_detector is not None:
+                    from app.cv.detector import face_detector
+                    if face_detector.yunet_detector is not None:
                         pad = int(max(bw, bh) * 0.4)
                         px1 = max(0, bx - pad)
                         py1 = max(0, by - pad)
@@ -279,8 +280,8 @@ def save_attendance_session(
                         padded = img[py1:py2, px1:px2]
                         ph, pw = padded.shape[:2]
                         if ph >= 32 and pw >= 32:
-                            _face_detector.yunet_detector.setInputSize((pw, ph))
-                            _, yunet_faces = _face_detector.yunet_detector.detect(padded)
+                            face_detector.yunet_detector.setInputSize((pw, ph))
+                            _, yunet_faces = face_detector.yunet_detector.detect(padded)
                             if yunet_faces is not None and len(yunet_faces) > 0:
                                 best = yunet_faces[0].copy()
                                 # Offset landmarks back to full-image coordinates
