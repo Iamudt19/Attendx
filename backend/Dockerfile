@@ -41,6 +41,5 @@ EXPOSE 7860
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:7860/api/health || exit 1
 
-# Start via our app.py entrypoint — REQUIRED for ZeroGPU: the @spaces.GPU decorator
-# in app.py must be imported so the ZeroGPU scheduler can detect it at startup.
-CMD ["gunicorn", "app:app", "--workers", "1", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:7860", "--timeout", "120"]
+CMD ["python", "app.py"]
+
