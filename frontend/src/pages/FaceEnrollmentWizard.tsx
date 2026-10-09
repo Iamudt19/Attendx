@@ -46,7 +46,7 @@ const BIOMETRIC_COVERAGE_ANGLES = [
 // Silhouette directions
 const ANGLE_SVG: Record<ScanAngle, React.ReactNode> = {
   front: (
-    <svg viewBox="0 0 80 80" className="w-16 h-16 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg viewBox="0 0 80 80" className="w-10 h-10 sm:w-14 sm:h-14 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2">
       <ellipse cx="40" cy="28" rx="18" ry="22" />
       <path d="M14 72 C14 52 66 52 66 72" />
       <circle cx="32" cy="26" r="3" fill="currentColor" stroke="none" />
@@ -55,7 +55,7 @@ const ANGLE_SVG: Record<ScanAngle, React.ReactNode> = {
     </svg>
   ),
   left: (
-    <svg viewBox="0 0 80 80" className="w-16 h-16 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg viewBox="0 0 80 80" className="w-10 h-10 sm:w-14 sm:h-14 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2">
       <ellipse cx="44" cy="28" rx="16" ry="22" transform="rotate(-15 44 28)" />
       <path d="M18 72 C18 52 68 52 68 72" />
       <circle cx="36" cy="25" r="3" fill="currentColor" stroke="none" />
@@ -65,7 +65,7 @@ const ANGLE_SVG: Record<ScanAngle, React.ReactNode> = {
     </svg>
   ),
   right: (
-    <svg viewBox="0 0 80 80" className="w-16 h-16 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg viewBox="0 0 80 80" className="w-10 h-10 sm:w-14 sm:h-14 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2">
       <ellipse cx="36" cy="28" rx="16" ry="22" transform="rotate(15 36 28)" />
       <path d="M12 72 C12 52 62 52 62 72" />
       <circle cx="29" cy="22" r="3" fill="currentColor" stroke="none" />
@@ -75,7 +75,7 @@ const ANGLE_SVG: Record<ScanAngle, React.ReactNode> = {
     </svg>
   ),
   chin_down: (
-    <svg viewBox="0 0 80 80" className="w-16 h-16 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg viewBox="0 0 80 80" className="w-10 h-10 sm:w-14 sm:h-14 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2">
       <ellipse cx="40" cy="32" rx="18" ry="22" transform="rotate(10 40 32)" />
       <path d="M14 74 C14 54 66 54 66 74" />
       <circle cx="32" cy="30" r="3" fill="currentColor" stroke="none" />
@@ -85,7 +85,7 @@ const ANGLE_SVG: Record<ScanAngle, React.ReactNode> = {
     </svg>
   ),
   smile: (
-    <svg viewBox="0 0 80 80" className="w-16 h-16 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2">
+    <svg viewBox="0 0 80 80" className="w-10 h-10 sm:w-14 sm:h-14 text-blue-600" fill="none" stroke="currentColor" strokeWidth="2">
       <ellipse cx="40" cy="28" rx="18" ry="22" />
       <path d="M14 72 C14 52 66 52 66 72" />
       <circle cx="32" cy="25" r="3" fill="currentColor" stroke="none" />
@@ -454,18 +454,19 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({
         </div>
 
         {/* Steps preview */}
-        <div className="swiss-card border rounded-2xl p-6 shadow-sm space-y-3">
+        <div className="swiss-card border rounded-2xl p-4 sm:p-6 shadow-sm space-y-3">
           <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2">5 Guided Baseline Angles</p>
           {SCAN_ANGLES.map((angle, i) => (
-            <div key={angle} className="flex items-center gap-3 py-1.5">
-              <div className="w-7 h-7 rounded-full bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-800/40 flex items-center justify-center text-xs font-bold text-blue-600 dark:text-blue-400 shrink-0">
+            <div key={angle} className="flex items-start gap-3 py-2 text-left">
+              <div className="w-7 h-7 rounded-full bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-800/40 flex items-center justify-center text-xs font-bold text-blue-600 dark:text-blue-400 shrink-0 mt-0.5">
                 {i + 1}
               </div>
-              <div>
-                <p className="text-sm font-bold text-[var(--text-primary)]">
-                  {ANGLE_ICONS[angle as ScanAngle]} {ANGLE_LABELS[angle as ScanAngle]}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-1.5 flex-wrap">
+                  <span>{ANGLE_ICONS[angle as ScanAngle]}</span>
+                  <span>{ANGLE_LABELS[angle as ScanAngle]}</span>
                 </p>
-                <p className="text-xs text-[var(--text-secondary)]">{ANGLE_INSTRUCTIONS[angle as ScanAngle]}</p>
+                <p className="text-xs text-[var(--text-secondary)] mt-0.5 leading-relaxed">{ANGLE_INSTRUCTIONS[angle as ScanAngle]}</p>
               </div>
             </div>
           ))}
@@ -813,8 +814,8 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({
 
                   {/* Floating Scan Feedback Notification Pill */}
                   {scanToast && (
-                    <div className="absolute top-12 inset-x-4 flex justify-center z-20 pointer-events-none transition-all animate-fadeIn">
-                      <div className={`px-4 py-2 rounded-xl backdrop-blur-md border shadow-xl max-w-md text-center ${
+                    <div className="absolute top-12 inset-x-2 sm:inset-x-4 flex justify-center z-20 pointer-events-none transition-all animate-fadeIn px-2">
+                      <div className={`px-3.5 py-2 rounded-xl backdrop-blur-md border shadow-xl max-w-md w-full sm:w-auto text-center ${
                         scanToast.type === 'success'
                           ? 'bg-emerald-950/90 border-emerald-500/50 text-emerald-300'
                           : 'bg-rose-950/90 border-rose-500/50 text-rose-300'
@@ -825,10 +826,10 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({
                           ) : (
                             <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
                           )}
-                          <span>{scanToast.text}</span>
+                          <span className="leading-tight">{scanToast.text}</span>
                         </div>
                         {scanToast.nextTip && (
-                          <p className="text-[11px] mt-0.5 opacity-90 text-white font-medium">
+                          <p className="text-[11px] mt-0.5 opacity-90 text-white font-medium leading-tight">
                             {scanToast.nextTip}
                           </p>
                         )}
@@ -1130,16 +1131,16 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({
       <div className={`border rounded-3xl overflow-hidden shadow-sm transition-colors ${
         isDark ? 'bg-zinc-900/60 border-white/10' : 'bg-white border-slate-200/90'
       }`}>
-        {/* Instruction row — compact, horizontal */}
-        <div className={`flex items-center gap-4 px-6 py-4 border-b ${
+        {/* Instruction row — compact, responsive layout for perfect mobile alignment */}
+        <div className={`flex items-start sm:items-center gap-3 sm:gap-4 px-4 py-3 sm:px-6 sm:py-4 border-b ${
           isDark ? 'border-white/10' : 'border-slate-100'
         }`}>
-          <div className="text-3xl shrink-0">{ANGLE_ICONS[currentAngle]}</div>
-          <div className="flex-1 min-w-0">
-            <h2 className={`font-semibold text-base leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{ANGLE_LABELS[currentAngle]}</h2>
+          <div className="text-2xl sm:text-3xl shrink-0 mt-0.5 sm:mt-0">{ANGLE_ICONS[currentAngle]}</div>
+          <div className="flex-1 min-w-0 text-left">
+            <h2 className={`font-semibold text-sm sm:text-base leading-snug ${isDark ? 'text-white' : 'text-slate-900'}`}>{ANGLE_LABELS[currentAngle]}</h2>
             <p className={`text-xs leading-relaxed mt-0.5 ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>{ANGLE_INSTRUCTIONS[currentAngle]}</p>
           </div>
-          <div className={`p-2.5 rounded-xl border shrink-0 ${
+          <div className={`p-1.5 sm:p-2.5 rounded-xl border shrink-0 flex items-center justify-center ${
             isDark ? 'bg-zinc-800/80 border-white/10' : 'bg-slate-50 border-slate-100'
           }`}>
             {ANGLE_SVG[currentAngle]}
@@ -1232,8 +1233,8 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({
 
               {/* Floating Scan Feedback Notification Pill */}
               {scanToast && (
-                <div className="absolute top-12 inset-x-4 flex justify-center z-20 pointer-events-none transition-all animate-fadeIn">
-                  <div className={`px-4 py-2 rounded-xl backdrop-blur-md border shadow-xl max-w-md text-center ${
+                <div className="absolute top-12 inset-x-2 sm:inset-x-4 flex justify-center z-20 pointer-events-none transition-all animate-fadeIn px-2">
+                  <div className={`px-3.5 py-2 rounded-xl backdrop-blur-md border shadow-xl max-w-md w-full sm:w-auto text-center ${
                     scanToast.type === 'success'
                       ? 'bg-emerald-950/90 border-emerald-500/50 text-emerald-300'
                       : 'bg-rose-950/90 border-rose-500/50 text-rose-300'
@@ -1244,10 +1245,10 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({
                       ) : (
                         <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
                       )}
-                      <span>{scanToast.text}</span>
+                      <span className="leading-tight">{scanToast.text}</span>
                     </div>
                     {scanToast.nextTip && (
-                      <p className="text-[11px] mt-0.5 opacity-90 text-white font-medium">
+                      <p className="text-[11px] mt-0.5 opacity-90 text-white font-medium leading-tight">
                         {scanToast.nextTip}
                       </p>
                     )}
@@ -1280,12 +1281,12 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({
         </div>
 
         {/* Continuous Face ID Status footer */}
-        <div className={`p-4 transition-colors text-center ${isDark ? 'bg-zinc-900/90' : 'bg-white'}`}>
+        <div className={`p-3.5 sm:p-4 transition-colors text-center ${isDark ? 'bg-zinc-900/90' : 'bg-white'}`}>
           <div className="flex items-center justify-center gap-2 text-xs font-semibold text-emerald-500">
-            <Sparkles className="w-4 h-4 text-emerald-500 animate-pulse" />
+            <Sparkles className="w-4 h-4 text-emerald-500 animate-pulse shrink-0" />
             <span>Continuous Face ID: Hold position to auto-lock &amp; proceed</span>
           </div>
-          <p className={`text-xs mt-1 ${isDark ? 'text-zinc-500' : 'text-slate-400'}`}>
+          <p className={`text-xs mt-1 max-w-lg mx-auto ${isDark ? 'text-zinc-500' : 'text-slate-400'}`}>
             Rotate your head naturally according to the prompt above. Captured automatically when aligned.
           </p>
         </div>

@@ -107,8 +107,9 @@ export const StudentPortal: React.FC = () => {
               )}
             </div>
 
-            <InstallAppButton variant="header" />
-            <ThemeToggle variant="slider" size="sm" />
+            <InstallAppButton variant="header" className="hidden md:inline-flex" />
+            <ThemeToggle variant="button" className="sm:hidden p-2 rounded-xl text-xs border border-[var(--border-color)]" />
+            <ThemeToggle variant="slider" size="sm" className="hidden sm:inline-flex" />
 
             <button
               onClick={handleLogout}
@@ -122,7 +123,7 @@ export const StudentPortal: React.FC = () => {
         </div>
 
         {/* Tab Navigation */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex gap-2 border-t border-[var(--border-color)] py-1.5 bg-[var(--bg-surface)] text-xs font-mono">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex gap-2 border-t border-[var(--border-color)] py-1.5 bg-[var(--bg-surface)] text-xs font-mono overflow-x-auto no-scrollbar">
           <button
             onClick={() => setActiveTab('attendance')}
             className={`py-1.5 px-4 rounded-lg flex items-center gap-2 transition-all shrink-0 ${

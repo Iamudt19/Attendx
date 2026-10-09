@@ -24,10 +24,8 @@ type AdminTab = 'overview' | 'attendance' | 'teachers' | 'classes' | 'students' 
 export const AdminPortal: React.FC = () => {
   const navigate = useNavigate();
 
-  // Authentication State
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
-    return localStorage.getItem('attendx_admin_session') === 'active';
-  });
+  // Authentication State - always require password each time Admin is opened
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [passwordInput, setPasswordInput] = useState<string>('');
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -118,7 +116,6 @@ export const AdminPortal: React.FC = () => {
         localStorage.setItem('attendx_admin_token', data.access_token);
         localStorage.setItem('attendx_token', data.access_token);
       }
-      localStorage.setItem('attendx_admin_session', 'active');
       setIsAuthenticated(true);
       setPasswordInput('');
     } catch (err: any) {
@@ -634,8 +631,9 @@ export const AdminPortal: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <InstallAppButton variant="header" />
-            <ThemeToggle variant="slider" size="sm" />
+            <InstallAppButton variant="header" className="hidden md:inline-flex" />
+            <ThemeToggle variant="button" className="sm:hidden p-2 rounded-xl text-xs border border-[var(--border-color)]" />
+            <ThemeToggle variant="slider" size="sm" className="hidden sm:inline-flex" />
             
             <button
               onClick={() => navigate('/history')}
@@ -674,7 +672,7 @@ export const AdminPortal: React.FC = () => {
         </div>
 
         {/* Tab Navigation */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex gap-1 overflow-x-auto border-t border-[var(--border-color)] py-1 bg-[var(--bg-surface)] text-xs font-mono">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex gap-1 overflow-x-auto no-scrollbar border-t border-[var(--border-color)] py-1 bg-[var(--bg-surface)] text-xs font-mono">
           {[
             { id: 'overview', label: 'Overview & Telemetry', icon: Activity },
             { id: 'attendance', label: `Attendance Ledger (${sessions.length})`, icon: FileSpreadsheet },

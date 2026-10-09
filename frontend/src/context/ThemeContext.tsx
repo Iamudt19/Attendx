@@ -14,7 +14,7 @@ const ThemeContext = createContext<ThemeContextValue>({
   theme: "dark",
   toggleTheme: () => {},
   isDark: true,
-  cursorEnabled: true,
+  cursorEnabled: false,
   toggleCursor: () => {},
 });
 
@@ -29,16 +29,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   });
 
-  const [cursorEnabled, setCursorEnabled] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem("attendx_cursor");
-      if (saved !== null) return saved === "true";
-      // Default to enabled on non-touch pointer devices
-      return window.matchMedia ? window.matchMedia("(pointer: fine)").matches : true;
-    } catch {
-      return true;
-    }
-  });
+  const [cursorEnabled, setCursorEnabled] = useState<boolean>(false);
 
   useEffect(() => {
     const root = document.documentElement;

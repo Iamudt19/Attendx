@@ -75,8 +75,13 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
     e.preventDefault();
     setError(null);
 
-    if (regPassword && regPassword !== regConfirmPassword) {
-      setError('Passwords do not match.');
+    if (!regPassword || regPassword.trim().length < 4) {
+      setError('Please enter a valid password (minimum 4 characters).');
+      return;
+    }
+
+    if (regPassword !== regConfirmPassword) {
+      setError('Passwords do not match. Please re-enter.');
       return;
     }
 
@@ -93,7 +98,7 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
         roll_number: regRollNumber.trim(),
         class_id: regClassId,
         email: regEmail.trim() || undefined,
-        password: regPassword || undefined,
+        password: regPassword.trim(),
       });
       localStorage.setItem('attendx_student_token', student.access_token);
       setSuccessMsg('Registration successful! Redirecting to face enrollment...');
@@ -118,42 +123,46 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
       isDark ? 'bg-black text-white' : 'bg-[#FBFBFB] text-[#111827]'
     }`}>
       {/* Top Simple Header */}
-      <header className={`w-full max-w-7xl mx-auto px-6 h-20 flex items-center justify-between border-b transition-colors ${
+      <header className={`w-full max-w-7xl mx-auto px-3 sm:px-6 h-16 sm:h-20 flex items-center justify-between border-b transition-colors gap-2 ${
         isDark ? 'border-white/[0.08] bg-black/60 backdrop-blur-xl' : 'border-slate-200/80 bg-white/60 backdrop-blur-xl'
       }`}>
         <div 
           onClick={() => navigate('/')} 
-          className="flex items-center gap-2.5 cursor-pointer group"
+          className="flex items-center gap-2 cursor-pointer group shrink-0"
         >
-          <Logo size="md" variant="auto" showTagline />
+          <Logo size="sm" variant="auto" showTagline />
         </div>
 
-        <div className="flex items-center gap-3">
-          <InstallAppButton variant="header" />
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <InstallAppButton variant="header" className="hidden md:inline-flex" />
 
-          {/* Theme Toggle Slider */}
-          <ThemeToggle variant="slider" size="sm" />
+          {/* Theme Toggle Button on mobile / Slider on desktop */}
+          <ThemeToggle variant="button" className="sm:hidden p-2 rounded-xl text-xs border border-[var(--border-color)]" />
+          <ThemeToggle variant="slider" size="sm" className="hidden sm:inline-flex" />
 
           <button
             onClick={() => navigate('/login')}
-            className={`text-sm font-semibold flex items-center gap-1.5 transition-colors px-3 py-2 rounded-xl border ${
+            className={`text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition-colors p-2 sm:px-3 sm:py-2 rounded-xl border ${
               isDark 
                 ? 'bg-white/5 hover:bg-white/10 border-white/10 text-zinc-200 hover:text-white' 
                 : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700 hover:text-slate-950'
             }`}
+            title="Teacher Portal"
           >
-            <span>Teacher Portal</span>
+            <GraduationCap className="w-4 h-4 text-purple-500 shrink-0" />
+            <span className="hidden sm:inline">Teacher Portal</span>
           </button>
           <button
             onClick={() => navigate('/')}
-            className={`text-sm font-semibold flex items-center gap-1 transition-colors px-3 py-2 rounded-xl border ${
+            className={`text-xs sm:text-sm font-semibold flex items-center gap-1 transition-colors p-2 sm:px-3 sm:py-2 rounded-xl border ${
               isDark 
                 ? 'bg-white/5 hover:bg-white/10 border-white/10 text-zinc-300 hover:text-white' 
                 : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-950'
             }`}
+            title="Home"
           >
-            <ChevronLeft className="w-4 h-4" />
-            <span>Home</span>
+            <ChevronLeft className="w-4 h-4 shrink-0" />
+            <span className="hidden sm:inline">Home</span>
           </button>
         </div>
       </header>
@@ -305,7 +314,7 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
               </form>
             ) : (
               <form onSubmit={handleRegister} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${
                       isDark ? 'text-zinc-300' : 'text-slate-700'
@@ -415,18 +424,20 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${
                       isDark ? 'text-zinc-300' : 'text-slate-700'
                     }`}>
-                      Password
+                      Password <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="password"
+                      required
+                      minLength={4}
                       value={regPassword}
                       onChange={(e) => setRegPassword(e.target.value)}
-                      placeholder="Optional"
+                      placeholder="Min 4 chars *"
                       className={`w-full px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none ${
                         isDark 
                           ? 'bg-black/60 border border-white/15 text-white placeholder-zinc-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20' 
@@ -438,13 +449,15 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
                     <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${
                       isDark ? 'text-zinc-300' : 'text-slate-700'
                     }`}>
-                      Confirm
+                      Confirm <span className="text-rose-500">*</span>
                     </label>
                     <input
                       type="password"
+                      required
+                      minLength={4}
                       value={regConfirmPassword}
                       onChange={(e) => setRegConfirmPassword(e.target.value)}
-                      placeholder="Optional"
+                      placeholder="Re-enter password *"
                       className={`w-full px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none ${
                         isDark 
                           ? 'bg-black/60 border border-white/15 text-white placeholder-zinc-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20' 

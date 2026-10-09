@@ -60,7 +60,7 @@ export const Logo: React.FC<LogoProps> = ({
 
         {showTagline && (
           <span
-            className={`text-[9px] uppercase tracking-[0.28em] font-mono mt-0.5 font-semibold transition-colors duration-300 ${
+            className={`hidden sm:inline-block text-[9px] uppercase tracking-[0.28em] font-mono mt-0.5 font-semibold transition-colors duration-300 ${
               isLightSurface ? "text-slate-400" : "text-[#86948a]"
             }`}
           >

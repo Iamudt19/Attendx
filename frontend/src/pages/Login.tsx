@@ -126,44 +126,47 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       isDark ? 'bg-black text-white' : 'bg-[#FBFBFB] text-[#111827]'
     }`}>
       {/* Top Header with Theme Toggle Slider */}
-      <header className={`w-full max-w-7xl mx-auto px-6 h-20 flex items-center justify-between border-b transition-colors ${
+      <header className={`w-full max-w-7xl mx-auto px-3 sm:px-6 h-16 sm:h-20 flex items-center justify-between border-b transition-colors gap-2 ${
         isDark ? 'border-white/[0.08] bg-black/60 backdrop-blur-xl' : 'border-slate-200/80 bg-white/60 backdrop-blur-xl'
       }`}>
         <div 
           onClick={() => navigate('/')} 
-          className="flex items-center gap-2.5 cursor-pointer group"
+          className="flex items-center gap-2 cursor-pointer group shrink-0"
         >
-          <Logo size="md" variant="auto" showTagline />
+          <Logo size="sm" variant="auto" showTagline />
         </div>
 
-        <div className="flex items-center gap-3">
-          <InstallAppButton variant="header" />
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+          <InstallAppButton variant="header" className="hidden md:inline-flex" />
 
-          {/* Theme Toggle Slider */}
-          <ThemeToggle variant="slider" size="sm" />
+          {/* Theme Toggle Button on mobile / Slider on desktop */}
+          <ThemeToggle variant="button" className="sm:hidden p-2 rounded-xl text-xs border border-[var(--border-color)]" />
+          <ThemeToggle variant="slider" size="sm" className="hidden sm:inline-flex" />
 
           <button
             onClick={() => navigate('/student/login')}
-            className={`text-sm font-semibold flex items-center gap-1.5 transition-colors px-3 py-2 rounded-xl border ${
+            className={`text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition-colors p-2 sm:px-3 sm:py-2 rounded-xl border ${
               isDark 
                 ? 'bg-white/5 hover:bg-white/10 border-white/10 text-zinc-200 hover:text-white' 
                 : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700 hover:text-slate-950'
             }`}
+            title="Student Portal"
           >
-            <GraduationCap className="w-4 h-4 text-blue-500" />
+            <GraduationCap className="w-4 h-4 text-blue-500 shrink-0" />
             <span className="hidden sm:inline">Student Portal</span>
           </button>
           
           <button
             onClick={() => navigate('/')}
-            className={`text-sm font-semibold flex items-center gap-1 transition-colors px-3 py-2 rounded-xl border ${
+            className={`text-xs sm:text-sm font-semibold flex items-center gap-1 transition-colors p-2 sm:px-3 sm:py-2 rounded-xl border ${
               isDark 
                 ? 'bg-white/5 hover:bg-white/10 border-white/10 text-zinc-300 hover:text-white' 
                 : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600 hover:text-slate-950'
             }`}
+            title="Overview"
           >
-            <ChevronLeft className="w-4 h-4" />
-            <span>Overview</span>
+            <ChevronLeft className="w-4 h-4 shrink-0" />
+            <span className="hidden sm:inline">Overview</span>
           </button>
         </div>
       </header>

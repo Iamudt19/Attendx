@@ -18,7 +18,6 @@ import { User, AttendanceAnalysisResponse } from './types';
 import { Analytics } from '@vercel/analytics/react';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
-import { CustomCursor } from './components/CustomCursor';
 import { FloatingMobileInstallBanner } from './components/InstallAppButton';
 
 // ── Admin Portal Root ─────────────────────────────────────────────────────────
@@ -177,7 +176,6 @@ const AppContent: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <ThemeProvider>
-      <CustomCursor />
       <ErrorBoundary>
         <AppContent />
       </ErrorBoundary>

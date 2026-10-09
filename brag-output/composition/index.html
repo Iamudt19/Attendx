@@ -3,10 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AttendX — Launch Film (Polished Voice Edition)</title>
+  <title>AttendX — Student Facial Scan Tutorial Video</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <style>
     :root {
       --bg-main: #09090b;
@@ -17,1287 +18,1041 @@
       --text-primary: #f4f4f5;
       --text-secondary: #a1a1aa;
       --text-muted: #71717a;
-      --accent-primary: #2563eb;
-      --accent-hover: #1d4ed8;
-      --accent-success: #10b981;
-      --accent-warning: #f59e0b;
+      --accent-blue: #2563eb;
       --accent-cyan: #06b6d4;
-      --accent-rose: #f43f5e;
+      --accent-green: #10b981;
+      --accent-purple: #8b5cf6;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      user-select: none;
     }
 
     body {
-      background: #000;
+      background-color: #030305;
       color: var(--text-primary);
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-family: var(--font-sans);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      overflow: hidden;
-      letter-spacing: -0.015em;
+      overflow-x: hidden;
     }
 
-    /* Video Frame Container (16:9 Aspect Ratio) */
-    #viewport-container {
+    #stage-container {
       position: relative;
       width: 1280px;
       height: 720px;
       background: var(--bg-main);
-      border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 30px 90px -20px rgba(0, 0, 0, 0.95), 0 0 0 1px var(--border-color);
-      display: flex;
-      flex-direction: column;
+      box-shadow: 0 25px 70px -15px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
     }
 
-    @media (max-width: 1320px) {
-      #viewport-container {
-        transform: scale(0.85);
-        transform-origin: center center;
-      }
-    }
-
-    @media (max-width: 1100px) {
-      #viewport-container {
-        transform: scale(0.68);
-        transform-origin: center center;
-      }
-    }
-
-    /* Stage Canvas */
-    #stage {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background-color: var(--bg-main);
-    }
-
-    /* Dot Grid Texture */
-    .swiss-dot-grid {
+    .composition-stage {
       position: absolute;
       inset: 0;
-      background-image: radial-gradient(circle, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
-      background-size: 24px 24px;
-      opacity: 0.6;
-      pointer-events: none;
+      width: 1280px;
+      height: 720px;
+      background: radial-gradient(circle at 50% 20%, #171b26 0%, #09090b 70%);
+      overflow: hidden;
     }
 
-    /* Ambient Subtle Lighting */
-    .ambient-glow {
+    /* Ambient Tech Grid */
+    .bg-grid {
       position: absolute;
-      border-radius: 50%;
-      filter: blur(140px);
-      opacity: 0.15;
+      inset: 0;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      mask-image: radial-gradient(circle at 50% 50%, black 40%, transparent 80%);
       pointer-events: none;
-      transition: all 1.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
-    .glow-1 {
-      width: 500px;
-      height: 500px;
-      background: var(--accent-primary);
-      top: -120px;
-      right: 0;
-    }
-
-    .glow-2 {
-      width: 400px;
-      height: 400px;
-      background: #4f46e5;
-      bottom: -100px;
-      left: 10%;
-    }
-
-    .glow-emerald {
+    .ambient-glow-1 {
+      position: absolute;
+      top: -100px;
+      left: 15%;
       width: 450px;
       height: 450px;
-      background: var(--accent-success);
-      top: 30%;
-      left: 45%;
-      opacity: 0;
+      background: radial-gradient(circle, rgba(37, 99, 235, 0.18) 0%, transparent 70%);
+      filter: blur(60px);
+      pointer-events: none;
     }
 
-    /* Real Web Navbar */
-    .app-header {
+    .ambient-glow-2 {
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 60px;
-      border-bottom: 1px solid var(--border-color);
-      background: rgba(9, 9, 11, 0.85);
-      backdrop-filter: blur(12px);
+      bottom: -100px;
+      right: 15%;
+      width: 450px;
+      height: 450px;
+      background: radial-gradient(circle, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
+      filter: blur(60px);
+      pointer-events: none;
+    }
+
+    /* Global Watermark & Header */
+    .top-header {
+      position: absolute;
+      top: 24px;
+      left: 36px;
+      right: 36px;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 32px;
       z-index: 50;
     }
 
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .version-tag {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 10px;
-      padding: 2px 6px;
-      border-radius: 4px;
-      border: 1px solid var(--border-color);
-      background: var(--bg-surface);
-      color: var(--text-muted);
-      font-weight: 600;
-    }
-
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      font-size: 12px;
-      color: var(--text-secondary);
-      font-weight: 500;
-      margin-left: 12px;
-    }
-
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .btn-launch-nav {
-      background: var(--accent-primary);
-      color: #fff;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 6px 14px;
-      border-radius: 6px;
-      border: none;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    /* Voiceover Subtitle HUD */
-    .narration-hud {
-      position: absolute;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(18, 18, 21, 0.92);
-      border: 1px solid var(--border-color);
-      border-radius: 100px;
-      padding: 8px 24px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      backdrop-filter: blur(16px);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-      z-index: 60;
-      max-width: 860px;
-      transition: all 0.3s ease;
-    }
-
-    .narration-wave-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--accent-cyan);
-      box-shadow: 0 0 10px var(--accent-cyan);
-      animation: pulse-wave 1s infinite alternate;
-    }
-
-    @keyframes pulse-wave {
-      0% { transform: scale(0.8); opacity: 0.5; }
-      100% { transform: scale(1.3); opacity: 1; }
-    }
-
-    .narration-text {
-      font-size: 13px;
-      color: var(--text-primary);
-      font-weight: 500;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    /* Scene Transitions */
-    .scene {
-      position: absolute;
-      top: 60px;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 32px 48px 64px 48px;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-      transform: scale(0.985);
-    }
-
-    .scene.active {
-      opacity: 1;
-      visibility: visible;
-      transform: scale(1);
-    }
-
-    /* ================= SCENE 1: THE PROBLEM & SOLUTION ================= */
-    .hero-layout {
-      display: grid;
-      grid-template-columns: 1.1fr 1fr;
-      gap: 40px;
-      width: 100%;
-      max-width: 1120px;
-      align-items: center;
-    }
-
-    .hero-lead-col {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .live-status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 4px 12px;
-      border: 1px solid var(--border-color);
-      background: var(--bg-surface);
-      color: var(--text-muted);
-      font-size: 11px;
-      font-family: 'JetBrains Mono', monospace;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      border-radius: 4px;
-      width: fit-content;
-    }
-
-    .ping-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--accent-success);
-      box-shadow: 0 0 8px var(--accent-success);
-    }
-
-    .hero-h1 {
-      font-size: 46px;
-      font-weight: 800;
-      line-height: 1.08;
-      letter-spacing: -0.04em;
-      color: var(--text-primary);
-    }
-
-    .hero-h1 span.blue-highlight {
-      color: #3b82f6;
-      position: relative;
-    }
-
-    .hero-desc {
-      font-size: 15px;
-      color: var(--text-secondary);
-      line-height: 1.5;
-      max-width: 460px;
-    }
-
-    /* Classroom Viewfinder */
-    .classroom-viewfinder {
-      position: relative;
-      height: 320px;
-      background: #0c0d12;
-      border-radius: 10px;
-      border: 1px solid var(--border-color);
-      overflow: hidden;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
-    }
-
-    .viewfinder-hud {
-      position: absolute;
-      top: 14px;
-      left: 16px;
-      right: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      color: var(--accent-cyan);
-      z-index: 10;
-    }
-
-    .viewfinder-flash {
-      position: absolute;
-      inset: 0;
-      background: #fff;
-      opacity: 0;
-      pointer-events: none;
-      z-index: 20;
-      transition: opacity 0.1s ease-out;
-    }
-
-    /* ================= SCENE 2: REAL-TIME PIPELINE ================= */
-    .scene-2-layout {
-      width: 100%;
-      max-width: 1120px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .section-header-compact {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .pipeline-container-grid {
-      display: grid;
-      grid-template-columns: 1.35fr 1fr;
-      gap: 20px;
-      height: 360px;
-    }
-
-    .panel-card {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .panel-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-bottom: 10px;
-      border-bottom: 1px solid var(--border-color);
-      margin-bottom: 12px;
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .radar-stream {
-      position: relative;
-      flex: 1;
-      background: #090a0f;
-      border-radius: 6px;
-      border: 1px solid var(--border-color);
-      overflow: hidden;
-    }
-
-    .laser-line {
-      position: absolute;
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, transparent, #38bdf8, #fff, #38bdf8, transparent);
-      box-shadow: 0 0 12px #38bdf8;
-      animation: laser-sweep 2.2s infinite linear;
-    }
-
-    @keyframes laser-sweep {
-      0% { top: 0%; opacity: 0; }
-      10% { opacity: 1; }
-      90% { opacity: 1; }
-      100% { top: 100%; opacity: 0; }
-    }
-
-    /* Match Results */
-    .results-stack {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      flex: 1;
-    }
-
-    .match-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 9px 12px;
-      background: var(--bg-inset);
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      transform: translateX(20px);
-      opacity: 0;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .match-row.visible {
-      transform: translateX(0);
-      opacity: 1;
-    }
-
-    .student-badge-left {
+    .brand-pill {
       display: flex;
       align-items: center;
       gap: 10px;
+      background: rgba(18, 18, 21, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(12px);
+      padding: 8px 16px;
+      border-radius: 9999px;
     }
 
-    .student-crop {
-      width: 32px;
-      height: 32px;
+    .brand-logo-icon {
+      width: 24px;
+      height: 24px;
+      background: linear-gradient(135deg, #2563eb, #06b6d4);
       border-radius: 6px;
-      background: #27272a;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 700;
-      font-size: 12px;
-      color: #93c5fd;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: white;
+      font-weight: 900;
+      font-size: 13px;
     }
 
-    .score-badge-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
+    .brand-name {
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: -0.02em;
     }
 
-    .status-tag {
+    .brand-tag {
+      background: rgba(37, 99, 235, 0.2);
+      color: #60a5fa;
+      border: 1px solid rgba(37, 99, 235, 0.4);
       font-size: 10px;
       font-weight: 700;
-      padding: 2px 6px;
+      padding: 2px 7px;
       border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
 
-    .tag-present { background: rgba(16, 185, 129, 0.15); color: var(--accent-success); border: 1px solid rgba(16, 185, 129, 0.3); }
-    .tag-review { background: rgba(245, 158, 11, 0.15); color: var(--accent-warning); border: 1px solid rgba(245, 158, 11, 0.3); }
-
-    /* ================= SCENE 3: TEACHER VERIFICATION ================= */
-    .scene-3-layout {
-      width: 100%;
-      max-width: 1120px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .ledger-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-      height: 270px;
-    }
-
-    .ledger-col {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .ledger-header {
+    .header-step-badge {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-secondary);
+      background: rgba(18, 18, 21, 0.85);
+      border: 1px solid var(--border-color);
+      padding: 6px 14px;
+      border-radius: 9999px;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 10px #10b981;
+    }
+
+    /* Scene Containers */
+    .scene {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 40px 100px;
+    }
+
+    /* Scene 1: Welcome & Registration Card */
+    .scene-1-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      max-width: 1100px;
+      width: 100%;
+      align-items: center;
+    }
+
+    .hero-title-group h1 {
+      font-size: 42px;
+      font-weight: 900;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 16px;
+    }
+
+    .hero-title-group h1 span.gradient-text {
+      background: linear-gradient(135deg, #60a5fa 0%, #34d399 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-subtitle {
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      margin-bottom: 24px;
+    }
+
+    .portal-link-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(37, 99, 235, 0.1);
+      border: 1px solid rgba(37, 99, 235, 0.3);
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      color: #93c5fd;
+    }
+
+    .registration-form-card {
+      background: rgba(18, 18, 21, 0.95);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(16px);
+    }
+
+    .form-tabs {
+      display: flex;
+      gap: 8px;
+      background: #18181c;
+      padding: 4px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .form-tab {
+      flex: 1;
+      text-align: center;
+      padding: 8px;
       font-size: 12px;
       font-weight: 600;
-      padding-bottom: 8px;
-      border-bottom: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: var(--text-muted);
     }
 
-    .ledger-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 10px;
-      background: var(--bg-inset);
+    .form-tab.active {
+      background: #2563eb;
+      color: white;
+    }
+
+    .mock-input-row {
+      margin-bottom: 14px;
+    }
+
+    .mock-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .mock-input {
+      width: 100%;
+      height: 38px;
+      background: #18181c;
       border: 1px solid var(--border-color);
       border-radius: 6px;
-      font-size: 12px;
-    }
-
-    .active-learning-toast {
-      background: linear-gradient(90deg, rgba(37, 99, 235, 0.1), rgba(16, 185, 129, 0.1));
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      border-radius: 8px;
-      padding: 12px 18px;
+      padding: 0 12px;
+      font-size: 13px;
+      color: var(--text-primary);
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      transform: translateY(15px);
-      opacity: 0;
-      transition: all 0.4s ease;
+      font-family: var(--font-mono);
     }
 
-    .active-learning-toast.shown {
-      transform: translateY(0);
+    .mock-btn {
+      width: 100%;
+      height: 42px;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-weight: 700;
+      font-size: 14px;
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+    }
+
+    /* Scene 2 & 3: Camera HUD & Student Facial Scan */
+    .scanner-view-container {
+      display: grid;
+      grid-template-columns: 460px 1fr;
+      gap: 36px;
+      max-width: 1140px;
+      width: 100%;
+      align-items: center;
+    }
+
+    .camera-hud-box {
+      position: relative;
+      width: 460px;
+      height: 460px;
+      background: #0d0d11;
+      border: 1px solid #27272a;
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+
+    /* Person Scanning Photo Layers */
+    .student-photo-wrapper {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .student-photo-layer {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 0.4s ease-in-out;
+    }
+
+    .student-photo-layer.active {
       opacity: 1;
     }
 
-    /* ================= SCENE 4: BRAND OUTRO ================= */
-    .outro-box {
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 20px;
-      max-width: 800px;
+    /* HUD Reticle Overlays */
+    .hud-scanner-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at 50% 50%, transparent 45%, rgba(9, 9, 11, 0.65) 100%);
     }
 
-    .outro-tagline {
-      font-size: 26px;
-      font-weight: 600;
-      color: var(--text-primary);
-      letter-spacing: -0.03em;
+    .hud-target-oval {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 250px;
+      height: 320px;
+      border: 2px dashed rgba(16, 185, 129, 0.6);
+      border-radius: 50%;
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.2), inset 0 0 25px rgba(16, 185, 129, 0.15);
     }
 
-    .outro-sub {
-      font-size: 14px;
-      color: var(--text-secondary);
-      max-width: 520px;
+    .laser-scan-bar {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #10b981, #06b6d4, transparent);
+      box-shadow: 0 0 15px #10b981;
+      top: 15%;
     }
 
-    .spec-badges {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      justify-content: center;
-      margin-top: 8px;
+    .hud-corner {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      border-color: #10b981;
+      border-style: solid;
     }
+    .hud-corner-tl { top: 16px; left: 16px; border-width: 3px 0 0 3px; border-top-left-radius: 8px; }
+    .hud-corner-tr { top: 16px; right: 16px; border-width: 3px 3px 0 0; border-top-right-radius: 8px; }
+    .hud-corner-bl { bottom: 16px; left: 16px; border-width: 0 0 3px 3px; border-bottom-left-radius: 8px; }
+    .hud-corner-br { bottom: 16px; right: 16px; border-width: 0 3px 3px 0; border-bottom-right-radius: 8px; }
 
-    .spec-pill {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      padding: 6px 14px;
-      border-radius: 100px;
-      color: var(--text-secondary);
-    }
-
-    /* Controller Dock */
-    #controller-dock {
-      height: 56px;
-      background: #09090b;
-      border-top: 1px solid var(--border-color);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 24px;
-      z-index: 100;
-    }
-
-    .ctrl-btn {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      color: var(--text-primary);
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
+    .hud-live-tag {
+      position: absolute;
+      top: 20px;
+      left: 24px;
       display: flex;
       align-items: center;
       gap: 6px;
-      transition: all 0.2s;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #ef4444;
+      font-family: var(--font-mono);
     }
 
-    .ctrl-btn:hover {
-      background: var(--border-color);
-    }
-
-    .ctrl-btn-primary {
-      background: var(--accent-primary);
-      border-color: var(--accent-primary);
-      color: #fff;
-    }
-
-    .timeline-bar {
-      flex: 1;
-      margin: 0 20px;
-      height: 5px;
-      background: #27272a;
-      border-radius: 3px;
-      position: relative;
-      cursor: pointer;
-    }
-
-    .timeline-fill {
+    .hud-telemetry {
       position: absolute;
-      top: 0;
+      bottom: 20px;
+      left: 24px;
+      right: 24px;
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: #a1a1aa;
+      background: rgba(18, 18, 21, 0.85);
+      border: 1px solid var(--border-color);
+      padding: 8px 14px;
+      border-radius: 8px;
+      backdrop-filter: blur(8px);
+    }
+
+    /* Right Guidance Column */
+    .guidance-column {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .guidance-header-title {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    .guidance-header-desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+    }
+
+    .angle-step-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: rgba(18, 18, 21, 0.9);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px 18px;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .angle-step-card.active-step {
+      border-color: #2563eb;
+      background: rgba(37, 99, 235, 0.12);
+      box-shadow: 0 0 20px rgba(37, 99, 235, 0.2);
+    }
+
+    .angle-step-card.completed-step {
+      border-color: #10b981;
+      background: rgba(16, 185, 129, 0.08);
+    }
+
+    .angle-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: #18181c;
+      border: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .angle-step-card.active-step .angle-icon-box {
+      background: #2563eb;
+      color: white;
+      border-color: #60a5fa;
+    }
+
+    .angle-step-card.completed-step .angle-icon-box {
+      background: #10b981;
+      color: white;
+      border-color: #34d399;
+    }
+
+    .angle-info {
+      flex: 1;
+    }
+
+    .angle-label {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    .angle-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .angle-status-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      background: #18181c;
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+    }
+
+    .angle-step-card.active-step .angle-status-badge {
+      background: rgba(37, 99, 235, 0.2);
+      color: #93c5fd;
+      border-color: rgba(37, 99, 235, 0.5);
+    }
+
+    .angle-step-card.completed-step .angle-status-badge {
+      background: rgba(16, 185, 129, 0.2);
+      color: #6ee7b7;
+      border-color: rgba(16, 185, 129, 0.5);
+    }
+
+    /* Scene 4: Calibration Success */
+    .success-card {
+      text-align: center;
+      background: rgba(18, 18, 21, 0.95);
+      border: 1px solid var(--border-color);
+      border-radius: 24px;
+      padding: 44px 56px;
+      max-width: 680px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8);
+      position: relative;
+    }
+
+    .success-glow-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      font-size: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      box-shadow: 0 0 40px rgba(16, 185, 129, 0.5);
+    }
+
+    .success-card h2 {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin: 28px 0;
+    }
+
+    .metric-box {
+      background: #18181c;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px 12px;
+    }
+
+    .metric-val {
+      font-size: 22px;
+      font-weight: 800;
+      color: #34d399;
+      font-family: var(--font-mono);
+    }
+
+    .metric-lbl {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      text-transform: uppercase;
+    }
+
+    /* Subtitles / Captions Bar (Always present & animated) */
+    .subtitles-bar-container {
+      position: absolute;
+      bottom: 24px;
       left: 0;
-      height: 100%;
-      width: 0%;
-      background: var(--accent-primary);
-      border-radius: 3px;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      z-index: 60;
+      pointer-events: none;
+    }
+
+    .subtitles-pill {
+      background: rgba(18, 18, 21, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(16px);
+      padding: 12px 28px;
+      border-radius: 9999px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      max-width: 920px;
+      text-align: center;
+    }
+
+    .subtitles-speaker-icon {
+      width: 22px;
+      height: 22px;
+      background: #2563eb;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      flex-shrink: 0;
+      color: white;
+    }
+
+    .subtitles-text {
+      font-size: 16px;
+      font-weight: 600;
+      color: #f4f4f5;
+      letter-spacing: -0.01em;
+      line-height: 1.4;
+    }
+
+    .subtitles-text span.highlight {
+      color: #60a5fa;
+      font-weight: 700;
+    }
+    
+    .subtitles-text span.highlight-green {
+      color: #34d399;
+      font-weight: 700;
+    }
+
+    /* Player Controls Bar */
+    #controls {
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+    }
+
+    button.btn-ctrl {
+      background: #18181c;
+      color: white;
+      border: 1px solid var(--border-color);
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      transition: background 0.2s;
+    }
+
+    button.btn-ctrl:hover {
+      background: #27272a;
+    }
+
+    #time-slider {
+      width: 400px;
     }
   </style>
 </head>
 <body>
 
-  <div id="viewport-container">
-    <div id="stage">
-      
-      <!-- Real Website Hairline Navigation Bar -->
-      <header class="app-header">
-        <div class="header-left">
-          <!-- Official AttendX SVG Logo -->
-          <div class="flex items-center gap-2">
-            <svg height="24" viewBox="0 0 240 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M 2 28 L 38 28" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" />
-              <path d="M 9 36 L 24 4 L 39 36" stroke="#FFFFFF" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="miter" />
-              <path d="M 45 4 L 63 4" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" />
-              <path d="M 54 4 L 54 36" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" />
-              <path d="M 68 4 L 86 4" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" />
-              <path d="M 77 4 L 77 36" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" />
-              <path d="M 92 4 L 92 36" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" />
-              <path d="M 92 4 L 110 4" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" />
-              <path d="M 92 20 L 107 20" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" />
-              <path d="M 92 36 L 110 36" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" />
-              <path d="M 118 36 L 118 4 L 140 36 L 140 4" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="miter" />
-              <path d="M 148 4 L 148 36 M 148 4 C 168 4, 168 36, 148 36" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
-              <path d="M 176 4 L 198 36" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round" />
-              <path d="M 198 4 L 176 36" stroke="#2563EB" stroke-width="3.6" stroke-linecap="round" />
-              <circle cx="206" cy="34" r="2.8" fill="#2563EB" />
-            </svg>
-          </div>
-          <span class="version-tag">v2.4</span>
-          <div class="nav-links">
-            <span>Architecture</span>
-            <span>Faculty Portal</span>
-            <span>Security & SIS</span>
-          </div>
-        </div>
+  <audio id="bgAudio" src="voiceover.mp3" preload="auto"></audio>
 
-        <div class="header-right">
-          <span style="font-family:'JetBrains Mono';font-size:11px;color:var(--text-muted)" id="hudTimer">00:00.00 / 00:20.00</span>
-          <button class="btn-launch-nav">Launch Studio →</button>
+  <main id="stage-container"
+        data-composition-id="attendx-face-scan-tutorial"
+        data-width="1280"
+        data-height="720"
+        data-duration="28.5"
+        data-fps="60">
+
+    <div class="composition-stage">
+      <div class="bg-grid"></div>
+      <div class="ambient-glow-1"></div>
+      <div class="ambient-glow-2"></div>
+
+      <!-- Persistent Header -->
+      <header class="top-header">
+        <div class="brand-pill">
+          <div class="brand-logo-icon">A</div>
+          <span class="brand-name">AttendX</span>
+          <span class="brand-tag">Student Portal</span>
+        </div>
+        <div class="header-step-badge">
+          <div class="pulse-dot"></div>
+          <span id="header-status-text">Biometric Face Calibration</span>
         </div>
       </header>
 
-      <!-- Background Dot Grid & Ambient Lighting -->
-      <div class="swiss-dot-grid"></div>
-      <div class="ambient-glow glow-1"></div>
-      <div class="ambient-glow glow-2"></div>
-      <div class="ambient-glow glow-emerald" id="emeraldAmbient"></div>
-
-      <!-- ================= SCENE 1: THE HOOK & ENTRY (0.0s - 4.5s) ================= -->
-      <div class="scene" id="scene1">
-        <div class="hero-layout">
-          <div class="hero-lead-col">
-            <div class="live-status-pill">
-              <span class="ping-dot"></span>
-              LIVE · Optical Roll-Call System
-            </div>
-            <h1 class="hero-h1">
-              Attendance.<br>
-              Verified in <span class="blue-highlight">1.8 seconds.</span>
-            </h1>
-            <p class="hero-desc">
-              One photo. Entire lecture hall marked. Face recognition, biometric vector matching, and zero-proxy roster sync.
+      <!-- SCENE 1: Welcome & Registration Form (0.0s - 4.5s) -->
+      <section id="scene-1" class="scene">
+        <div class="scene-1-content">
+          <div class="hero-title-group">
+            <h1>Student <span class="gradient-text">Biometric Setup</span></h1>
+            <p class="hero-subtitle">
+              One-time facial scan registration for seamless contactless classroom attendance.
             </p>
+            <div class="portal-link-box">
+              <span>🌐</span> https://one-attendx.vercel.app/student/login
+            </div>
           </div>
 
-          <div class="classroom-viewfinder">
-            <div class="viewfinder-hud">
-              <span>● OPTICAL STREAM ACTIVE</span>
-              <span>42 SEATS DETECTED</span>
+          <div class="registration-form-card">
+            <div class="form-tabs">
+              <div class="form-tab">Sign In</div>
+              <div class="form-tab active">New Student Registration</div>
             </div>
-            <canvas id="viewfinderCanvas" width="480" height="320" style="width:100%;height:100%"></canvas>
-            <div class="viewfinder-flash" id="flashEffect"></div>
+            <div class="mock-input-row">
+              <div class="mock-label">Roll Number</div>
+              <div class="mock-input">22CS084</div>
+            </div>
+            <div class="mock-input-row">
+              <div class="mock-label">Full Name</div>
+              <div class="mock-input">Aryan Sharma</div>
+            </div>
+            <div class="mock-input-row">
+              <div class="mock-label">Password (Mandatory)</div>
+              <div class="mock-input">••••••••••••</div>
+            </div>
+            <button class="mock-btn">
+              <span>Continue to 3D Facial Scan</span> →
+            </button>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- ================= SCENE 2: COMPUTER VISION PIPELINE (4.5s - 10.0s) ================= -->
-      <div class="scene" id="scene2">
-        <div class="scene-2-layout">
-          <div class="section-header-compact">
+      <!-- SCENE 2 & 3: Camera HUD & 5-Angle Face Scan (4.5s - 23.5s) -->
+      <section id="scene-2" class="scene">
+        <div class="scanner-view-container">
+
+          <!-- Real Student Scanning Viewfinder -->
+          <div class="camera-hud-box">
+            <div class="student-photo-wrapper">
+              <img id="photo-front" class="student-photo-layer active" src="assets/pose_front.jpg" alt="Front Pose">
+              <img id="photo-left" class="student-photo-layer" src="assets/pose_left.jpg" alt="Left Pose">
+              <img id="photo-right" class="student-photo-layer" src="assets/pose_right.jpg" alt="Right Pose">
+              <img id="photo-down" class="student-photo-layer" src="assets/pose_down.jpg" alt="Down Pose">
+              <img id="photo-smile" class="student-photo-layer" src="assets/pose_smile.jpg" alt="Smile Pose">
+            </div>
+
+            <!-- HUD Elements -->
+            <div class="hud-scanner-overlay"></div>
+            <div id="hud-target-oval" class="hud-target-oval"></div>
+            <div id="laser-bar" class="laser-scan-bar"></div>
+
+            <div class="hud-corner hud-corner-tl"></div>
+            <div class="hud-corner hud-corner-tr"></div>
+            <div class="hud-corner hud-corner-bl"></div>
+            <div class="hud-corner hud-corner-br"></div>
+
+            <div class="hud-live-tag">
+              <span style="font-size: 8px;">●</span> LIVE NEURAL CAM
+            </div>
+
+            <div class="hud-telemetry">
+              <span id="telemetry-yaw">Yaw: 0.0°</span>
+              <span id="telemetry-pitch">Pitch: 0.0°</span>
+              <span id="telemetry-conf" style="color: #34d399;">SFace: 99.4%</span>
+            </div>
+          </div>
+
+          <!-- Guidance Steps -->
+          <div class="guidance-column">
             <div>
-              <div style="font-family:'JetBrains Mono';font-size:11px;color:var(--accent-cyan);font-weight:600">DEEP LEARNING PIPELINE</div>
-              <h2 style="font-size:24px;font-weight:700;letter-spacing:-0.03em">OpenCV YuNet + SFace 128-d Vector Matching</h2>
-            </div>
-            <span class="spec-pill" style="color:var(--accent-success);border-color:rgba(16,185,129,0.3)">
-              ✓ 5-Point Affine Alignment
-            </span>
-          </div>
-
-          <div class="pipeline-container-grid">
-            <!-- Left: Laser Bounding Box Stream -->
-            <div class="panel-card">
-              <div class="panel-header">
-                <span>Lecture Hall Multi-Face Tracking</span>
-                <span style="font-family:'JetBrains Mono';font-size:11px;color:var(--accent-success)">LIVE YUNET ONNX</span>
-              </div>
-              <div class="radar-stream">
-                <canvas id="cvCanvas" width="560" height="280" style="width:100%;height:100%"></canvas>
-                <div class="laser-line"></div>
-              </div>
+              <h2 class="guidance-header-title">Guided 5-Angle Calibration</h2>
+              <p class="guidance-header-desc">Align each angle inside the target oval until it turns green.</p>
             </div>
 
-            <!-- Right: Vector Match Score Cards -->
-            <div class="panel-card">
-              <div class="panel-header">
-                <span>Enrolled Roster Cosine Scores</span>
-                <span style="font-family:'JetBrains Mono';font-size:11px;color:var(--accent-cyan)">L2 UNIT SPHERE</span>
+            <div id="step-1" class="angle-step-card active-step">
+              <div class="angle-icon-box">👤</div>
+              <div class="angle-info">
+                <div class="angle-label">1. Look Straight Ahead</div>
+                <div class="angle-sub">Center eye level (0° Yaw, 0° Pitch)</div>
               </div>
-              <div class="results-stack">
-                <div class="match-row" id="row1">
-                  <div class="student-badge-left">
-                    <div class="student-crop">AS</div>
-                    <div>
-                      <div style="font-weight:600;font-size:12px;color:#fff">Aarav Sharma</div>
-                      <div style="font-family:'JetBrains Mono';font-size:10px;color:var(--text-muted)">STU001 • CS-A</div>
-                    </div>
-                  </div>
-                  <div class="score-badge-right">
-                    <span style="color:var(--accent-success);font-weight:700">0.941</span>
-                    <span class="status-tag tag-present">PRESENT</span>
-                  </div>
-                </div>
-
-                <div class="match-row" id="row2">
-                  <div class="student-badge-left">
-                    <div class="student-crop">PN</div>
-                    <div>
-                      <div style="font-weight:600;font-size:12px;color:#fff">Priya Nair</div>
-                      <div style="font-family:'JetBrains Mono';font-size:10px;color:var(--text-muted)">STU002 • CS-A</div>
-                    </div>
-                  </div>
-                  <div class="score-badge-right">
-                    <span style="color:var(--accent-success);font-weight:700">0.918</span>
-                    <span class="status-tag tag-present">PRESENT</span>
-                  </div>
-                </div>
-
-                <div class="match-row" id="row3">
-                  <div class="student-badge-left">
-                    <div class="student-crop">RK</div>
-                    <div>
-                      <div style="font-weight:600;font-size:12px;color:#fff">Rohan Kumar</div>
-                      <div style="font-family:'JetBrains Mono';font-size:10px;color:var(--text-muted)">STU003 • CS-A</div>
-                    </div>
-                  </div>
-                  <div class="score-badge-right">
-                    <span style="color:var(--accent-success);font-weight:700">0.892</span>
-                    <span class="status-tag tag-present">PRESENT</span>
-                  </div>
-                </div>
-
-                <div class="match-row" id="row4">
-                  <div class="student-badge-left">
-                    <div class="student-crop" style="color:#fde68a">AD</div>
-                    <div>
-                      <div style="font-weight:600;font-size:12px;color:#fff">Ananya Das</div>
-                      <div style="font-family:'JetBrains Mono';font-size:10px;color:var(--text-muted)">STU007 • CS-A</div>
-                    </div>
-                  </div>
-                  <div class="score-badge-right">
-                    <span style="color:var(--accent-warning);font-weight:700">0.412</span>
-                    <span class="status-tag tag-review">REVIEW</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ================= SCENE 3: TEACHER AUTHORITY & ACTIVE LEARNING (10.0s - 15.5s) ================= -->
-      <div class="scene" id="scene3">
-        <div class="scene-3-layout">
-          <div class="section-header-compact">
-            <div>
-              <div style="font-family:'JetBrains Mono';font-size:11px;color:var(--accent-success);font-weight:600">
-                TEACHER-IN-THE-LOOP CONTROL
-              </div>
-              <h2 style="font-size:24px;font-weight:700;letter-spacing:-0.03em">3-State Classification & Active Feedback Loop</h2>
-            </div>
-            <span class="spec-pill" style="color:var(--accent-cyan)">
-              Audit Trail Logged
-            </span>
-          </div>
-
-          <div class="ledger-grid">
-            <div class="ledger-col">
-              <div class="ledger-header">
-                <span>Present</span>
-                <span class="status-tag tag-present">38 Confirmed</span>
-              </div>
-              <div class="ledger-item">
-                <span>Aarav Sharma (STU001)</span>
-                <span style="color:var(--accent-success);font-family:'JetBrains Mono'">✓ 0.94</span>
-              </div>
-              <div class="ledger-item">
-                <span>Priya Nair (STU002)</span>
-                <span style="color:var(--accent-success);font-family:'JetBrains Mono'">✓ 0.92</span>
-              </div>
-              <div class="ledger-item">
-                <span>Sneha Patil (STU004)</span>
-                <span style="color:var(--accent-success);font-family:'JetBrains Mono'">✓ 0.95</span>
-              </div>
+              <div class="angle-status-badge">CAPTURING...</div>
             </div>
 
-            <div class="ledger-col" id="reviewLedgerCol">
-              <div class="ledger-header">
-                <span>Needs Review</span>
-                <span class="status-tag tag-review">1 Item</span>
+            <div id="step-2" class="angle-step-card">
+              <div class="angle-icon-box">👈</div>
+              <div class="angle-info">
+                <div class="angle-label">2. Turn Slightly Left</div>
+                <div class="angle-sub">Gentle 30° left rotation</div>
               </div>
-              <div class="ledger-item" id="reviewActionItem" style="border-color:var(--accent-warning)">
-                <div>
-                  <div style="font-weight:600;color:#fff">Ananya Das (STU007)</div>
-                  <div style="font-size:10px;color:var(--accent-warning)">Margin: 0.04 &lt; 0.08</div>
-                </div>
-                <button id="btnTeacherConfirm" style="background:var(--accent-success);color:#000;border:none;padding:4px 8px;border-radius:4px;font-weight:700;cursor:pointer;font-size:11px">
-                  Confirm ✓
-                </button>
-              </div>
+              <div class="angle-status-badge">PENDING</div>
             </div>
 
-            <div class="ledger-col">
-              <div class="ledger-header">
-                <span>Absent / Unknown</span>
-                <span class="spec-pill" style="font-size:10px;padding:2px 6px">2 Absent</span>
+            <div id="step-3" class="angle-step-card">
+              <div class="angle-icon-box">👉</div>
+              <div class="angle-info">
+                <div class="angle-label">3. Turn Slightly Right</div>
+                <div class="angle-sub">Gentle 30° right rotation</div>
               </div>
-              <div class="ledger-item" style="opacity:0.6">
-                <span>Karan Mehta (STU009)</span>
-                <span style="color:var(--accent-rose);font-family:'JetBrains Mono'">Absent</span>
-              </div>
-              <div class="ledger-item" style="opacity:0.6">
-                <span>Divya Sen (STU014)</span>
-                <span style="color:var(--accent-rose);font-family:'JetBrains Mono'">Absent</span>
-              </div>
+              <div class="angle-status-badge">PENDING</div>
             </div>
-          </div>
 
-          <!-- Active Learning Update Alert -->
-          <div class="active-learning-toast" id="activeToast">
-            <div style="display:flex;align-items:center;gap:12px">
-              <div style="width:28px;height:28px;border-radius:6px;background:var(--accent-success);color:#000;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px">
-                ✓
+            <div id="step-4" class="angle-step-card">
+              <div class="angle-icon-box">🔽</div>
+              <div class="angle-info">
+                <div class="angle-label">4. Tilt Chin Down</div>
+                <div class="angle-sub">Slight downward nod (-15° Pitch)</div>
               </div>
-              <div>
-                <div style="font-weight:700;font-size:12px;color:#fff">Active Biometric Pool Updated</div>
-                <div style="font-size:11px;color:var(--text-secondary)">Teacher-verified crop added to student gallery. Model accuracy auto-improved.</div>
-              </div>
+              <div class="angle-status-badge">PENDING</div>
             </div>
-            <span class="status-tag tag-present" style="font-size:11px">Excel Export Ready</span>
+
+            <div id="step-5" class="angle-step-card">
+              <div class="angle-icon-box">😊</div>
+              <div class="angle-info">
+                <div class="angle-label">5. Natural Smile</div>
+                <div class="angle-sub">Expression & liveness verification</div>
+              </div>
+              <div class="angle-status-badge">PENDING</div>
+            </div>
           </div>
 
         </div>
-      </div>
+      </section>
 
-      <!-- ================= SCENE 4: BRAND OUTRO (15.5s - 20.0s) ================= -->
-      <div class="scene" id="scene4">
-        <div class="outro-box">
-          <!-- Large AttendX Logo -->
-          <svg height="48" viewBox="0 0 240 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M 2 28 L 38 28" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" />
-            <path d="M 9 36 L 24 4 L 39 36" stroke="#FFFFFF" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="miter" />
-            <path d="M 45 4 L 63 4" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" />
-            <path d="M 54 4 L 54 36" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" />
-            <path d="M 68 4 L 86 4" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" />
-            <path d="M 77 4 L 77 36" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" />
-            <path d="M 92 4 L 92 36" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" />
-            <path d="M 92 4 L 110 4" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" />
-            <path d="M 92 20 L 107 20" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" />
-            <path d="M 92 36 L 110 36" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" />
-            <path d="M 118 36 L 118 4 L 140 36 L 140 4" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="miter" />
-            <path d="M 148 4 L 148 36 M 148 4 C 168 4, 168 36, 148 36" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
-            <path d="M 176 4 L 198 36" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round" />
-            <path d="M 198 4 L 176 36" stroke="#2563EB" stroke-width="3.6" stroke-linecap="round" />
-            <circle cx="206" cy="34" r="2.8" fill="#2563EB" />
-          </svg>
+      <!-- SCENE 4: Calibration Success & Outro (23.5s - 28.5s) -->
+      <section id="scene-3" class="scene">
+        <div class="success-card">
+          <div class="success-glow-icon">✓</div>
+          <h2>Biometric Profile <span style="color: #34d399;">Activated!</span></h2>
+          <p style="color: var(--text-secondary); font-size: 15px;">
+            Your 5-angle biometric embedding has been securely stored and linked to your Roll Number.
+          </p>
 
-          <div class="outro-tagline">"One Photo. Complete Attendance."</div>
-          <p class="outro-sub">Production-grade optical attendance architecture designed for modern universities and enterprise lecture halls.</p>
+          <div class="metrics-row">
+            <div class="metric-box">
+              <div class="metric-val">100%</div>
+              <div class="metric-lbl">Calibration</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-val">5 / 5</div>
+              <div class="metric-lbl">Angles Captured</div>
+            </div>
+            <div class="metric-box">
+              <div class="metric-val">0.05s</div>
+              <div class="metric-lbl">Recognition Speed</div>
+            </div>
+          </div>
 
-          <div class="spec-badges">
-            <span class="spec-pill">FastAPI Python 3.10+</span>
-            <span class="spec-pill">OpenCV YuNet ONNX</span>
-            <span class="spec-pill">SFace 128-d ResNet</span>
-            <span class="spec-pill">React 18 &amp; TypeScript</span>
-            <span class="spec-pill">Multi-Sheet Excel Engine</span>
+          <div class="portal-link-box" style="margin-top: 10px; font-size: 14px; padding: 12px 24px;">
+            <span>🚀</span> Register now at: <strong>https://one-attendx.vercel.app/student/login</strong>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- AI Narration Floating Bar -->
-      <div class="narration-hud" id="narrationBar">
-        <div class="narration-wave-dot"></div>
-        <span class="narration-text" id="narrationText">AI Narration: Ready</span>
+      <!-- Dynamic Subtitles / Captions Pill -->
+      <div class="subtitles-bar-container">
+        <div class="subtitles-pill">
+          <div class="subtitles-speaker-icon">🎙️</div>
+          <div id="subtitles-text" class="subtitles-text">
+            Welcome to <span class="highlight">AttendX</span>! Let's complete your one-time facial biometric registration.
+          </div>
+        </div>
       </div>
 
     </div>
+  </main>
 
-    <!-- Timeline Dock Controls -->
-    <div id="controller-dock">
-      <div style="display:flex;align-items:center;gap:12px">
-        <button class="ctrl-btn ctrl-btn-primary" id="btnPlay">▶ Play Film</button>
-        <button class="ctrl-btn" id="btnRestart">↺ Restart</button>
-        <button class="ctrl-btn" id="btnVoiceToggle">🎙️ AI Voice: ON</button>
-      </div>
-
-      <div class="timeline-bar" id="timelineBar">
-        <div class="timeline-fill" id="timelineFill"></div>
-      </div>
-
-      <div style="display:flex;align-items:center;gap:8px">
-        <button class="ctrl-btn" onclick="seekTo(0)">0s</button>
-        <button class="ctrl-btn" onclick="seekTo(4.5)">4.5s</button>
-        <button class="ctrl-btn" onclick="seekTo(10.0)">10.0s</button>
-        <button class="ctrl-btn" onclick="seekTo(15.5)">15.5s</button>
-      </div>
-    </div>
+  <div id="controls">
+    <button id="btnPlay" class="btn-ctrl">Play / Pause</button>
+    <input type="range" id="time-slider" min="0" max="28.5" step="0.05" value="0">
+    <span id="time-display">00:00.0 / 00:28.5</span>
   </div>
 
-  <audio id="musicAudio" src="assets/music/happy-beats-business-moves-vol-10-by-ende-dot-app.mp3" preload="auto"></audio>
-
   <script>
-    // Audio Context for subtle UI SFX
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    let sfxCtx = null;
-    let voiceEnabled = true;
+    const compositionId = 'attendx-face-scan-tutorial';
+    window.__timelines = window.__timelines || {};
 
-    function initSfx() {
-      if (!sfxCtx) sfxCtx = new AudioCtx();
-      if (sfxCtx.state === 'suspended') sfxCtx.resume();
+    const tl = gsap.timeline({ paused: true });
+    window.__timelines[compositionId] = tl;
+
+    // Subtitle helper
+    const subText = document.getElementById('subtitles-text');
+    const headerStatus = document.getElementById('header-status-text');
+
+    function setSubtitle(html) {
+      subText.innerHTML = html;
     }
 
-    function playTone(freq, dur, vol = 0.1) {
-      if (!sfxCtx) return;
-      try {
-        const osc = sfxCtx.createOscillator();
-        const gain = sfxCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, sfxCtx.currentTime);
-        gain.gain.setValueAtTime(vol, sfxCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, sfxCtx.currentTime + dur);
-        osc.connect(gain);
-        gain.connect(sfxCtx.destination);
-        osc.start();
-        osc.stop(sfxCtx.currentTime + dur);
-      } catch(e){}
+    function setActivePhoto(id) {
+      document.querySelectorAll('.student-photo-layer').forEach(el => el.classList.remove('active'));
+      const target = document.getElementById(id);
+      if (target) target.classList.add('active');
     }
 
-    // Voice Narration via Web Speech Synthesis
-    const narrationLines = [
-      { start: 0.0, end: 4.5, text: "Taking roll call manually in a crowded lecture hall wastes 15 minutes of class time. With AttendX, attendance is verified in 1.8 seconds from a single photo." },
-      { start: 4.5, end: 10.0, text: "Our computer vision pipeline runs OpenCV YuNet for real-time 5-point facial landmark alignment, followed by SFace 128-dimensional unit-sphere vector matching against enrolled rosters." },
-      { start: 10.0, end: 15.5, text: "Teachers retain complete control with conservative 3-state classification. Verifying an ambiguous match immediately trains our active learning pool." },
-      { start: 15.5, end: 20.0, text: "AttendX. One photo, complete attendance. Built with FastAPI, OpenCV, and React." }
-    ];
-
-    let currentSpokenIndex = -1;
-
-    function speakNarration(text) {
-      if (!voiceEnabled || !('speechSynthesis' in window)) return;
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.rate = 1.05;
-      u.pitch = 1.0;
-      
-      // Look for natural English voice
-      const voices = window.speechSynthesis.getVoices();
-      const naturalVoice = voices.find(v => (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Enhanced') || v.lang.startsWith('en')) && !v.name.includes('Zira'));
-      if (naturalVoice) u.voice = naturalVoice;
-
-      window.speechSynthesis.speak(u);
+    function setStepState(stepId, state, statusText) {
+      const el = document.getElementById(stepId);
+      if (!el) return;
+      el.classList.remove('active-step', 'completed-step');
+      if (state === 'active') el.classList.add('active-step');
+      if (state === 'completed') el.classList.add('completed-step');
+      const badge = el.querySelector('.angle-status-badge');
+      if (badge) badge.innerText = statusText;
     }
 
-    // Timeline Configuration
-    const DURATION = 20.0;
-    let time = 0;
-    let isPlaying = false;
-    let lastT = null;
-    let flashed = false;
-    let chimePlayed = false;
+    // GSAP Timeline Definition (0s to 28.5s)
+    
+    // --- SCENE 1: Welcome & Registration (0.0s - 4.5s) ---
+    tl.to('#scene-1', { opacity: 1, duration: 0.6, ease: 'power2.out' }, 0.0)
+      .call(() => {
+        setSubtitle('Welcome to <span class="highlight">AttendX</span>! Here is how to complete your one-time facial biometric registration.');
+        headerStatus.innerText = 'Student Registration';
+      }, null, 0.0)
+      .from('.registration-form-card', { y: 30, opacity: 0, duration: 0.8, ease: 'back.out(1.4)' }, 0.4)
+      .call(() => {
+        setSubtitle('First, enter your <span class="highlight">Roll Number, Name, Department</span>, and create a secure password.');
+      }, null, 2.5)
+      .to('#scene-1', { opacity: 0, duration: 0.5, ease: 'power2.in' }, 4.2);
 
-    const musicAudio = document.getElementById('musicAudio');
-    const flashEffect = document.getElementById('flashEffect');
-    const emeraldAmbient = document.getElementById('emeraldAmbient');
-    const narrationText = document.getElementById('narrationText');
+    // --- SCENE 2: Camera Viewfinder & Setup (4.5s - 8.0s) ---
+    tl.to('#scene-2', { opacity: 1, duration: 0.6, ease: 'power2.out' }, 4.5)
+      .call(() => {
+        setSubtitle('Next, position your face inside the <span class="highlight-green">neural viewfinder</span> with good lighting.');
+        headerStatus.innerText = 'Live Facial Scan Viewfinder';
+        setActivePhoto('photo-front');
+      }, null, 4.5)
+      .from('.camera-hud-box', { scale: 0.85, opacity: 0, duration: 0.8, ease: 'power2.out' }, 4.6)
+      .from('.guidance-column', { x: 40, opacity: 0, duration: 0.8, ease: 'power2.out' }, 4.8)
+      .to('#laser-bar', { top: '80%', duration: 1.8, repeat: -1, yoyo: true, ease: 'sine.inOut' }, 4.5);
 
-    // Canvas Rendering
-    function drawViewfinder(t) {
-      const cvs = document.getElementById('viewfinderCanvas');
-      if (!cvs) return;
-      const ctx = cvs.getContext('2d');
-      ctx.clearRect(0, 0, cvs.width, cvs.height);
+    // --- SCENE 3: Step-by-Step 5-Angle Sequence (8.0s - 23.5s) ---
+    // Pose 1: Straight Ahead (8.0s - 11.5s)
+    tl.call(() => {
+      setSubtitle('Now follow the five guided angles: <span class="highlight">Step 1: Look straight ahead</span> into the camera.');
+      setActivePhoto('photo-front');
+      setStepState('step-1', 'active', 'CAPTURING (0°)...');
+      document.getElementById('telemetry-yaw').innerText = 'Yaw: 0.0°';
+      document.getElementById('telemetry-pitch').innerText = 'Pitch: 0.0°';
+    }, null, 8.0)
+    .call(() => {
+      setStepState('step-1', 'completed', '✓ VERIFIED');
+    }, null, 11.0);
 
-      ctx.fillStyle = '#0f1118';
-      ctx.fillRect(0, 0, cvs.width, cvs.height);
+    // Pose 2: Turn Left (11.5s - 14.5s)
+    tl.call(() => {
+      setSubtitle('<span class="highlight">Step 2: Turn your head slightly to the left</span> (-30° yaw).');
+      setActivePhoto('photo-left');
+      setStepState('step-2', 'active', 'CAPTURING (-30°)...');
+      document.getElementById('telemetry-yaw').innerText = 'Yaw: -28.4°';
+      document.getElementById('telemetry-pitch').innerText = 'Pitch: +1.2°';
+    }, null, 11.5)
+    .call(() => {
+      setStepState('step-2', 'completed', '✓ VERIFIED');
+    }, null, 14.0);
 
-      // Draw realistic desks and student silhouettes
-      const pts = [
-        { x: 90, y: 110, r: 18 },
-        { x: 200, y: 100, r: 17 },
-        { x: 310, y: 115, r: 19 },
-        { x: 410, y: 105, r: 18 },
-        { x: 140, y: 200, r: 24 },
-        { x: 260, y: 195, r: 25 },
-        { x: 380, y: 205, r: 23 },
-      ];
+    // Pose 3: Turn Right (14.5s - 17.5s)
+    tl.call(() => {
+      setSubtitle('<span class="highlight">Step 3: Turn your head slightly to the right</span> (+30° yaw).');
+      setActivePhoto('photo-right');
+      setStepState('step-3', 'active', 'CAPTURING (+30°)...');
+      document.getElementById('telemetry-yaw').innerText = 'Yaw: +29.1°';
+      document.getElementById('telemetry-pitch').innerText = 'Pitch: -0.8°';
+    }, null, 14.5)
+    .call(() => {
+      setStepState('step-3', 'completed', '✓ VERIFIED');
+    }, null, 17.0);
 
-      pts.forEach(p => {
-        // Torso
-        ctx.fillStyle = '#1c2033';
-        ctx.beginPath();
-        ctx.ellipse(p.x, p.y + p.r + 20, p.r * 1.4, p.r, 0, 0, Math.PI * 2);
-        ctx.fill();
-        // Head
-        ctx.fillStyle = '#2e3552';
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fill();
-      });
+    // Pose 4: Tilt Chin Down (17.5s - 20.5s)
+    tl.call(() => {
+      setSubtitle('<span class="highlight">Step 4: Tilt your chin slightly downwards</span> (-15° pitch).');
+      setActivePhoto('photo-down');
+      setStepState('step-4', 'active', 'CAPTURING (-15°)...');
+      document.getElementById('telemetry-yaw').innerText = 'Yaw: +1.0°';
+      document.getElementById('telemetry-pitch').innerText = 'Pitch: -14.6°';
+    }, null, 17.5)
+    .call(() => {
+      setStepState('step-4', 'completed', '✓ VERIFIED');
+    }, null, 20.0);
 
-      if (t >= 2.0) {
-        pts.forEach((p, idx) => {
-          if (t >= 2.0 + idx * 0.12) {
-            ctx.strokeStyle = '#10b981';
-            ctx.lineWidth = 1.5;
-            ctx.strokeRect(p.x - p.r - 2, p.y - p.r - 2, p.r * 2 + 4, p.r * 2 + 4);
+    // Pose 5: Natural Smile (20.5s - 23.5s)
+    tl.call(() => {
+      setSubtitle('<span class="highlight-green">Step 5: Give a natural smile</span> to complete expression capture.');
+      setActivePhoto('photo-smile');
+      setStepState('step-5', 'active', 'VERIFYING...');
+      document.getElementById('telemetry-yaw').innerText = 'Yaw: 0.0°';
+      document.getElementById('telemetry-pitch').innerText = 'Pitch: 0.0°';
+      document.getElementById('telemetry-conf').innerText = 'Liveness: 100%';
+    }, null, 20.5)
+    .call(() => {
+      setStepState('step-5', 'completed', '✓ VERIFIED');
+    }, null, 23.0)
+    .to('#scene-2', { opacity: 0, duration: 0.5, ease: 'power2.in' }, 23.5);
 
-            ctx.fillStyle = '#38bdf8';
-            ctx.fillRect(p.x - 5, p.y - 5, 2, 2);
-            ctx.fillRect(p.x + 5, p.y - 5, 2, 2);
-            ctx.fillRect(p.x, p.y, 2, 2);
-            ctx.fillRect(p.x - 3, p.y + 6, 2, 2);
-            ctx.fillRect(p.x + 3, p.y + 6, 2, 2);
-          }
-        });
-      }
+    // --- SCENE 4: Calibration Success & CTA (23.5s - 28.5s) ---
+    tl.to('#scene-3', { opacity: 1, duration: 0.6, ease: 'power2.out' }, 23.8)
+      .call(() => {
+        setSubtitle('🎉 <span class="highlight-green">Calibration complete!</span> You are now registered for instant attendance.');
+        headerStatus.innerText = 'Registration Activated';
+      }, null, 23.8)
+      .from('.success-card', { scale: 0.8, opacity: 0, duration: 0.7, ease: 'back.out(1.3)' }, 24.0)
+      .call(() => {
+        setSubtitle('Visit <span class="highlight">one-attendx.vercel.app/student/login</span> and register in under 60 seconds!');
+      }, null, 26.2);
+
+    // Audio Sync & Manual Controls
+    const audio = document.getElementById('bgAudio');
+    const playBtn = document.getElementById('btnPlay');
+    const slider = document.getElementById('time-slider');
+    const timeDisplay = document.getElementById('time-display');
+
+    function formatTime(s) {
+      const mins = Math.floor(s / 60);
+      const secs = (s % 60).toFixed(1);
+      return `${mins.toString().padStart(2, '0')}:${secs.padStart(4, '0')}`;
     }
 
-    function drawCVCanvas(t) {
-      const cvs = document.getElementById('cvCanvas');
-      if (!cvs) return;
-      const ctx = cvs.getContext('2d');
-      ctx.clearRect(0, 0, cvs.width, cvs.height);
+    tl.eventCallback('onUpdate', () => {
+      const curr = tl.time();
+      slider.value = curr;
+      timeDisplay.innerText = `${formatTime(curr)} / ${formatTime(tl.duration())}`;
+    });
 
-      ctx.fillStyle = '#080a10';
-      ctx.fillRect(0, 0, cvs.width, cvs.height);
-
-      const targets = [
-        { x: 80, y: 70, w: 64, h: 64, label: 'AS (0.94)', conf: '0.941' },
-        { x: 240, y: 65, w: 60, h: 60, label: 'PN (0.92)', conf: '0.918' },
-        { x: 400, y: 75, w: 66, h: 66, label: 'RK (0.89)', conf: '0.892' },
-        { x: 160, y: 170, w: 72, h: 72, label: 'SP (0.95)', conf: '0.954' },
-        { x: 340, y: 165, w: 70, h: 70, label: 'AD (0.41)', conf: '0.412', alert: true }
-      ];
-
-      targets.forEach(tgt => {
-        ctx.fillStyle = '#171c2e';
-        ctx.beginPath();
-        ctx.arc(tgt.x + tgt.w/2, tgt.y + tgt.h/2, tgt.w/2 - 4, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.strokeStyle = tgt.alert ? '#f59e0b' : '#06b6d4';
-        ctx.lineWidth = 1.8;
-        ctx.strokeRect(tgt.x, tgt.y, tgt.w, tgt.h);
-
-        const cx = tgt.x + tgt.w / 2;
-        const cy = tgt.y + tgt.h / 2;
-        ctx.fillStyle = '#fff';
-        ctx.beginPath();
-        ctx.arc(cx - 8, cy - 6, 2, 0, Math.PI * 2);
-        ctx.arc(cx + 8, cy - 6, 2, 0, Math.PI * 2);
-        ctx.arc(cx, cy + 2, 2, 0, Math.PI * 2);
-        ctx.arc(cx - 6, cy + 10, 2, 0, Math.PI * 2);
-        ctx.arc(cx + 6, cy + 10, 2, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = tgt.alert ? '#f59e0b' : '#10b981';
-        ctx.font = 'bold 10px "JetBrains Mono"';
-        ctx.fillText(tgt.label, tgt.x, tgt.y - 6);
-      });
-    }
-
-    // Main Update Loop
-    function frame(now) {
-      if (!lastT) lastT = now;
-      const dt = (now - lastT) / 1000;
-      lastT = now;
-
-      if (isPlaying) {
-        time += dt;
-        if (time >= DURATION) {
-          time = DURATION;
-          pause();
-        }
-      }
-
-      render(time);
-      requestAnimationFrame(frame);
-    }
-
-    function render(t) {
-      // Progress Bar
-      const pct = (t / DURATION) * 100;
-      document.getElementById('timelineFill').style.width = pct + '%';
-
-      const mm = String(Math.floor(t / 60)).padStart(2, '0');
-      const ss = String(Math.floor(t % 60)).padStart(2, '0');
-      const ms = String(Math.floor((t % 1) * 100)).padStart(2, '0');
-      document.getElementById('hudTimer').textContent = `${mm}:${ss}.${ms} / 00:20.00`;
-
-      // Scene Switching
-      const s1 = document.getElementById('scene1');
-      const s2 = document.getElementById('scene2');
-      const s3 = document.getElementById('scene3');
-      const s4 = document.getElementById('scene4');
-
-      [s1, s2, s3, s4].forEach(s => s.classList.remove('active'));
-
-      // Narration Sync
-      const lineIdx = narrationLines.findIndex(l => t >= l.start && t < l.end);
-      if (lineIdx !== -1) {
-        narrationText.textContent = narrationLines[lineIdx].text;
-        if (isPlaying && lineIdx !== currentSpokenIndex) {
-          currentSpokenIndex = lineIdx;
-          speakNarration(narrationLines[lineIdx].text);
-        }
-      }
-
-      if (t < 4.5) {
-        s1.classList.add('active');
-        drawViewfinder(t);
-
-        if (t >= 2.0 && !flashed) {
-          flashEffect.style.opacity = '1';
-          setTimeout(() => { flashEffect.style.opacity = '0'; }, 100);
-          playTone(880, 0.08, 0.15);
-          flashed = true;
-        }
-      } else if (t < 10.0) {
-        s2.classList.add('active');
-        drawCVCanvas(t);
-
-        ['row1', 'row2', 'row3', 'row4'].forEach((id, idx) => {
-          const el = document.getElementById(id);
-          if (t >= 5.0 + idx * 0.7) {
-            if (!el.classList.contains('visible')) {
-              el.classList.add('visible');
-              playTone(520 + idx * 100, 0.05, 0.08);
-            }
-          } else {
-            el.classList.remove('visible');
-          }
-        });
-      } else if (t < 15.5) {
-        s3.classList.add('active');
-
-        const toast = document.getElementById('activeToast');
-        const revCard = document.getElementById('reviewActionItem');
-
-        if (t >= 12.5) {
-          toast.classList.add('shown');
-          emeraldAmbient.style.opacity = '0.35';
-          revCard.style.borderColor = 'var(--accent-success)';
-          revCard.style.background = 'rgba(16, 185, 129, 0.1)';
-          if (!chimePlayed) {
-            playTone(1046.5, 0.15, 0.1);
-            chimePlayed = true;
-          }
-        } else {
-          toast.classList.remove('shown');
-          emeraldAmbient.style.opacity = '0';
-          revCard.style.borderColor = 'var(--accent-warning)';
-          revCard.style.background = 'var(--bg-inset)';
-          chimePlayed = false;
-        }
+    playBtn.addEventListener('click', () => {
+      if (tl.paused()) {
+        tl.play();
+        audio.currentTime = tl.time();
+        audio.play().catch(() => {});
+        playBtn.innerText = 'Pause';
       } else {
-        s4.classList.add('active');
-      }
-    }
-
-    function play() {
-      initSfx();
-      isPlaying = true;
-      document.getElementById('btnPlay').textContent = '❚❚ Pause';
-      try {
-        musicAudio.currentTime = time;
-        musicAudio.volume = 0.25; // Lower music to let AI voice be crystal clear
-        musicAudio.play();
-      } catch(e){}
-
-      // Speak current scene
-      const lineIdx = narrationLines.findIndex(l => time >= l.start && time < l.end);
-      if (lineIdx !== -1) {
-        currentSpokenIndex = lineIdx;
-        speakNarration(narrationLines[lineIdx].text);
-      }
-    }
-
-    function pause() {
-      isPlaying = false;
-      document.getElementById('btnPlay').textContent = '▶ Play Film';
-      try { musicAudio.pause(); } catch(e){}
-      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-    }
-
-    function seekTo(sec) {
-      time = sec;
-      flashed = sec >= 2.0;
-      chimePlayed = sec >= 12.5;
-      if (musicAudio) musicAudio.currentTime = sec;
-      currentSpokenIndex = -1;
-      if (isPlaying) {
-        const lineIdx = narrationLines.findIndex(l => time >= l.start && time < l.end);
-        if (lineIdx !== -1) {
-          currentSpokenIndex = lineIdx;
-          speakNarration(narrationLines[lineIdx].text);
-        }
-      }
-      render(time);
-    }
-
-    // UI Handlers
-    document.getElementById('btnPlay').addEventListener('click', () => {
-      if (isPlaying) pause();
-      else play();
-    });
-
-    document.getElementById('btnRestart').addEventListener('click', () => {
-      seekTo(0);
-      play();
-    });
-
-    document.getElementById('btnVoiceToggle').addEventListener('click', () => {
-      voiceEnabled = !voiceEnabled;
-      document.getElementById('btnVoiceToggle').textContent = voiceEnabled ? '🎙️ AI Voice: ON' : '🔇 AI Voice: OFF';
-      if (!voiceEnabled && 'speechSynthesis' in window) {
-        window.speechSynthesis.cancel();
-      } else if (voiceEnabled && isPlaying) {
-        const lineIdx = narrationLines.findIndex(l => time >= l.start && time < l.end);
-        if (lineIdx !== -1) speakNarration(narrationLines[lineIdx].text);
+        tl.pause();
+        audio.pause();
+        playBtn.innerText = 'Play';
       }
     });
 
-    document.getElementById('timelineBar').addEventListener('click', (e) => {
-      const r = e.currentTarget.getBoundingClientRect();
-      const clickSec = ((e.clientX - r.left) / r.width) * DURATION;
-      seekTo(clickSec);
+    slider.addEventListener('input', (e) => {
+      const val = parseFloat(e.target.value);
+      tl.pause();
+      tl.seek(val);
+      audio.currentTime = val;
+      playBtn.innerText = 'Play';
     });
-
-    // Start
-    requestAnimationFrame(frame);
   </script>
 </body>
 </html>

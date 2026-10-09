@@ -1,8 +1,11 @@
-Say goodbye to 15-minute roll calls. AttendX takes one classroom photo, runs YuNet + SFace face recognition, and gives you verified attendance in seconds. 📸✨
+# AttendX Student Facial Scan Onboarding Guide (Share Copy)
 
-• Real-time 5-point face alignment & 128-d L2 cosine matching
-• Conservative 3-state classification (Present / Review / Unknown)
-• Teacher-in-the-loop active feedback loop
-• Instant multi-sheet Excel export
+🎥 Video Tutorial: Student Face ID Calibration in 5 Easy Steps
+🔗 Portal Link: https://one-attendx.vercel.app/student/login
 
-Check it out: https://github.com/Iamudt19/Attendx
+📌 Quick Summary:
+1. Open the portal & click "Self-Enroll".
+2. Fill your Student ID, Name, Roll No & Class, then create a Password.
+3. Allow camera access.
+4. Complete the 5 guided face angles (Front, Left, Right, Chin down, Smile).
+5. Done! Your biometric profile is instantly active for automated 1.8s classroom attendance.
