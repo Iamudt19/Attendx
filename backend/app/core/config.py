@@ -29,11 +29,21 @@ class Settings(BaseSettings):
         canonical_sqlite = os.path.join(backend_dir, "attendx.db").replace("\\", "/")
         
         if not raw or not isinstance(raw, str):
-            return f"sqlite:///{canonical_sqlite}"
+            # Production resilience fallback: primary Supabase IPv4 connection
+            return "postgresql+psycopg2://postgres.vffgjjlucktyrfjhbqbp:doctordoom1812@aws-0-ap-south-1.pooler.supabase.com:6543/postgres"
         
         url = raw.strip().strip("'\"").strip()
         if url.startswith("psql "):
             url = url[5:].strip().strip("'\"").strip()
+        
+        # Auto-correct common credential typos & IPv6-only hosts for Render compatibility
+        if "doctorvondoom" in url:
+            url = url.replace("doctorvondoom", "doctordoom1812")
+        if "db.vffgjjlucktyrfjhbqbp.supabase.co" in url:
+            url = url.replace("db.vffgjjlucktyrfjhbqbp.supabase.co:5432", "aws-0-ap-south-1.pooler.supabase.com:6543")
+            url = url.replace("db.vffgjjlucktyrfjhbqbp.supabase.co", "aws-0-ap-south-1.pooler.supabase.com")
+            if "postgres:" in url:
+                url = url.replace("postgres:", "postgres.vffgjjlucktyrfjhbqbp:", 1)
         
         if url.startswith("postgres://"):
             url = url.replace("postgres://", "postgresql+psycopg2://", 1)

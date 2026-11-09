@@ -8,7 +8,7 @@ from datetime import datetime
 # Configure database URL from env or fallback
 DB_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres.vffgjjlucktyrfjhbqbp:doctorvondoom1812@aws-0-ap-south-1.pooler.supabase.com:6543/postgres"
+    "postgresql://postgres.vffgjjlucktyrfjhbqbp:doctordoom1812@aws-0-ap-south-1.pooler.supabase.com:6543/postgres"
 )
 
 class DateTimeEncoder(json.JSONEncoder):

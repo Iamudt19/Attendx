@@ -95,6 +95,8 @@ class Student(Base):
     # Student portal login credentials
     password_hash = Column(String(255), nullable=True)  # Set when student account is activated
     face_registration_complete = Column(Boolean, default=False)
+    is_deleted = Column(Boolean, default=False)
+    deleted_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     institution = relationship("Institution", back_populates="students")
@@ -120,11 +122,39 @@ class FaceEmbedding(Base):
     student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
     embedding = Column(JSON, nullable=False) # Array of floats representing 128-d embedding
     source_image = Column(String(255), nullable=True)
+    image_base64 = Column(Text, nullable=True) # Direct Base64 thumbnail data URI (resilient against ephemeral disk loss)
     angle_label = Column(String(50), nullable=True)  # e.g. 'front', 'left', 'right', 'chin_down', 'smile'
     source = Column(String(50), default="portal_scan")  # 'portal_scan', 'teacher_verified', 'manual_upload'
+    is_deleted = Column(Boolean, default=False)
+    deleted_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     student = relationship("Student", back_populates="embeddings")
+
+class ImmutableFaceVault(Base):
+    """
+    Indestructible Face Biometric Vault.
+    Stores every face vector and thumbnail image ever registered.
+    Records in this table are append-only and NEVER deleted, ensuring biometric
+    identity cannot be lost across server restarts, container redeployments,
+    or accidental student profile deletions.
+    """
+    __tablename__ = "immutable_face_vault"
+
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(String(50), index=True, nullable=False) # e.g. STU001 or roll number
+    student_db_id = Column(Integer, nullable=True)
+    student_name = Column(String(100), nullable=False)
+    roll_number = Column(String(50), nullable=True)
+    class_id = Column(Integer, nullable=True)
+    institution_id = Column(Integer, nullable=True)
+    embedding = Column(JSON, nullable=False) # 128-d biometric vector
+    image_base64 = Column(Text, nullable=True) # Direct Base64 data URI (never lost)
+    source_image = Column(String(255), nullable=True)
+    angle_label = Column(String(50), nullable=True)
+    source = Column(String(50), default="portal_scan")
+    is_active = Column(Boolean, default=True)
+    archived_at = Column(DateTime, default=datetime.datetime.utcnow)
 
 class AttendanceSession(Base):
     __tablename__ = "attendance_sessions"
@@ -152,6 +182,7 @@ class AttendanceRecord(Base):
     status = Column(String(20), nullable=False) # PRESENT, ABSENT
     confidence = Column(Float, default=0.0)
     verification_status = Column(String(30), default="AUTO") # AUTO, TEACHER_VERIFIED, MANUAL
+    is_deleted = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     session = relationship("AttendanceSession", back_populates="records")

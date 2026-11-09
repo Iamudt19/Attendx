@@ -89,3 +89,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
+# Backups & Journals (Keep latest mirror)
+backups/attendx_backup_20*.json
+backups/events_journal.jsonl

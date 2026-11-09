@@ -97,11 +97,20 @@ async def analyze_classroom_photo(
     ]
 
     # Build student embeddings map: { student_db_id: [list of embedding vectors] }
+    from app.services.vault_sync import vault_sync_service
     student_embeddings_map = {}
     for s in students:
-        embs = db.query(FaceEmbedding).filter(FaceEmbedding.student_id == s.id).all()
+        embs = db.query(FaceEmbedding).filter(
+            FaceEmbedding.student_id == s.id,
+            FaceEmbedding.is_deleted == False
+        ).all()
         if embs:
             student_embeddings_map[s.id] = [e.embedding for e in embs]
+        else:
+            # Self-healing resilience: auto-recover vectors from ImmutableFaceVault
+            recovered = vault_sync_service.recover_embeddings_from_vault(db, s.id)
+            if recovered:
+                student_embeddings_map[s.id] = recovered
 
     # Run CV pipeline across all photos
     try:

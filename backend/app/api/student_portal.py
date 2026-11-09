@@ -356,14 +356,31 @@ async def submit_face_frame(
     except Exception:
         saved_path = None  # Non-fatal; embedding is still stored
 
-    # Store embedding with angle/training label
+    # Store embedding with angle/training label and Base64 thumbnail
+    from app.services.vault_sync import vault_sync_service
+    b64_face = vault_sync_service.encode_face_to_base64(cropped_face)
+
     face_emb = FaceEmbedding(
         student_id=student.id,
         embedding=embedding,
         source_image=saved_path,
-        angle_label=clean_angle
+        image_base64=b64_face,
+        angle_label=clean_angle,
+        source="portal_scan",
+        is_deleted=False
     )
     db.add(face_emb)
+
+    # Mirror into ImmutableFaceVault (zero-data-loss biometric archive)
+    vault_sync_service.archive_biometric_face(
+        db=db,
+        student=student,
+        embedding=embedding,
+        image_base64=b64_face,
+        source_image=saved_path,
+        angle_label=clean_angle,
+        source="portal_scan"
+    )
 
     # Check if baseline required angles are covered
     db.flush()
@@ -377,6 +394,12 @@ async def submit_face_frame(
 
     db.commit()
     db.refresh(student)
+
+    # Trigger background snapshot update
+    try:
+        vault_sync_service.run_snapshot_backup(db)
+    except Exception:
+        pass
 
     new_total = len(student.embeddings)
     new_level, new_score = _calculate_training_stats(new_total)

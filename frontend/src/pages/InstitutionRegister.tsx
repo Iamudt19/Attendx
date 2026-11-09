@@ -288,3 +288,4 @@ export const InstitutionRegister: React.FC = () => {
     </div>
   );
 };
+

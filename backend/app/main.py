@@ -1,4 +1,6 @@
 import os
+import asyncio
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -11,10 +13,50 @@ from app.api import auth, classes, subjects, students, attendance, export, stude
 # Create DB tables
 Base.metadata.create_all(bind=engine)
 
+async def vault_guardian_loop():
+    """
+    Background anti-pause guardian loop.
+    Pings Supabase PostgreSQL periodically to prevent the free-tier 7-day inactivity pause,
+    and updates the local snapshot backup in backups/attendx_backup_latest.json.
+    """
+    from app.database.session import SessionLocal
+    from app.services.vault_sync import vault_sync_service
+    from app.models.models import SystemHeartbeat
+    import datetime
+
+    # Initial grace period on boot
+    await asyncio.sleep(15)
+
+    while True:
+        try:
+            db = SessionLocal()
+            try:
+                # 1. Keep-alive heartbeat ping to Supabase
+                beat = SystemHeartbeat(worker_id="app-lifespan-guardian", status="HEALTHY")
+                db.add(beat)
+                db.commit()
+                # 2. Local snapshot backup
+                vault_sync_service.run_snapshot_backup(db)
+                print(f"🛡️ [VAULT GUARDIAN] Keep-alive ping & snapshot backup completed at {datetime.datetime.utcnow().isoformat()}")
+            finally:
+                db.close()
+        except Exception as e:
+            print(f"⚠️ [VAULT GUARDIAN] Background cycle notice: {e}")
+
+        # Sleep for 4 hours (14400 seconds)
+        await asyncio.sleep(14400)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    guardian_task = asyncio.create_task(vault_guardian_loop())
+    yield
+    guardian_task.cancel()
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     description="AttendX — AI-Powered Classroom Attendance System API",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # CORS Middleware setup

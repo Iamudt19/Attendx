@@ -4,7 +4,7 @@ import json
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
-DEFAULT_DB_URL = "postgresql://postgres.vffgjjlucktyrfjhbqbp:doctorvondoom1812@aws-0-ap-south-1.pooler.supabase.com:6543/postgres"
+DEFAULT_DB_URL = "postgresql://postgres.vffgjjlucktyrfjhbqbp:doctordoom1812@aws-0-ap-south-1.pooler.supabase.com:6543/postgres"
 
 def restore_backup(backup_file=None):
     db_url = os.getenv("DATABASE_URL", DEFAULT_DB_URL)
@@ -21,20 +21,25 @@ def restore_backup(backup_file=None):
         data = json.load(f)
 
     # Sanitize URL: if port is 5432 and host is direct, ensure pooler host is used
+    if "doctorvondoom" in db_url:
+        db_url = db_url.replace("doctorvondoom", "doctordoom1812")
     print(f"[CONNECT] Connecting to database...")
     conn = psycopg2.connect(db_url)
     cur = conn.cursor()
 
     tables_order = [
+        'institutions',
         'users', 
         'classes', 
         'subjects', 
         'students', 
         'enrollments', 
         'face_embeddings', 
+        'immutable_face_vault',
         'attendance_sessions', 
         'attendance_records',
-        'attendance_audit_logs'
+        'attendance_audit_logs',
+        'system_heartbeats'
     ]
     
     # Ensure all newer schema columns exist before restoring

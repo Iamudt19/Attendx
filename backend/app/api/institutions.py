@@ -213,3 +213,4 @@ def trigger_keep_alive_heartbeat(db: Session = Depends(get_db)):
         "heartbeat_id": beat.id,
         "pinged_at": beat.pinged_at.isoformat()
     }
+

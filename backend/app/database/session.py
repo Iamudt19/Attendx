@@ -32,6 +32,19 @@ def create_safe_engine(target_url: str):
             return eng
         except Exception as conn_err:
             print(f"⚠️ Remote Database Connection Failed ({target_url}): {conn_err}")
+            # Try connecting directly to the resilient Supabase pooler
+            fallback_remote = "postgresql+psycopg2://postgres.vffgjjlucktyrfjhbqbp:doctordoom1812@aws-0-ap-south-1.pooler.supabase.com:6543/postgres"
+            if target_url != fallback_remote:
+                try:
+                    print("🔄 Retrying with primary Supabase pooler resilience endpoint...")
+                    fb_eng = create_engine(fallback_remote, pool_pre_ping=True)
+                    with fb_eng.connect() as conn:
+                        conn.execute(text("SELECT 1"))
+                    print("✅ Successfully recovered connection via primary Supabase pooler!")
+                    return fb_eng
+                except Exception as fb_err:
+                    print(f"⚠️ Primary pooler retry also failed: {fb_err}")
+
             print("🔄 Falling back to local SQLite engine (attendx.db) to ensure high availability.")
             return create_engine(
                 "sqlite:///./attendx.db",
@@ -60,6 +73,32 @@ def run_auto_migrations(target_engine):
                 if "approved_at" not in existing_cols and len(existing_cols) > 0:
                     conn.execute(text("ALTER TABLE users ADD COLUMN approved_at TIMESTAMP"))
                     conn.commit()
+                # Face embeddings & students in SQLite
+                res_f = conn.execute(text("PRAGMA table_info(face_embeddings)")).fetchall()
+                f_cols = {row[1] for row in res_f}
+                if "image_base64" not in f_cols and len(f_cols) > 0:
+                    conn.execute(text("ALTER TABLE face_embeddings ADD COLUMN image_base64 TEXT"))
+                if "is_deleted" not in f_cols and len(f_cols) > 0:
+                    conn.execute(text("ALTER TABLE face_embeddings ADD COLUMN is_deleted BOOLEAN DEFAULT 0"))
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS immutable_face_vault (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        student_id VARCHAR(50) NOT NULL,
+                        student_db_id INTEGER,
+                        student_name VARCHAR(100) NOT NULL,
+                        roll_number VARCHAR(50),
+                        class_id INTEGER,
+                        institution_id INTEGER,
+                        embedding TEXT NOT NULL,
+                        image_base64 TEXT,
+                        source_image VARCHAR(255),
+                        angle_label VARCHAR(50),
+                        source VARCHAR(50) DEFAULT 'portal_scan',
+                        is_active BOOLEAN DEFAULT 1,
+                        archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    );
+                """))
+                conn.commit()
             elif target_engine.dialect.name == "postgresql":
                 # Ensure institutions table exists
                 conn.execute(text("""
@@ -123,7 +162,57 @@ def run_auto_migrations(target_engine):
                 # Face Embeddings & Records
                 conn.execute(text("ALTER TABLE face_embeddings ADD COLUMN IF NOT EXISTS angle_label VARCHAR(50)"))
                 conn.execute(text("ALTER TABLE face_embeddings ADD COLUMN IF NOT EXISTS source VARCHAR(50) DEFAULT 'portal_scan'"))
+                conn.execute(text("ALTER TABLE face_embeddings ADD COLUMN IF NOT EXISTS image_base64 TEXT"))
+                conn.execute(text("ALTER TABLE face_embeddings ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE"))
+                conn.execute(text("ALTER TABLE face_embeddings ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP"))
+                conn.execute(text("ALTER TABLE students ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE"))
+                conn.execute(text("ALTER TABLE students ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP"))
                 conn.execute(text("ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS verification_status VARCHAR(30) DEFAULT 'AUTO'"))
+                conn.execute(text("ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE"))
+
+                # Indestructible Face Biometric Vault
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS immutable_face_vault (
+                        id SERIAL PRIMARY KEY,
+                        student_id VARCHAR(50) NOT NULL,
+                        student_db_id INTEGER,
+                        student_name VARCHAR(100) NOT NULL,
+                        roll_number VARCHAR(50),
+                        class_id INTEGER,
+                        institution_id INTEGER,
+                        embedding JSON NOT NULL,
+                        image_base64 TEXT,
+                        source_image VARCHAR(255),
+                        angle_label VARCHAR(50),
+                        source VARCHAR(50) DEFAULT 'portal_scan',
+                        is_active BOOLEAN DEFAULT TRUE,
+                        archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    );
+                """))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS idx_vault_student_id ON immutable_face_vault(student_id);"))
+
+                # Backfill vault from existing face_embeddings if vault is empty
+                res_v = conn.execute(text("SELECT COUNT(*) FROM immutable_face_vault")).fetchone()
+                if res_v and res_v[0] == 0:
+                    conn.execute(text("""
+                        INSERT INTO immutable_face_vault (student_id, student_db_id, student_name, roll_number, class_id, institution_id, embedding, source_image, angle_label, source, is_active, archived_at)
+                        SELECT 
+                            s.student_id,
+                            s.id AS student_db_id,
+                            s.name AS student_name,
+                            s.roll_number,
+                            s.class_id,
+                            s.institution_id,
+                            fe.embedding,
+                            fe.source_image,
+                            COALESCE(fe.angle_label, 'front'),
+                            COALESCE(fe.source, 'portal_scan'),
+                            TRUE,
+                            COALESCE(fe.created_at, CURRENT_TIMESTAMP)
+                        FROM face_embeddings fe
+                        JOIN students s ON s.id = fe.student_id
+                        ON CONFLICT DO NOTHING;
+                    """))
                 conn.commit()
     except Exception as e:
         print(f"Auto-migration notice (non-fatal): {e}")
