@@ -12,6 +12,7 @@ import { StudentDetail } from './pages/StudentDetail';
 import { Classes } from './pages/Classes';
 import { StudentPortal } from './pages/StudentPortal';
 import { AdminPortal } from './pages/AdminPortal';
+import { InstitutionRegister } from './pages/InstitutionRegister';
 import { HeroLanding } from './pages/HeroLanding';
 import { AuthService } from './services/api';
 import { User, AttendanceAnalysisResponse } from './types';
@@ -121,6 +122,7 @@ const AppContent: React.FC = () => {
         {/* Public Landing & Hero Pages */}
         <Route path="/" element={<HeroLanding />} />
         <Route path="/landing" element={<HeroLanding />} />
+        <Route path="/register/institution" element={<InstitutionRegister />} />
 
         {/* Admin & Student Portals */}
         <Route path="/admin/*" element={<AdminPortalRoot />} />

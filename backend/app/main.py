@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from app.core.config import settings
 from app.database.session import Base, engine, get_db
-from app.api import auth, classes, subjects, students, attendance, export, student_portal
+from app.api import auth, classes, subjects, students, attendance, export, student_portal, institutions
 
 # Create DB tables
 Base.metadata.create_all(bind=engine)
@@ -54,6 +54,7 @@ app.include_router(students.router, prefix="/api")
 app.include_router(attendance.router, prefix="/api")
 app.include_router(export.router, prefix="/api")
 app.include_router(student_portal.router, prefix="/api")
+app.include_router(institutions.router, prefix="/api")
 
 @app.get("/")
 def root():

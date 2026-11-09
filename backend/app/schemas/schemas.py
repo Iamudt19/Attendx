@@ -20,6 +20,8 @@ class UserCreate(BaseModel):
     email: str
     password: str
     role: str = "TEACHER"
+    institution_id: Optional[int] = 1
+    department: Optional[str] = None
     assigned_classes: Optional[List[int]] = []
 
 class UserOut(BaseModel):
@@ -33,6 +35,9 @@ class UserOut(BaseModel):
     is_approved: bool = True
     approved_at: Optional[datetime] = None
     approved_by: Optional[int] = None
+    institution_id: Optional[int] = None
+    department: Optional[str] = None
+    status: Optional[str] = "APPROVED"
     created_at: Optional[datetime] = None
 
 class TeacherApprovalItem(BaseModel):
@@ -44,6 +49,9 @@ class TeacherApprovalItem(BaseModel):
     role: str
     assigned_classes: Optional[List[int]] = []
     is_approved: bool
+    institution_id: Optional[int] = None
+    department: Optional[str] = None
+    status: Optional[str] = "PENDING_APPROVAL"
     created_at: Optional[datetime] = None
 
 class TeacherClassAssignRequest(BaseModel):
@@ -67,6 +75,7 @@ class ClassOut(BaseModel):
     name: str
     section: str
     academic_year: str
+    institution_id: Optional[int] = 1
     student_count: Optional[int] = 0
 
 # Subject Schemas
@@ -94,7 +103,9 @@ class StudentCreate(BaseModel):
     name: str
     roll_number: str
     class_id: int
+    institution_id: Optional[int] = 1
     email: Optional[str] = None
+    approval_status: Optional[str] = "APPROVED"
 
 class StudentOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -104,8 +115,10 @@ class StudentOut(BaseModel):
     name: str
     roll_number: str
     class_id: int
+    institution_id: Optional[int] = 1
     email: Optional[str] = None
     active: bool
+    approval_status: Optional[str] = "APPROVED"
     face_count: Optional[int] = 0
     attendance_percentage: Optional[float] = 100.0
     face_registration_complete: Optional[bool] = False
@@ -137,6 +150,7 @@ class StudentSelfRegisterRequest(BaseModel):
     name: str               # Full name
     roll_number: str        # Roll number
     class_id: int           # Selected class
+    institution_id: Optional[int] = 1
     email: Optional[str] = None
     password: Optional[str] = None  # If None, defaults to student_id
 
@@ -151,6 +165,8 @@ class StudentPortalTokenResponse(BaseModel):
     student_id: str
     name: str
     face_registration_complete: bool
+    approval_status: Optional[str] = "APPROVED"
+    institution_id: Optional[int] = 1
 
 # Angle labels for the guided face scan wizard
 SCAN_ANGLES = ["front", "left", "right", "chin_down", "smile"]
@@ -338,4 +354,83 @@ class StudentAttendanceDashboardResponse(BaseModel):
     monthly_analytics: List[StudentMonthlyStats]
 
 TokenResponse.model_rebuild()
+
+# ── Multi-Tenant & Hierarchical Institution Schemas ──────────────────────────
+
+class InstitutionCreate(BaseModel):
+    name: str
+    code: str
+    official_email: str
+    domain: Optional[str] = None
+    address: Optional[str] = None
+
+class InstitutionRegisterRequest(BaseModel):
+    # Institution details
+    institution_name: str
+    institution_code: str
+    official_email: str
+    domain: Optional[str] = None
+    address: Optional[str] = None
+    # Institution Administrator account
+    admin_name: str
+    admin_email: str
+    admin_password: str
+
+class InstitutionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    code: str
+    official_email: str
+    domain: Optional[str] = None
+    address: Optional[str] = None
+    status: str
+    created_at: Optional[datetime] = None
+    approved_at: Optional[datetime] = None
+    approved_by: Optional[str] = None
+    teacher_count: Optional[int] = 0
+    student_count: Optional[int] = 0
+    class_count: Optional[int] = 0
+
+class InstitutionApproveAction(BaseModel):
+    action: str  # 'APPROVE', 'REJECT', 'SUSPEND'
+    reason: Optional[str] = None
+
+class TeacherInstitutionSignup(BaseModel):
+    name: str
+    email: str
+    password: str
+    institution_id: int
+    department: Optional[str] = None
+    assigned_classes: Optional[List[int]] = []
+
+class StudentApprovalItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    student_id: str
+    name: str
+    roll_number: str
+    class_id: int
+    class_name: Optional[str] = None
+    section: Optional[str] = None
+    institution_id: Optional[int] = None
+    email: Optional[str] = None
+    approval_status: str
+    face_registration_complete: bool = False
+    created_at: Optional[datetime] = None
+
+class StudentApprovalAction(BaseModel):
+    action: str  # 'APPROVE', 'REJECT'
+    reason: Optional[str] = None
+
+class SystemHeartbeatOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    worker_id: str
+    pinged_at: datetime
+    status: str
+    latency_ms: Optional[float] = None
 

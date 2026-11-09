@@ -40,6 +40,9 @@ def register(req: UserCreate, db: Session = Depends(get_db)):
             email=req.email.lower().strip(),
             password_hash=get_password_hash(req.password),
             role=role,
+            institution_id=req.institution_id or 1,
+            department=req.department.strip() if req.department else None,
+            status="PENDING_APPROVAL" if role == "TEACHER" else "APPROVED",
             assigned_classes=req.assigned_classes or [],
             is_approved=is_approved,
             created_at=datetime.datetime.utcnow()
@@ -143,14 +146,18 @@ def get_pending_teachers(
     """List all educator accounts waiting for administrator approval."""
     caller_id = token_payload.get("sub")
     caller = db.query(User).filter(User.id == int(caller_id)).first()
-    if not caller or caller.role != "ADMIN":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
+    allowed_roles = ["ADMIN", "SUPER_ADMIN", "INSTITUTION_ADMIN"]
+    if not caller or caller.role not in allowed_roles:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Administrator access required.")
 
-    pending = db.query(User).filter(
+    query = db.query(User).filter(
         User.role == "TEACHER",
         User.is_approved == False
-    ).order_by(User.created_at.desc()).all()
+    )
+    if caller.role == "INSTITUTION_ADMIN" and caller.institution_id:
+        query = query.filter(User.institution_id == caller.institution_id)
 
+    pending = query.order_by(User.created_at.desc()).all()
     return pending
 
 @router.post("/approve-teacher/{teacher_id}", response_model=UserOut)
@@ -163,14 +170,19 @@ def approve_teacher(
     """Approve a pending teacher account."""
     caller_id = token_payload.get("sub")
     caller = db.query(User).filter(User.id == int(caller_id)).first()
-    if not caller or caller.role != "ADMIN":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
+    allowed_roles = ["ADMIN", "SUPER_ADMIN", "INSTITUTION_ADMIN"]
+    if not caller or caller.role not in allowed_roles:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Administrator access required.")
 
     teacher = db.query(User).filter(User.id == teacher_id).first()
     if not teacher:
         raise HTTPException(status_code=404, detail="Teacher account not found.")
 
+    if caller.role == "INSTITUTION_ADMIN" and caller.institution_id and teacher.institution_id != caller.institution_id:
+        raise HTTPException(status_code=403, detail="You can only approve faculty for your own institution.")
+
     teacher.is_approved = True
+    teacher.status = "APPROVED"
     teacher.approved_by = caller.id
     teacher.approved_at = datetime.datetime.utcnow()
     if req_body and req_body.assigned_classes is not None:

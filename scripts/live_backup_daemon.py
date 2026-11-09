@@ -8,7 +8,7 @@ from datetime import datetime
 
 DB_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://postgres.lwyrhqgfnlzhbvnezcyd:doctorvondoom1812@aws-1-ap-south-1.pooler.supabase.com:5432/postgres"
+    "postgresql://postgres.vffgjjlucktyrfjhbqbp:doctorvondoom1812@aws-0-ap-south-1.pooler.supabase.com:6543/postgres"
 )
 
 INTERVAL_SECONDS = int(os.getenv("BACKUP_INTERVAL_SECONDS", "300"))  # Default: every 5 minutes

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, s
 from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.models.models import Student, FaceEmbedding, AttendanceRecord, AttendanceSession, User
-from app.schemas.schemas import StudentCreate, StudentOut, FaceRegistrationResult
+from app.schemas.schemas import StudentCreate, StudentOut, FaceRegistrationResult, StudentApprovalItem, StudentApprovalAction
 from app.core.security import get_current_user_token
 from app.core.storage import storage_service
 from app.cv.detector import face_detector
@@ -208,3 +208,88 @@ def delete_student(student_id: int, db: Session = Depends(get_db), token: dict =
     db.delete(student)
     db.commit()
     return {"message": f"Student '{student.name}' successfully deleted."}
+
+# ── Hierarchical Student Enrollment Approval Flow ─────────────────────────────
+
+@router.get("/pending-approval", response_model=List[StudentApprovalItem])
+def get_pending_students(
+    class_id: Optional[int] = None, 
+    token: dict = Depends(get_current_user_token), 
+    db: Session = Depends(get_db)
+):
+    """List student accounts waiting for educator approval into class rosters."""
+    caller_id = token.get("sub")
+    caller = db.query(User).filter(User.id == int(caller_id)).first() if caller_id else None
+
+    query = db.query(Student).filter(Student.approval_status == "PENDING_APPROVAL")
+    if class_id:
+        query = query.filter(Student.class_id == class_id)
+    elif caller and caller.role == "TEACHER" and caller.assigned_classes and len(caller.assigned_classes) > 0:
+        query = query.filter(Student.class_id.in_(caller.assigned_classes))
+    elif caller and caller.institution_id:
+        query = query.filter(Student.institution_id == caller.institution_id)
+
+    pending = query.order_by(Student.created_at.desc()).all()
+    results = []
+    for s in pending:
+        c = s.class_obj
+        results.append(StudentApprovalItem(
+            id=s.id,
+            student_id=s.student_id,
+            name=s.name,
+            roll_number=s.roll_number,
+            class_id=s.class_id,
+            class_name=c.name if c else None,
+            section=c.section if c else None,
+            institution_id=s.institution_id,
+            email=s.email,
+            approval_status=s.approval_status,
+            face_registration_complete=s.face_registration_complete,
+            created_at=s.created_at
+        ))
+    return results
+
+@router.post("/{student_id}/approve")
+def approve_student_enrollment(
+    student_id: int, 
+    token: dict = Depends(get_current_user_token), 
+    db: Session = Depends(get_db)
+):
+    """Educator: Approve a student's enrollment into the class roster."""
+    caller_id = token.get("sub")
+    caller = db.query(User).filter(User.id == int(caller_id)).first() if caller_id else None
+
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    student.approval_status = "APPROVED"
+    student.approved_by_teacher_id = caller.id if caller else None
+    student.active = True
+    db.commit()
+    return {
+        "status": "success",
+        "message": f"Student '{student.name}' ({student.roll_number}) approved into class roster.",
+        "student_id": student.id
+    }
+
+@router.post("/{student_id}/reject")
+def reject_student_enrollment(
+    student_id: int, 
+    action_req: Optional[StudentApprovalAction] = None,
+    token: dict = Depends(get_current_user_token), 
+    db: Session = Depends(get_db)
+):
+    """Educator: Reject or remove a student from the class roster."""
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    student.approval_status = "REJECTED"
+    student.active = False
+    db.commit()
+    return {
+        "status": "success",
+        "message": f"Student '{student.name}' enrollment marked as REJECTED.",
+        "student_id": student.id
+    }

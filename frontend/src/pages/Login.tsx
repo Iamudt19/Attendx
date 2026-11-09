@@ -5,7 +5,7 @@ import {
   BookOpen
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { AuthService } from '../services/api';
+import { AuthService, InstitutionService, InstitutionItem } from '../services/api';
 import { User, ClassItem } from '../types';
 import { extractErrorMessage } from '../utils/error';
 import { Logo } from '../components/Logo';
@@ -32,6 +32,9 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [regPassword, setRegPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<'TEACHER'>('TEACHER');
+  const [department, setDepartment] = useState('');
+  const [institutions, setInstitutions] = useState<InstitutionItem[]>([]);
+  const [selectedInstitutionId, setSelectedInstitutionId] = useState<number>(1);
   const [availableClasses, setAvailableClasses] = useState<ClassItem[]>([]);
   const [selectedClasses, setSelectedClasses] = useState<number[]>([]);
 
@@ -40,6 +43,15 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   useEffect(() => {
+    InstitutionService.getApprovedInstitutions()
+      .then(insts => {
+        setInstitutions(insts || []);
+        if (insts && insts.length > 0) {
+          setSelectedInstitutionId(insts[0].id);
+        }
+      })
+      .catch(() => {});
+
     AuthService.getPublicClasses()
       .then(data => {
         setAvailableClasses(data || []);
@@ -95,7 +107,11 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         email: regEmail.trim(),
         password: regPassword,
         role: 'TEACHER',
-        assigned_classes: selectedClasses
+        assigned_classes: selectedClasses,
+        ...({
+          institution_id: selectedInstitutionId,
+          department: department.trim() || undefined
+        } as any)
       });
       if (data.user?.is_approved && data.access_token) {
         localStorage.setItem('attendx_token', data.access_token);
@@ -321,6 +337,57 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
               </form>
             ) : (
               <form onSubmit={handleSignUp} className="space-y-4">
+                {/* Institution Selector */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className={`block text-xs font-semibold uppercase tracking-wider ${
+                      isDark ? 'text-zinc-300' : 'text-slate-700'
+                    }`}>
+                      Academic Institution *
+                    </label>
+                    <a
+                      href="/register/institution"
+                      className="text-[11px] text-emerald-400 hover:underline font-mono"
+                    >
+                      + Register Campus
+                    </a>
+                  </div>
+                  <select
+                    value={selectedInstitutionId}
+                    onChange={(e) => setSelectedInstitutionId(Number(e.target.value))}
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none ${
+                      isDark 
+                        ? 'bg-black/60 border border-white/15 text-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20' 
+                        : 'bg-slate-50/50 border border-slate-200 text-slate-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
+                    }`}
+                  >
+                    {institutions.map(inst => (
+                      <option key={inst.id} value={inst.id} className="bg-zinc-900 text-white">
+                        {inst.name} ({inst.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${
+                    isDark ? 'text-zinc-300' : 'text-slate-700'
+                  }`}>
+                    Department / Faculty (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                    placeholder="e.g. Department of Computer Science & Engineering"
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none ${
+                      isDark 
+                        ? 'bg-black/60 border border-white/15 text-white placeholder-zinc-500 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20' 
+                        : 'bg-slate-50/50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
+                    }`}
+                  />
+                </div>
+
                 <div>
                   <label className={`block text-xs font-semibold uppercase tracking-wider mb-1.5 ${
                     isDark ? 'text-zinc-300' : 'text-slate-700'

@@ -574,3 +574,98 @@ export const StudentPortalService = {
     await studentApi.delete('/student/face-scan/reset');
   }
 };
+
+// ── Multi-Tenant Institution & Approval Service ──────────────────────────────
+
+export interface InstitutionItem {
+  id: number;
+  name: string;
+  code: string;
+  official_email: string;
+  domain?: string;
+  address?: string;
+  status: string;
+  created_at?: string;
+  approved_at?: string;
+  approved_by?: string;
+  teacher_count?: number;
+  student_count?: number;
+  class_count?: number;
+}
+
+export interface InstitutionRegisterData {
+  institution_name: string;
+  institution_code: string;
+  official_email: string;
+  domain?: string;
+  address?: string;
+  admin_name: string;
+  admin_email: string;
+  admin_password: string;
+}
+
+export interface StudentApprovalItem {
+  id: number;
+  student_id: string;
+  name: string;
+  roll_number: string;
+  class_id: number;
+  class_name?: string;
+  section?: string;
+  institution_id?: number;
+  email?: string;
+  approval_status: string;
+  face_registration_complete: boolean;
+  created_at?: string;
+}
+
+export const InstitutionService = {
+  getApprovedInstitutions: async (): Promise<InstitutionItem[]> => {
+    const res = await api.get('/institutions');
+    return res.data;
+  },
+  getPendingInstitutions: async (): Promise<InstitutionItem[]> => {
+    const res = await api.get('/institutions/pending');
+    return res.data;
+  },
+  registerInstitution: async (data: InstitutionRegisterData) => {
+    const res = await api.post('/institutions/register', data);
+    return res.data;
+  },
+  approveInstitution: async (id: number) => {
+    const res = await api.put(`/institutions/${id}/approve`);
+    return res.data;
+  },
+  rejectInstitution: async (id: number, reason?: string) => {
+    const res = await api.put(`/institutions/${id}/reject`, { action: 'REJECT', reason });
+    return res.data;
+  },
+  getInstitutionClasses: async (id: number): Promise<ClassItem[]> => {
+    const res = await api.get(`/institutions/${id}/classes`);
+    return res.data;
+  },
+  getHeartbeats: async () => {
+    const res = await api.get('/institutions/telemetry/heartbeats');
+    return res.data;
+  },
+  triggerHeartbeat: async () => {
+    const res = await api.post('/institutions/telemetry/heartbeat');
+    return res.data;
+  }
+};
+
+export const EnrollmentApprovalService = {
+  getPendingStudents: async (classId?: number): Promise<StudentApprovalItem[]> => {
+    const params = classId ? { class_id: classId } : {};
+    const res = await api.get('/students/pending-approval', { params });
+    return res.data;
+  },
+  approveStudent: async (studentId: number) => {
+    const res = await api.post(`/students/${studentId}/approve`);
+    return res.data;
+  },
+  rejectStudent: async (studentId: number, reason?: string) => {
+    const res = await api.post(`/students/${studentId}/reject`, { action: 'REJECT', reason });
+    return res.data;
+  }
+};

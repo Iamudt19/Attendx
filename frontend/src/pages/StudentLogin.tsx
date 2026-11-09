@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, ScanFace, Lock, User, ArrowRight, ChevronLeft, BookOpen, Hash, Mail, UserPlus, LogIn, GraduationCap, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Camera, ScanFace, Lock, User, ArrowRight, ChevronLeft, BookOpen, Hash, Mail, UserPlus, LogIn, GraduationCap, Sparkles, CheckCircle2, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { StudentPortalService } from '../services/api';
+import { StudentPortalService, InstitutionService, InstitutionItem } from '../services/api';
 import { StudentUser, StudentPublicClass } from '../types';
 import { extractErrorMessage } from '../utils/error';
 import { Logo } from '../components/Logo';
@@ -28,6 +28,8 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
   const [regStudentId, setRegStudentId] = useState('');
   const [regName, setRegName] = useState('');
   const [regRollNumber, setRegRollNumber] = useState('');
+  const [institutions, setInstitutions] = useState<InstitutionItem[]>([]);
+  const [regInstitutionId, setRegInstitutionId] = useState<number>(1);
   const [regClassId, setRegClassId] = useState<number>(0);
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
@@ -39,18 +41,23 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Fetch available classes when register tab is shown
+  // Fetch institutions and classes when register tab is shown
   useEffect(() => {
-    if (activeTab === 'register' && classes.length === 0) {
+    if (activeTab === 'register') {
+      InstitutionService.getApprovedInstitutions()
+        .then((insts) => {
+          setInstitutions(insts || []);
+          if (insts && insts.length > 0) setRegInstitutionId(insts[0].id);
+        })
+        .catch(() => {});
+
       setClassesLoading(true);
       StudentPortalService.getPublicClasses()
         .then((data) => {
           setClasses(data);
           if (data.length > 0) setRegClassId(data[0].id);
         })
-        .catch(() => {
-          // Silently fail
-        })
+        .catch(() => {})
         .finally(() => setClassesLoading(false));
     }
   }, [activeTab]);
@@ -97,9 +104,10 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
         name: regName.trim(),
         roll_number: regRollNumber.trim(),
         class_id: regClassId,
+        institution_id: regInstitutionId,
         email: regEmail.trim() || undefined,
         password: regPassword.trim(),
-      });
+      } as any);
       localStorage.setItem('attendx_student_token', student.access_token);
       setSuccessMsg('Registration successful! Redirecting to face enrollment...');
       setTimeout(() => {
@@ -373,6 +381,31 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
                         : 'bg-slate-50/50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100'
                     }`}
                   />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className={`block text-xs font-semibold uppercase tracking-wider ${
+                      isDark ? 'text-zinc-300' : 'text-slate-700'
+                    }`}>
+                      Academic Institution *
+                    </label>
+                  </div>
+                  <select
+                    value={regInstitutionId}
+                    onChange={(e) => setRegInstitutionId(Number(e.target.value))}
+                    className={`w-full px-3.5 py-2.5 rounded-xl text-sm transition-all focus:outline-none ${
+                      isDark 
+                        ? 'bg-black/80 border border-white/15 text-white focus:border-blue-500' 
+                        : 'bg-slate-50/50 border border-slate-200 text-slate-900 focus:border-blue-500'
+                    }`}
+                  >
+                    {institutions.map(inst => (
+                      <option key={inst.id} value={inst.id} className="bg-zinc-900 text-white">
+                        {inst.name} ({inst.code})
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>

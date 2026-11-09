@@ -12,9 +12,12 @@ import {
   BarChart3, 
   CheckCircle2, 
   BookOpen,
-  ChevronRight
+  ChevronRight,
+  GraduationCap,
+  Check,
+  X
 } from 'lucide-react';
-import { AttendanceService, ClassService, StudentService } from '../services/api';
+import { AttendanceService, ClassService, StudentService, EnrollmentApprovalService, StudentApprovalItem } from '../services/api';
 import { AttendanceSessionOut, ClassItem, StudentItem, User } from '../types';
 
 interface DashboardProps {
@@ -27,6 +30,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [sessions, setSessions] = useState<AttendanceSessionOut[]>([]);
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [students, setStudents] = useState<StudentItem[]>([]);
+  const [pendingStudents, setPendingStudents] = useState<StudentApprovalItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'verified' | 'audit'>('all');
@@ -39,14 +43,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
 
   const loadDashboardData = useCallback(async () => {
     try {
-      const [sessData, classData, stuData] = await Promise.all([
+      const [sessData, classData, stuData, pendingData] = await Promise.all([
         AttendanceService.getSessions().catch(() => []),
         ClassService.getClasses().catch(() => []),
-        StudentService.getStudents().catch(() => [])
+        StudentService.getStudents().catch(() => []),
+        EnrollmentApprovalService.getPendingStudents().catch(() => [])
       ]);
       setSessions(sessData || []);
       setClasses(classData || []);
       setStudents(stuData || []);
+      setPendingStudents(pendingData || []);
     } catch (err) {
       console.error("Dashboard fetch error:", err);
     } finally {
@@ -87,6 +93,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       setTimeout(() => {
         navigate('/take-attendance');
       }, 400);
+    }
+  };
+
+  const handleApproveStudent = async (stuId: number, stuName: string) => {
+    try {
+      await EnrollmentApprovalService.approveStudent(stuId);
+      showToast(`Student "${stuName}" approved into class roster.`);
+      loadDashboardData();
+    } catch (err) {
+      showToast('Failed to approve student.');
+    }
+  };
+
+  const handleRejectStudent = async (stuId: number, stuName: string) => {
+    if (!window.confirm(`Are you sure you want to reject enrollment for "${stuName}"?`)) return;
+    try {
+      await EnrollmentApprovalService.rejectStudent(stuId);
+      showToast(`Enrollment for "${stuName}" rejected.`);
+      loadDashboardData();
+    } catch (err) {
+      showToast('Failed to reject student.');
     }
   };
 
@@ -207,6 +234,60 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           </div>
         </div>
       </section>
+
+      {/* ── Pending Student Enrollments Queue (Tier 4 Gate) ── */}
+      {pendingStudents.length > 0 && (
+        <section className="swiss-card p-4 sm:p-5 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <GraduationCap className="w-4 h-4 text-amber-500" />
+              <h2 className="text-sm font-bold text-[var(--text-primary)]">
+                Student Enrollment Queue ({pendingStudents.length} Pending Approval)
+              </h2>
+            </div>
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-400">
+              ACTION REQUIRED
+            </span>
+          </div>
+          <p className="text-xs text-[var(--text-secondary)] font-sans">
+            Students who registered for your class must be approved before they are recognized in classroom biometric scans.
+          </p>
+
+          <div className="divide-y divide-[var(--border-color)] border border-[var(--border-color)] rounded-lg overflow-hidden bg-[var(--bg-surface)]">
+            {pendingStudents.map((stu) => (
+              <div key={stu.id} className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
+                <div className="space-y-0.5">
+                  <div className="font-bold text-[var(--text-primary)] flex items-center gap-2">
+                    <span>{stu.name}</span>
+                    <span className="text-[10px] text-blue-500 font-bold">({stu.roll_number})</span>
+                  </div>
+                  <div className="text-[11px] text-[var(--text-secondary)]">
+                    Class: {stu.class_name ? `${stu.class_name} · ${stu.section || ''}` : `Class #${stu.class_id}`}
+                    <span className="mx-1.5">•</span>
+                    Face ID: {stu.face_registration_complete ? <span className="text-emerald-500 font-bold">✓ Calibrated</span> : <span className="text-amber-500">Pending Scan</span>}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-end sm:self-center">
+                  <button
+                    onClick={() => handleRejectStudent(stu.id, stu.name)}
+                    className="px-2.5 py-1 rounded text-rose-500 hover:bg-rose-500/10 border border-rose-500/30 text-[11px]"
+                  >
+                    Reject
+                  </button>
+                  <button
+                    onClick={() => handleApproveStudent(stu.id, stu.name)}
+                    className="btn-primary px-3 py-1 text-[11px] font-bold flex items-center gap-1"
+                  >
+                    <Check className="w-3 h-3" />
+                    <span>Approve Student</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── Quick Actions (compact on mobile) ── */}
       <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">

@@ -3,6 +3,34 @@ from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, Foreig
 from sqlalchemy.orm import relationship
 from app.database.session import Base
 
+class Institution(Base):
+    __tablename__ = "institutions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(150), nullable=False)
+    code = Column(String(30), unique=True, index=True, nullable=False)
+    official_email = Column(String(120), unique=True, nullable=False)
+    domain = Column(String(100), nullable=True)
+    address = Column(Text, nullable=True)
+    status = Column(String(30), default="APPROVED", nullable=False) # PENDING_APPROVAL, APPROVED, REJECTED, SUSPENDED
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    approved_at = Column(DateTime, nullable=True)
+    approved_by = Column(String(100), nullable=True)
+
+    users = relationship("User", back_populates="institution", cascade="all, delete-orphan")
+    classes = relationship("Class", back_populates="institution", cascade="all, delete-orphan")
+    subjects = relationship("Subject", back_populates="institution", cascade="all, delete-orphan")
+    students = relationship("Student", back_populates="institution", cascade="all, delete-orphan")
+
+class SystemHeartbeat(Base):
+    __tablename__ = "system_heartbeats"
+
+    id = Column(Integer, primary_key=True, index=True)
+    worker_id = Column(String(50), default="keep-alive-daemon")
+    pinged_at = Column(DateTime, default=datetime.datetime.utcnow)
+    status = Column(String(20), default="HEALTHY")
+    latency_ms = Column(Float, nullable=True)
+
 class User(Base):
     __tablename__ = "users"
 
@@ -10,13 +38,17 @@ class User(Base):
     name = Column(String(100), nullable=False)
     email = Column(String(100), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
-    role = Column(String(20), default="TEACHER") # TEACHER or ADMIN
+    role = Column(String(20), default="TEACHER") # TEACHER, ADMIN, SUPER_ADMIN, INSTITUTION_ADMIN
     assigned_classes = Column(JSON, default=list, nullable=True) # List of class IDs assigned to teacher, e.g. [1, 2]
     is_approved = Column(Boolean, default=False, nullable=False) # Requires Admin approval for teachers
     approved_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     approved_at = Column(DateTime, nullable=True)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=True)
+    department = Column(String(100), nullable=True)
+    status = Column(String(30), default="APPROVED", nullable=False) # PENDING_APPROVAL, APPROVED, REJECTED
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
+    institution = relationship("Institution", back_populates="users")
     sessions = relationship("AttendanceSession", back_populates="teacher")
 
 class Class(Base):
@@ -26,7 +58,9 @@ class Class(Base):
     name = Column(String(100), nullable=False) # e.g. CSE
     section = Column(String(20), nullable=False) # e.g. Section A
     academic_year = Column(String(20), nullable=False) # e.g. 2026-27
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=True)
 
+    institution = relationship("Institution", back_populates="classes")
     students = relationship("Student", back_populates="class_obj", cascade="all, delete-orphan")
     subjects = relationship("Subject", back_populates="class_obj", cascade="all, delete-orphan")
     sessions = relationship("AttendanceSession", back_populates="class_obj")
@@ -38,7 +72,9 @@ class Subject(Base):
     name = Column(String(100), nullable=False) # Database Management Systems
     code = Column(String(20), nullable=False) # DBMS101
     class_id = Column(Integer, ForeignKey("classes.id"), nullable=False)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=True)
 
+    institution = relationship("Institution", back_populates="subjects")
     class_obj = relationship("Class", back_populates="subjects")
     enrollments = relationship("Enrollment", back_populates="subject", cascade="all, delete-orphan")
     sessions = relationship("AttendanceSession", back_populates="subject")
@@ -51,13 +87,17 @@ class Student(Base):
     name = Column(String(100), nullable=False)
     roll_number = Column(String(50), nullable=False)
     class_id = Column(Integer, ForeignKey("classes.id"), nullable=False)
+    institution_id = Column(Integer, ForeignKey("institutions.id", ondelete="CASCADE"), nullable=True)
     email = Column(String(100), nullable=True)
     active = Column(Boolean, default=True)
+    approval_status = Column(String(30), default="APPROVED", nullable=False) # PENDING_APPROVAL, APPROVED, REJECTED
+    approved_by_teacher_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     # Student portal login credentials
     password_hash = Column(String(255), nullable=True)  # Set when student account is activated
     face_registration_complete = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
+    institution = relationship("Institution", back_populates="students")
     class_obj = relationship("Class", back_populates="students")
     embeddings = relationship("FaceEmbedding", back_populates="student", cascade="all, delete-orphan")
     enrollments = relationship("Enrollment", back_populates="student", cascade="all, delete-orphan")
@@ -133,4 +173,3 @@ class AttendanceAuditLog(Base):
     session = relationship("AttendanceSession")
     student = relationship("Student")
     teacher = relationship("User")
-

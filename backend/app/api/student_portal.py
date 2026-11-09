@@ -95,6 +95,8 @@ def student_self_register(req: StudentSelfRegisterRequest, db: Session = Depends
         name=req.name.strip(),
         roll_number=req.roll_number.strip(),
         class_id=req.class_id,
+        institution_id=cls.institution_id or req.institution_id or 1,
+        approval_status="PENDING_APPROVAL",
         email=req.email.strip() if req.email else None,
         password_hash=hashed,
         face_registration_complete=False,
@@ -110,7 +112,9 @@ def student_self_register(req: StudentSelfRegisterRequest, db: Session = Depends
         student_db_id=student.id,
         student_id=student.student_id,
         name=student.name,
-        face_registration_complete=False
+        face_registration_complete=False,
+        approval_status=student.approval_status,
+        institution_id=student.institution_id
     )
 
 
@@ -174,7 +178,9 @@ def student_login(req: StudentLoginRequest, db: Session = Depends(get_db)):
         student_db_id=student.id,
         student_id=student.student_id,
         name=student.name,
-        face_registration_complete=student.face_registration_complete
+        face_registration_complete=student.face_registration_complete,
+        approval_status=student.approval_status or "APPROVED",
+        institution_id=student.institution_id or 1
     )
 
 

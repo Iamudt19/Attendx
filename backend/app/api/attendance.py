@@ -80,8 +80,12 @@ async def analyze_classroom_photo(
     if not images_bytes_list:
         raise HTTPException(status_code=400, detail="Uploaded photo files contained empty or unreadable byte streams.")
 
-    # Query all active enrolled students in this class
-    students = db.query(Student).filter(Student.class_id == class_id, Student.active == True).order_by(Student.roll_number).all()
+    # Query all active, educator-approved enrolled students in this class
+    students = db.query(Student).filter(
+        Student.class_id == class_id, 
+        Student.active == True,
+        Student.approval_status == "APPROVED"
+    ).order_by(Student.roll_number).all()
     enrolled_list = [
         {
             "id": s.id,
@@ -413,7 +417,11 @@ def get_attendance_sessions(
         total_cnt = present_cnt + absent_cnt
         # Fallback: count active students in this class for display accuracy
         if total_cnt == 0:
-            total_cnt = db.query(Student).filter(Student.class_id == s.class_id, Student.active == True).count()
+            total_cnt = db.query(Student).filter(
+                Student.class_id == s.class_id, 
+                Student.active == True,
+                Student.approval_status == "APPROVED"
+            ).count()
 
         cls = db.query(Class).filter(Class.id == s.class_id).first()
         sub = db.query(Subject).filter(Subject.id == s.subject_id).first()
