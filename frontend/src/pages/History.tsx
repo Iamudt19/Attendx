@@ -249,7 +249,10 @@ export const History: React.FC = () => {
             </label>
             <select
               value={selectedClassId || ''}
-              onChange={(e) => setSelectedClassId(e.target.value ? Number(e.target.value) : undefined)}
+              onChange={(e) => {
+                setSelectedClassId(e.target.value ? Number(e.target.value) : undefined);
+                setSelectedSubjectId(undefined);
+              }}
               className="w-full bg-[var(--bg-inset)] border border-[var(--border-color)] rounded-xl px-3.5 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-blue-500 font-medium"
             >
               <option value="">All Classrooms</option>
@@ -271,11 +274,13 @@ export const History: React.FC = () => {
               className="w-full bg-[var(--bg-inset)] border border-[var(--border-color)] rounded-xl px-3.5 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-blue-500 font-medium"
             >
               <option value="">All Subjects</option>
-              {subjects.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} ({s.code})
-                </option>
-              ))}
+              {subjects
+                .filter((s) => !selectedClassId || s.class_id === selectedClassId)
+                .map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.code})
+                  </option>
+                ))}
             </select>
           </div>
 

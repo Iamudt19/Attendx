@@ -59,16 +59,9 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
     setClassesLoading(true);
     InstitutionService.getInstitutionClasses(regInstitutionId)
       .then((data) => {
-        if (data && data.length > 0) {
-          setClasses(data);
-          setRegClassId(data[0].id);
-        } else {
-          return StudentPortalService.getPublicClasses().then((allCls) => {
-            setClasses(allCls || []);
-            if (allCls && allCls.length > 0) setRegClassId(allCls[0].id);
-            else setRegClassId(0);
-          });
-        }
+        const list = data || [];
+        setClasses(list);
+        setRegClassId(list.length > 0 ? list[0].id : 0);
       })
       .catch(() => {
         StudentPortalService.getPublicClasses()

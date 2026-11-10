@@ -29,8 +29,7 @@ class Settings(BaseSettings):
         canonical_sqlite = os.path.join(backend_dir, "attendx.db").replace("\\", "/")
         
         if not raw or not isinstance(raw, str):
-            # Fallback to Supabase pooler
-            return "postgresql+psycopg2://postgres.vffgjjlucktyrfjhbqbp:doctordoom1812@aws-0-ap-south-1.pooler.supabase.com:6543/postgres"
+            return f"sqlite:///{canonical_sqlite}"
         
         url = raw.strip().strip("'\"").strip()
         if url.startswith("psql "):

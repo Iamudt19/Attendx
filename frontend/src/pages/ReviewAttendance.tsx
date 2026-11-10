@@ -59,6 +59,15 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'present' | 'review' | 'absent'>('all');
 
+  useEffect(() => {
+    setProposedList(analysisResult?.proposed_attendance ?? []);
+    setFaces(analysisResult?.recognized_faces ?? []);
+    setSelectedStudentId(analysisResult?.proposed_attendance?.[0]?.student_db_id || null);
+    setActivePhotoIndex(0);
+    setSaveSuccess(false);
+    setError(null);
+  }, [analysisResult]);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 3200);

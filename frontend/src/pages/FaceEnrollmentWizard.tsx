@@ -6,7 +6,7 @@ import {
   Layers, Sliders, History, ArrowRight, Video, VideoOff, ChevronLeft
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { StudentPortalService } from '../services/api';
+import { StudentPortalService, InstitutionService } from '../services/api';
 import { StudentUser, ScanAngle, SCAN_ANGLES, ANGLE_LABELS, ANGLE_ICONS, FaceFrameUploadResult, StudentPublicClass } from '../types';
 import { extractErrorMessage } from '../utils/error';
 import { Logo } from '../components/Logo';
@@ -177,11 +177,18 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({
 
   // Load available classes, student profile, and camera devices
   useEffect(() => {
-    StudentPortalService.getPublicClasses()
+    const fetchClasses = student.institution_id
+      ? InstitutionService.getInstitutionClasses(student.institution_id)
+      : StudentPortalService.getPublicClasses();
+    fetchClasses
       .then((data) => {
-        setClasses(data);
+        setClasses(data || []);
       })
-      .catch(() => {});
+      .catch(() => {
+        StudentPortalService.getPublicClasses()
+          .then((data) => setClasses(data || []))
+          .catch(() => {});
+      });
 
     loadStudentProfile();
     enumerateCameras();

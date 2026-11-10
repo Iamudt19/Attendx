@@ -4,7 +4,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database.session import get_db
-from app.models.models import User
+from app.models.models import User, Institution, Class
 from app.schemas.schemas import (
     LoginRequest, UserCreate, TokenResponse, UserOut, 
     TeacherApprovalItem, TeacherClassAssignRequest
@@ -25,13 +25,25 @@ def register(req: UserCreate, db: Session = Depends(get_db)):
             detail="An account with this email address already exists. Please sign in instead."
         )
 
-    # Validate role
-    role = req.role.upper().strip() if req.role else "TEACHER"
-    if role not in ["TEACHER", "ADMIN"]:
-        role = "TEACHER"
+    # Public registration is strictly for educators awaiting approval
+    role = "TEACHER"
+    is_approved = False
 
-    # For production security: Teachers require Admin approval before they can sign in.
-    is_approved = False if role == "TEACHER" else True
+    inst_id = req.institution_id or 1
+    inst = db.query(Institution).filter(Institution.id == inst_id, Institution.status == "APPROVED").first()
+    if not inst:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Selected institution does not exist or is not approved yet."
+        )
+
+    valid_class_ids = []
+    if req.assigned_classes:
+        valid_classes = db.query(Class.id).filter(
+            Class.id.in_(req.assigned_classes),
+            Class.institution_id == inst.id
+        ).all()
+        valid_class_ids = [c[0] for c in valid_classes]
 
     try:
         # Create new user
@@ -40,10 +52,10 @@ def register(req: UserCreate, db: Session = Depends(get_db)):
             email=req.email.lower().strip(),
             password_hash=get_password_hash(req.password),
             role=role,
-            institution_id=req.institution_id or 1,
+            institution_id=inst.id,
             department=req.department.strip() if req.department else None,
-            status="PENDING_APPROVAL" if role == "TEACHER" else "APPROVED",
-            assigned_classes=req.assigned_classes or [],
+            status="PENDING_APPROVAL",
+            assigned_classes=valid_class_ids,
             is_approved=is_approved,
             created_at=datetime.datetime.utcnow()
         )
@@ -51,9 +63,8 @@ def register(req: UserCreate, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(new_user)
 
-        access_token = create_access_token(subject=new_user.id) if is_approved else ""
         return {
-            "access_token": access_token,
+            "access_token": "",
             "token_type": "bearer",
             "user": new_user
         }
@@ -100,8 +111,7 @@ ADMIN_MASTER_PASSWORD = os.getenv("ADMIN_MASTER_PASSWORD", "Doomsday@1812")
 def admin_master_login(req: dict, db: Session = Depends(get_db)):
     """Authenticate to Admin Portal using Master Access Password."""
     pwd = str(req.get("password") or "").strip()
-    valid_passwords = {ADMIN_MASTER_PASSWORD, "Doomsday@1812", "AttendX#Admin2026"}
-    if pwd not in valid_passwords:
+    if not pwd or pwd != ADMIN_MASTER_PASSWORD:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid master admin password. Access denied."
@@ -113,7 +123,7 @@ def admin_master_login(req: dict, db: Session = Depends(get_db)):
         admin_user = User(
             name="System Administrator",
             email="admin@attendx.local",
-            password_hash=get_password_hash("Doomsday@1812"),
+            password_hash=get_password_hash(ADMIN_MASTER_PASSWORD),
             role="ADMIN",
             is_approved=True,
             approved_at=datetime.datetime.utcnow()
@@ -121,11 +131,9 @@ def admin_master_login(req: dict, db: Session = Depends(get_db)):
         db.add(admin_user)
         db.commit()
         db.refresh(admin_user)
-    else:
-        # Guarantee admin is approved and role is ADMIN
+    elif admin_user.role != "ADMIN" or not admin_user.is_approved:
         admin_user.role = "ADMIN"
         admin_user.is_approved = True
-        admin_user.password_hash = get_password_hash("Doomsday@1812")
         db.commit()
         db.refresh(admin_user)
 

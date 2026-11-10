@@ -6,7 +6,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Request
 from sqlalchemy.orm import Session
 from app.database.session import get_db
-from app.models.models import AttendanceSession, AttendanceRecord, Student, Class, Subject, FaceEmbedding, User, AttendanceAuditLog
+from app.models.models import AttendanceSession, AttendanceRecord, Student, Class, Subject, FaceEmbedding, User, AttendanceAuditLog, ImmutableFaceVault
 from app.schemas.schemas import (
     AttendanceAnalysisResponse, SaveAttendanceSessionRequest, UpdateSessionRecordsRequest, AttendanceSessionOut, AttendanceRecordOut
 )
@@ -19,6 +19,22 @@ from app.services.excel_service import excel_service
 
 router = APIRouter(prefix="/attendance", tags=["Attendance"])
 
+def _require_class_access(class_id: int, token: dict, db: Session) -> User:
+    caller_id = token.get("sub")
+    caller = db.query(User).filter(User.id == int(caller_id)).first() if caller_id else None
+    if not caller:
+        raise HTTPException(status_code=401, detail="Invalid user.")
+    cls = db.query(Class).filter(Class.id == class_id).first()
+    if not cls:
+        raise HTTPException(status_code=404, detail="Class not found.")
+    if caller.role in ("TEACHER", "INSTITUTION_ADMIN"):
+        if caller.institution_id and cls.institution_id and cls.institution_id != caller.institution_id:
+            raise HTTPException(status_code=403, detail="Access denied for this institution.")
+        if caller.role == "TEACHER" and caller.assigned_classes and class_id not in caller.assigned_classes:
+            raise HTTPException(status_code=403, detail="You are not assigned to this class.")
+    return caller
+
+
 @router.post("/analyze", response_model=AttendanceAnalysisResponse)
 async def analyze_classroom_photo(
     class_id: int = Form(...),
@@ -28,9 +44,7 @@ async def analyze_classroom_photo(
     db: Session = Depends(get_db),
     token: dict = Depends(get_current_user_token)
 ):
-    cls = db.query(Class).filter(Class.id == class_id).first()
-    if not cls:
-        raise HTTPException(status_code=404, detail="Class not found.")
+    _require_class_access(class_id, token, db)
 
     subject = db.query(Subject).filter(Subject.id == subject_id).first()
     if not subject:
@@ -151,13 +165,8 @@ def save_attendance_session(
     token: dict = Depends(get_current_user_token)
 ):
     sub_val = token.get("sub")
-    try:
-        teacher_id = int(sub_val)
-    except (ValueError, TypeError):
-        user_rec = db.query(User).filter(User.email == str(sub_val)).first() if sub_val else None
-        if not user_rec:
-            user_rec = db.query(User).first()
-        teacher_id = user_rec.id if user_rec else 1
+    caller = _require_class_access(req.class_id, token, db)
+    teacher_id = caller.id
 
     # Check for existing session on same date, class, subject — UPSERT logic
     existing = db.query(AttendanceSession).filter(
@@ -251,9 +260,6 @@ def save_attendance_session(
                     if img_cv is not None:
                         loaded_images[idx] = (img_cv, clean_rel_path)
 
-            # Import the detector so we can re-extract landmarks per face crop
-            from app.cv.detector import face_detector as _face_detector
-
             for face in req.recognized_faces:
                 if not face.student_id or student_status_map.get(face.student_id) != "PRESENT":
                     continue
@@ -313,7 +319,10 @@ def save_attendance_session(
                 )
 
                 if new_emb and any(v != 0.0 for v in new_emb):
-                    existing_embs = db.query(FaceEmbedding).filter(FaceEmbedding.student_id == face.student_id).all()
+                    existing_embs = db.query(FaceEmbedding).filter(
+                        FaceEmbedding.student_id == face.student_id,
+                        FaceEmbedding.is_deleted == False
+                    ).all()
                     
                     # Verify high cross-similarity with authentic enrollment scans before adding
                     enrollment_embs = [e for e in existing_embs if e.source != "teacher_verified" and e.embedding]
@@ -339,17 +348,36 @@ def save_attendance_session(
                             embedding=new_emb,
                             source_image=clean_rel_path,
                             angle_label="classroom_verified",
-                            source="teacher_verified"
+                            source="teacher_verified",
+                            is_deleted=False
                         )
                         db.add(new_rec)
+
+                        stu_obj = db.query(Student).filter(Student.id == face.student_id).first()
+                        if stu_obj:
+                            db.add(ImmutableFaceVault(
+                                student_id=stu_obj.student_id,
+                                student_db_id=stu_obj.id,
+                                student_name=stu_obj.name,
+                                roll_number=stu_obj.roll_number,
+                                class_id=stu_obj.class_id,
+                                institution_id=stu_obj.institution_id or 1,
+                                embedding=new_emb,
+                                source_image=clean_rel_path,
+                                angle_label="classroom_verified",
+                                source="teacher_verified",
+                                is_active=True
+                            ))
 
                         if len(existing_embs) >= 12:
                             oldest_tv = db.query(FaceEmbedding).filter(
                                 FaceEmbedding.student_id == face.student_id,
-                                FaceEmbedding.source == "teacher_verified"
+                                FaceEmbedding.source == "teacher_verified",
+                                FaceEmbedding.is_deleted == False
                             ).order_by(FaceEmbedding.created_at.asc()).first()
                             if oldest_tv:
-                                db.delete(oldest_tv)
+                                oldest_tv.is_deleted = True
+                                oldest_tv.deleted_at = datetime.utcnow()
 
             db.commit()
     except Exception as e:
@@ -407,9 +435,17 @@ def get_attendance_sessions(
 
     query = db.query(AttendanceSession)
     if class_id:
+        _require_class_access(class_id, token, db)
         query = query.filter(AttendanceSession.class_id == class_id)
-    elif caller and caller.role == "TEACHER" and caller.assigned_classes and len(caller.assigned_classes) > 0:
-        query = query.filter(AttendanceSession.class_id.in_(caller.assigned_classes))
+    elif caller and caller.role == "TEACHER":
+        if caller.assigned_classes and len(caller.assigned_classes) > 0:
+            query = query.filter(AttendanceSession.class_id.in_(caller.assigned_classes))
+        elif caller.institution_id:
+            inst_class_ids = [c[0] for c in db.query(Class.id).filter(Class.institution_id == caller.institution_id).all()]
+            query = query.filter(AttendanceSession.class_id.in_(inst_class_ids))
+    elif caller and caller.role == "INSTITUTION_ADMIN" and caller.institution_id:
+        inst_class_ids = [c[0] for c in db.query(Class.id).filter(Class.institution_id == caller.institution_id).all()]
+        query = query.filter(AttendanceSession.class_id.in_(inst_class_ids))
 
     if subject_id:
         query = query.filter(AttendanceSession.subject_id == subject_id)
@@ -463,6 +499,7 @@ def get_attendance_session_detail(
     s = db.query(AttendanceSession).filter(AttendanceSession.id == session_id).first()
     if not s:
         raise HTTPException(status_code=404, detail="Attendance session not found")
+    _require_class_access(s.class_id, token, db)
 
     present_cnt = db.query(AttendanceRecord).filter(AttendanceRecord.session_id == s.id, AttendanceRecord.status == "PRESENT").count()
     absent_cnt = db.query(AttendanceRecord).filter(AttendanceRecord.session_id == s.id, AttendanceRecord.status == "ABSENT").count()
@@ -515,12 +552,8 @@ def update_attendance_session_records(
     session = db.query(AttendanceSession).filter(AttendanceSession.id == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Attendance session not found")
-
-    sub_val = token.get("sub")
-    try:
-        teacher_id = int(sub_val)
-    except (ValueError, TypeError):
-        teacher_id = session.teacher_id or 1
+    caller = _require_class_access(session.class_id, token, db)
+    teacher_id = caller.id
 
     # Remove existing records and replace with updated records
     db.query(AttendanceRecord).filter(AttendanceRecord.session_id == session.id).delete()
@@ -609,6 +642,7 @@ def delete_attendance_session(
     session = db.query(AttendanceSession).filter(AttendanceSession.id == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Attendance session not found.")
+    _require_class_access(session.class_id, token, db)
 
     class_id = session.class_id
     subject_id = session.subject_id
@@ -647,7 +681,14 @@ def delete_attendance_by_date_and_subject(
         AttendanceSession.subject_id == subject_id
     )
     if class_id:
+        _require_class_access(class_id, token, db)
         query = query.filter(AttendanceSession.class_id == class_id)
+    else:
+        caller_id = token.get("sub")
+        caller = db.query(User).filter(User.id == int(caller_id)).first() if caller_id else None
+        if caller and caller.role in ("TEACHER", "INSTITUTION_ADMIN") and caller.institution_id:
+            inst_class_ids = [c[0] for c in db.query(Class.id).filter(Class.institution_id == caller.institution_id).all()]
+            query = query.filter(AttendanceSession.class_id.in_(inst_class_ids))
 
     sessions = query.all()
     if not sessions:
@@ -681,14 +722,20 @@ def get_student_attendance_log(
     db: Session = Depends(get_db),
     token: dict = Depends(get_current_user_token)
 ):
-    student = db.query(Student).filter(Student.id == student_id).first()
+    student = db.query(Student).filter(Student.id == student_id, Student.is_deleted == False).first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
+    _require_class_access(student.class_id, token, db)
 
-    records = db.query(AttendanceRecord).filter(AttendanceRecord.student_id == student_id).all()
+    records = db.query(AttendanceRecord).filter(
+        AttendanceRecord.student_id == student_id,
+        AttendanceRecord.is_deleted == False
+    ).all()
     logs = []
     for r in records:
         sess = r.session
+        if not sess:
+            continue
         logs.append({
             "session_id": sess.id,
             "date": sess.date,

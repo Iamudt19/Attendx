@@ -37,6 +37,18 @@ def create_subject(req: SubjectCreate, db: Session = Depends(get_db), token: dic
     db.refresh(subject)
     return subject
 
+def _get_scoped_subject(subject_id: int, token: dict, db: Session) -> Subject:
+    caller_id = token.get("sub")
+    caller = db.query(User).filter(User.id == int(caller_id)).first() if caller_id else None
+    if not caller:
+        raise HTTPException(status_code=401, detail="Invalid user.")
+    subject = db.query(Subject).filter(Subject.id == subject_id).first()
+    if not subject:
+        raise HTTPException(status_code=404, detail="Subject not found")
+    if caller.role in ("TEACHER", "INSTITUTION_ADMIN") and caller.institution_id and subject.institution_id and subject.institution_id != caller.institution_id:
+        raise HTTPException(status_code=403, detail="Access denied for this institution.")
+    return subject
+
 @router.put("/{subject_id}", response_model=SubjectOut)
 @router.patch("/{subject_id}", response_model=SubjectOut)
 def update_subject(
@@ -45,9 +57,7 @@ def update_subject(
     db: Session = Depends(get_db),
     token: dict = Depends(get_current_user_token)
 ):
-    subject = db.query(Subject).filter(Subject.id == subject_id).first()
-    if not subject:
-        raise HTTPException(status_code=404, detail="Subject not found")
+    subject = _get_scoped_subject(subject_id, token, db)
 
     if req.name is not None:
         subject.name = req.name
@@ -62,9 +72,7 @@ def update_subject(
 
 @router.delete("/{subject_id}")
 def delete_subject(subject_id: int, db: Session = Depends(get_db), token: dict = Depends(get_current_user_token)):
-    subject = db.query(Subject).filter(Subject.id == subject_id).first()
-    if not subject:
-        raise HTTPException(status_code=404, detail="Subject not found")
+    subject = _get_scoped_subject(subject_id, token, db)
     db.delete(subject)
     db.commit()
     return {"message": f"Subject '{subject.name}' successfully deleted."}

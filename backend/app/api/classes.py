@@ -60,13 +60,29 @@ def create_class(req: ClassCreate, db: Session = Depends(get_db), token: dict = 
     cls_out.student_count = 0
     return cls_out
 
+def _get_scoped_class(class_id: int, token: dict, db: Session, require_admin: bool = False) -> Class:
+    caller_id = token.get("sub")
+    caller = db.query(User).filter(User.id == int(caller_id)).first() if caller_id else None
+    if not caller:
+        raise HTTPException(status_code=401, detail="Invalid user.")
+    if require_admin and caller.role not in ("ADMIN", "SUPER_ADMIN", "INSTITUTION_ADMIN", "TEACHER"):
+        raise HTTPException(status_code=403, detail="Insufficient permissions.")
+    cls = db.query(Class).filter(Class.id == class_id).first()
+    if not cls:
+        raise HTTPException(status_code=404, detail="Class not found")
+    if caller.role in ("TEACHER", "INSTITUTION_ADMIN") and caller.institution_id and cls.institution_id and cls.institution_id != caller.institution_id:
+        raise HTTPException(status_code=403, detail="Access denied for this institution.")
+    return cls
+
+
 @router.get("/{class_id}/students", response_model=List[StudentOut])
 def get_class_students(class_id: int, db: Session = Depends(get_db), token: dict = Depends(get_current_user_token)):
-    students = db.query(Student).filter(Student.class_id == class_id, Student.active == True).all()
+    _get_scoped_class(class_id, token, db)
+    students = db.query(Student).filter(Student.class_id == class_id, Student.active == True, Student.is_deleted == False).all()
     results = []
     for s in students:
         s_out = StudentOut.model_validate(s)
-        s_out.face_count = len(s.embeddings)
+        s_out.face_count = len([e for e in s.embeddings if not e.is_deleted])
         results.append(s_out)
     return results
 
@@ -78,9 +94,7 @@ def update_class(
     db: Session = Depends(get_db),
     token: dict = Depends(get_current_user_token)
 ):
-    cls = db.query(Class).filter(Class.id == class_id).first()
-    if not cls:
-        raise HTTPException(status_code=404, detail="Class not found")
+    cls = _get_scoped_class(class_id, token, db, require_admin=True)
 
     if req.name is not None:
         cls.name = req.name
@@ -92,16 +106,14 @@ def update_class(
     db.commit()
     db.refresh(cls)
 
-    student_count = db.query(Student).filter(Student.class_id == cls.id, Student.active == True).count()
+    student_count = db.query(Student).filter(Student.class_id == cls.id, Student.active == True, Student.is_deleted == False).count()
     cls_out = ClassOut.model_validate(cls)
     cls_out.student_count = student_count
     return cls_out
 
 @router.delete("/{class_id}")
 def delete_class(class_id: int, db: Session = Depends(get_db), token: dict = Depends(get_current_user_token)):
-    cls = db.query(Class).filter(Class.id == class_id).first()
-    if not cls:
-        raise HTTPException(status_code=404, detail="Class not found")
+    cls = _get_scoped_class(class_id, token, db, require_admin=True)
     db.delete(cls)
     db.commit()
     return {"message": f"Class '{cls.name}' successfully deleted."}

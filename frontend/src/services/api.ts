@@ -29,7 +29,8 @@ export const api = axios.create({
 api.interceptors.request.use((config) => {
   const adminToken = localStorage.getItem('attendx_admin_token');
   const teacherToken = localStorage.getItem('attendx_token');
-  const isAdminRoute = config.url?.includes('/auth/pending-teachers') ||
+  const isAdminRoute = window.location.pathname.startsWith('/admin') ||
+                       config.url?.includes('/auth/pending-teachers') ||
                        config.url?.includes('/auth/teachers') ||
                        config.url?.includes('/auth/approve-teacher') ||
                        config.url?.includes('/auth/reject-teacher') ||
@@ -37,6 +38,7 @@ api.interceptors.request.use((config) => {
                        config.url?.includes('/institutions/pending') ||
                        config.url?.includes('/institutions/telemetry/') ||
                        (config.url?.includes('/institutions/') && (config.url?.includes('/approve') || config.url?.includes('/reject'))) ||
+                       config.url?.includes('/export/backup/') ||
                        config.url?.includes('/students/pending-approval') ||
                        (config.url?.includes('/students/') && (config.url?.includes('/approve') || config.url?.includes('/reject')));
 
@@ -196,7 +198,20 @@ export const AttendanceService = {
       return res.data as AttendanceAnalysisResponse;
     });
 
-    const results = await Promise.all(promises);
+    const settled = await Promise.allSettled(promises);
+    const results: AttendanceAnalysisResponse[] = [];
+    let firstError: any = null;
+    for (const item of settled) {
+      if (item.status === 'fulfilled') {
+        results.push(item.value);
+      } else if (!firstError) {
+        firstError = item.reason;
+      }
+    }
+
+    if (results.length === 0) {
+      throw firstError || new Error('Failed to analyze uploaded photos.');
+    }
 
     const allImageUrls: string[] = [];
     const allRecognizedFaces: any[] = [];
@@ -232,8 +247,8 @@ export const AttendanceService = {
       });
     });
 
-    // Base proposed attendance from the first result template
-    const baseProposals = results[0]?.proposed_attendance || [];
+    // Base proposed attendance from the first non-empty result template
+    const baseProposals = results.find(r => r.proposed_attendance && r.proposed_attendance.length > 0)?.proposed_attendance || [];
     let presentCount = 0;
     let reviewCount = 0;
     let absentCount = 0;

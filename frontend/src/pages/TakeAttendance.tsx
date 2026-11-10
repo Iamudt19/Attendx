@@ -41,6 +41,7 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const objectUrlsRef = useRef<string[]>([]);
 
   const [analyzing, setAnalyzing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +53,10 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
         streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
       }
+      objectUrlsRef.current.forEach((url) => {
+        try { URL.revokeObjectURL(url); } catch (e) {}
+      });
+      objectUrlsRef.current = [];
     };
   }, []);
 
@@ -71,16 +76,24 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
   }, []);
 
   useEffect(() => {
-    if (!selectedClassId) return;
+    if (!selectedClassId) {
+      setSubjects([]);
+      setSelectedSubjectId(0);
+      return;
+    }
     const loadSubjects = async () => {
       try {
         const subList = await SubjectService.getSubjects(selectedClassId);
-        setSubjects(subList);
-        if (subList.length > 0) {
+        setSubjects(subList || []);
+        if (subList && subList.length > 0) {
           setSelectedSubjectId(subList[0].id);
+        } else {
+          setSelectedSubjectId(0);
         }
       } catch (err) {
         console.error("Failed to load subjects", err);
+        setSubjects([]);
+        setSelectedSubjectId(0);
       }
     };
     loadSubjects();
@@ -93,10 +106,12 @@ export const TakeAttendance: React.FC<TakeAttendanceProps> = ({ onAnalysisComple
     Array.from(files).forEach((file) => {
       if (file.type.startsWith('image/')) {
         const currentCount = stagedPhotos.length + newItems.length;
+        const previewUrl = URL.createObjectURL(file);
+        objectUrlsRef.current.push(previewUrl);
         newItems.push({
           id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
           file,
-          previewUrl: URL.createObjectURL(file),
+          previewUrl,
           source: 'upload',
           label: sectionTags[currentCount] || `Section ${currentCount + 1}`
         });

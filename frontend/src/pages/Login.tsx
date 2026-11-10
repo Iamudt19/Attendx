@@ -57,23 +57,16 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
     if (!selectedInstitutionId) return;
     InstitutionService.getInstitutionClasses(selectedInstitutionId)
       .then(data => {
-        if (data && data.length > 0) {
-          setAvailableClasses(data);
-          setSelectedClasses(data.map(c => c.id));
-        } else {
-          return AuthService.getPublicClasses().then(allCls => {
-            setAvailableClasses(allCls || []);
-            setSelectedClasses([]);
-          });
-        }
+        const list = data || [];
+        setAvailableClasses(list);
+        setSelectedClasses(list.map(c => c.id));
       })
       .catch(() => {
         AuthService.getPublicClasses()
           .then(data => {
-            setAvailableClasses(data || []);
-            if (data && data.length > 0) {
-              setSelectedClasses(data.map(c => c.id));
-            }
+            const list = data || [];
+            setAvailableClasses(list);
+            setSelectedClasses(list.map(c => c.id));
           })
           .catch(() => {});
       });

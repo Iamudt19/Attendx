@@ -52,7 +52,13 @@ def decode_access_token(token: str) -> dict:
         )
 
 def get_current_user_token(credentials: HTTPAuthorizationCredentials = Security(security)) -> dict:
-    return decode_access_token(credentials.credentials)
+    payload = decode_access_token(credentials.credentials)
+    if payload.get("role") == "STUDENT":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Student tokens cannot access faculty or admin endpoints."
+        )
+    return payload
 
 def get_current_student_token(credentials: HTTPAuthorizationCredentials = Security(security)) -> dict:
     """Dependency for student-only endpoints. Validates JWT has role=STUDENT."""

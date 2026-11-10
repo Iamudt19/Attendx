@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, s
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
-from app.models.models import Student, FaceEmbedding, Class, Subject, AttendanceSession, AttendanceRecord, User
+from app.models.models import Student, FaceEmbedding, Class, Subject, AttendanceSession, AttendanceRecord, User, ImmutableFaceVault
 from app.schemas.schemas import (
     StudentLoginRequest, StudentPortalTokenResponse,
     FaceFrameUploadResult, FaceRegistrationStatus,
@@ -40,15 +40,19 @@ TOTAL_REQUIRED = len(SCAN_ANGLES)  # 5 angles required
 def _get_student_or_404(student_db_id: int, db: Session) -> Student:
     student = db.query(Student).filter(
         Student.id == student_db_id,
-        Student.active == True
+        Student.active == True,
+        Student.is_deleted == False
     ).first()
     if not student:
         raise HTTPException(status_code=404, detail="Student not found.")
     return student
 
+def _get_active_embeddings(student: Student) -> List[FaceEmbedding]:
+    return [emb for emb in student.embeddings if not emb.is_deleted]
+
 def _get_completed_angles(student: Student) -> List[str]:
-    """Return list of angle_labels that have at least one embedding."""
-    return [emb.angle_label for emb in student.embeddings if emb.angle_label in SCAN_ANGLES]
+    """Return list of angle_labels that have at least one active embedding."""
+    return [emb.angle_label for emb in _get_active_embeddings(student) if emb.angle_label in SCAN_ANGLES]
 
 def _get_remaining_angles(completed: List[str]) -> List[str]:
     return [a for a in SCAN_ANGLES if a not in completed]
@@ -149,7 +153,8 @@ def student_login(req: StudentLoginRequest, db: Session = Depends(get_db)):
     """
     student = db.query(Student).filter(
         Student.student_id == req.student_id,
-        Student.active == True
+        Student.active == True,
+        Student.is_deleted == False
     ).first()
 
     if not student:
@@ -195,7 +200,7 @@ def get_student_me(
 
     completed = _get_completed_angles(student)
     remaining = _get_remaining_angles(completed)
-    total_embs = len(student.embeddings)
+    total_embs = len(_get_active_embeddings(student))
     training_lvl, readiness_score = _calculate_training_stats(total_embs)
 
     cls = db.query(Class).filter(Class.id == student.class_id).first() if student.class_id else None
@@ -232,6 +237,8 @@ def update_student_class(
     cls = db.query(Class).filter(Class.id == req.class_id).first()
     if not cls:
         raise HTTPException(status_code=404, detail="Class not found.")
+    if student.institution_id and cls.institution_id and cls.institution_id != student.institution_id:
+        raise HTTPException(status_code=403, detail="Cannot switch to a class in a different institution.")
 
     student.class_id = req.class_id
     db.commit()
@@ -239,7 +246,7 @@ def update_student_class(
 
     completed = _get_completed_angles(student)
     remaining = _get_remaining_angles(completed)
-    total_embs = len(student.embeddings)
+    total_embs = len(_get_active_embeddings(student))
     training_lvl, readiness_score = _calculate_training_stats(total_embs)
 
     return FaceRegistrationStatus(
@@ -297,7 +304,7 @@ async def submit_face_frame(
 
     # Detect single face
     face_box, cropped_face, raw_face, detect_error = detect_single_face_for_scan(img)
-    total_embs = len(student.embeddings)
+    total_embs = len(_get_active_embeddings(student))
     training_lvl, readiness_score = _calculate_training_stats(total_embs)
 
     if detect_error:
@@ -393,7 +400,8 @@ async def submit_face_frame(
     remaining = _get_remaining_angles(completed)
     all_done = len(remaining) == 0
 
-    if (all_done or len(student.embeddings) >= TOTAL_REQUIRED) and not student.face_registration_complete:
+    active_count = len(_get_active_embeddings(student))
+    if (all_done or active_count >= TOTAL_REQUIRED) and not student.face_registration_complete:
         student.face_registration_complete = True
 
     db.commit()
@@ -405,7 +413,7 @@ async def submit_face_frame(
     except Exception:
         pass
 
-    new_total = len(student.embeddings)
+    new_total = len(_get_active_embeddings(student))
     new_level, new_score = _calculate_training_stats(new_total)
 
     return FaceFrameUploadResult(
@@ -429,31 +437,32 @@ def reset_face_scan(
 ):
     """
     Allow a student to redo their face scan from scratch.
-    Deletes all existing portal-scanned embeddings (preserves teacher-uploaded ones).
+    Soft-deletes existing portal-scanned embeddings and deactivates matching vault entries.
     """
     student_db_id = int(token["sub"])
     student = _get_student_or_404(student_db_id, db)
 
-    # Remove only embeddings that have an angle_label (portal-scanned ones)
     portal_embeddings = db.query(FaceEmbedding).filter(
         FaceEmbedding.student_id == student_db_id,
-        FaceEmbedding.angle_label.isnot(None)
+        FaceEmbedding.angle_label.isnot(None),
+        FaceEmbedding.is_deleted == False
     ).all()
 
     for emb in portal_embeddings:
-        if emb.source_image:
-            try:
-                full_path = os.path.join(storage_service.base_dir, emb.source_image)
-                if os.path.exists(full_path):
-                    os.remove(full_path)
-            except Exception:
-                pass
-        db.delete(emb)
+        emb.is_deleted = True
+        emb.deleted_at = datetime.utcnow()
+
+    # Deactivate corresponding portal_scan records in vault so reset scans are not auto-recovered
+    db.query(ImmutableFaceVault).filter(
+        ImmutableFaceVault.student_id == student.student_id,
+        ImmutableFaceVault.source == "portal_scan",
+        ImmutableFaceVault.is_active == True
+    ).update({"is_active": False}, synchronize_session=False)
 
     student.face_registration_complete = False
     db.commit()
 
-    return {"message": f"Face scan reset. Please complete the face scan wizard again.", "student": student.name}
+    return {"message": "Face scan reset. Please complete the face scan wizard again.", "student": student.name}
 
 
 # ── Student Attendance Tracking & Analytics Endpoints ─────────────────────────
@@ -488,8 +497,11 @@ def get_student_attendance(
     else:
         filtered_sessions = all_class_sessions
 
-    # Fetch all attendance records for this student
-    records = db.query(AttendanceRecord).filter(AttendanceRecord.student_id == student.id).all()
+    # Fetch all active attendance records for this student
+    records = db.query(AttendanceRecord).filter(
+        AttendanceRecord.student_id == student.id,
+        AttendanceRecord.is_deleted == False
+    ).all()
     record_session_map = {r.session_id: r for r in records}
 
     # Calculate statistics per subject

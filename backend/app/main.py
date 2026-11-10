@@ -30,6 +30,8 @@ async def keep_alive_loop():
         try:
             db = SessionLocal()
             try:
+                cutoff = datetime.datetime.utcnow() - datetime.timedelta(days=14)
+                db.query(SystemHeartbeat).filter(SystemHeartbeat.pinged_at < cutoff).delete(synchronize_session=False)
                 beat = SystemHeartbeat(worker_id="background-keepalive", status="HEALTHY")
                 db.add(beat)
                 db.commit()

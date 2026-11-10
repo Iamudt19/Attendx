@@ -104,23 +104,16 @@ export const AdminPortal: React.FC = () => {
     setTimeout(() => setActionMessage(null), 3500);
   };
 
-  // Authenticate with master password Doomsday@1812
+  // Authenticate with master password
   const handleAdminLogin = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setAuthError(null);
     setAuthLoading(true);
 
-    if (passwordInput.trim() !== 'Doomsday@1812') {
-      setAuthError('Access Denied: Invalid Master Password.');
-      setAuthLoading(false);
-      return;
-    }
-
     try {
-      const data = await AuthService.adminMasterLogin('Doomsday@1812');
+      const data = await AuthService.adminMasterLogin(passwordInput.trim());
       if (data?.access_token) {
         localStorage.setItem('attendx_admin_token', data.access_token);
-        localStorage.setItem('attendx_token', data.access_token);
       }
       setIsAuthenticated(true);
       setPasswordInput('');
@@ -141,17 +134,13 @@ export const AdminPortal: React.FC = () => {
   // Fetch all data
   const refreshAllData = useCallback(async () => {
     if (!isAuthenticated) return;
+    const adminToken = localStorage.getItem('attendx_admin_token');
+    if (!adminToken) {
+      setIsAuthenticated(false);
+      return;
+    }
     setLoadingData(true);
     try {
-      let adminToken = localStorage.getItem('attendx_admin_token');
-      if (!adminToken) {
-        try {
-          const authRes = await AuthService.adminMasterLogin('Doomsday@1812');
-          if (authRes?.access_token) {
-            localStorage.setItem('attendx_admin_token', authRes.access_token);
-          }
-        } catch (e) {}
-      }
 
       const [clsList, stuList, subList, sessList, pendingTchs, allTchs, approvedInsts, pendingInsts, pendingStus, beats] = await Promise.all([
         ClassService.getClasses().catch(() => []),
@@ -177,8 +166,8 @@ export const AdminPortal: React.FC = () => {
       setHeartbeats(beats || []);
 
       if (clsList && clsList.length > 0) {
-        if (!newStudentClassId) setNewStudentClassId(clsList[0].id);
-        if (!newSubjectClassId) setNewSubjectClassId(clsList[0].id);
+        setNewStudentClassId(prev => prev || clsList[0].id);
+        setNewSubjectClassId(prev => prev || clsList[0].id);
       }
 
       api.get('/health').then(res => setSystemHealth(res.data)).catch(() => {});
@@ -187,7 +176,7 @@ export const AdminPortal: React.FC = () => {
     } finally {
       setLoadingData(false);
     }
-  }, [isAuthenticated, newStudentClassId, newSubjectClassId]);
+  }, [isAuthenticated]);
 
   const handleApproveTeacher = async (teacherId: number, teacherName: string) => {
     try {

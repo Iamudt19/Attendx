@@ -25,9 +25,10 @@ class LiveBackupService:
         """Extracts complete database tables and writes a live backup JSON file."""
         with self._lock:
             tables = [
-                'users', 'classes', 'subjects', 'students', 
-                'enrollments', 'face_embeddings', 
-                'attendance_sessions', 'attendance_records', 'attendance_audit_logs'
+                'institutions', 'users', 'classes', 'subjects', 'students',
+                'enrollments', 'face_embeddings', 'immutable_face_vault',
+                'attendance_sessions', 'attendance_records', 'attendance_audit_logs',
+                'system_heartbeats'
             ]
             
             backup_data = {
