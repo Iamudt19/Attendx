@@ -183,6 +183,8 @@ class FaceFrameUploadResult(BaseModel):
     total_embeddings: Optional[int] = None
     training_level: Optional[str] = None
     recognition_readiness_score: Optional[float] = None
+    approval_status: Optional[str] = "APPROVED"
+    institution_id: Optional[int] = 1
 
 class StudentUpdateClassRequest(BaseModel):
     class_id: int
@@ -202,6 +204,8 @@ class FaceRegistrationStatus(BaseModel):
     total_required: int
     training_level: Optional[str] = None
     recognition_readiness_score: Optional[float] = None
+    approval_status: Optional[str] = "APPROVED"
+    institution_id: Optional[int] = 1
 
 # Recognition Bounding Box & Proposal Schema
 class BoundingBox(BaseModel):

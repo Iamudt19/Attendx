@@ -31,21 +31,21 @@ def create_safe_engine(target_url: str):
             logger.info("Database connection established successfully.")
             return eng
         except Exception as conn_err:
-            print(f"⚠️ Remote Database Connection Failed ({target_url}): {conn_err}")
-            # Try connecting directly to the resilient Supabase pooler
+            print(f"[WARN] Remote DB connection failed ({target_url}): {conn_err}")
+            # Retry with known-good Supabase pooler URL
             fallback_remote = "postgresql+psycopg2://postgres.vffgjjlucktyrfjhbqbp:doctordoom1812@aws-0-ap-south-1.pooler.supabase.com:6543/postgres"
             if target_url != fallback_remote:
                 try:
-                    print("🔄 Retrying with primary Supabase pooler resilience endpoint...")
+                    print("[INFO] Retrying with Supabase pooler endpoint...")
                     fb_eng = create_engine(fallback_remote, pool_pre_ping=True)
                     with fb_eng.connect() as conn:
                         conn.execute(text("SELECT 1"))
-                    print("✅ Successfully recovered connection via primary Supabase pooler!")
+                    print("[OK] Connected via Supabase pooler.")
                     return fb_eng
                 except Exception as fb_err:
-                    print(f"⚠️ Primary pooler retry also failed: {fb_err}")
+                    print(f"[WARN] Pooler retry also failed: {fb_err}")
 
-            print("🔄 Falling back to local SQLite engine (attendx.db) to ensure high availability.")
+            print("[INFO] Falling back to local SQLite (attendx.db).")
             return create_engine(
                 "sqlite:///./attendx.db",
                 connect_args={"check_same_thread": False}
@@ -57,7 +57,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 def run_auto_migrations(target_engine):
-    """Safely apply non-destructive schema additions to existing databases without dropping tables."""
+    """Add new columns and tables to an existing DB without dropping anything."""
     try:
         with target_engine.connect() as conn:
             # Check users table columns
@@ -170,7 +170,7 @@ def run_auto_migrations(target_engine):
                 conn.execute(text("ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS verification_status VARCHAR(30) DEFAULT 'AUTO'"))
                 conn.execute(text("ALTER TABLE attendance_records ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE"))
 
-                # Indestructible Face Biometric Vault
+                # Face vault (permanent backup of embeddings)
                 conn.execute(text("""
                     CREATE TABLE IF NOT EXISTS immutable_face_vault (
                         id SERIAL PRIMARY KEY,

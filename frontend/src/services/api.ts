@@ -33,7 +33,12 @@ api.interceptors.request.use((config) => {
                        config.url?.includes('/auth/teachers') ||
                        config.url?.includes('/auth/approve-teacher') ||
                        config.url?.includes('/auth/reject-teacher') ||
-                       config.url?.includes('/auth/teacher/');
+                       config.url?.includes('/auth/teacher/') ||
+                       config.url?.includes('/institutions/pending') ||
+                       config.url?.includes('/institutions/telemetry/') ||
+                       (config.url?.includes('/institutions/') && (config.url?.includes('/approve') || config.url?.includes('/reject'))) ||
+                       config.url?.includes('/students/pending-approval') ||
+                       (config.url?.includes('/students/') && (config.url?.includes('/approve') || config.url?.includes('/reject')));
 
   const token = (isAdminRoute && adminToken) ? adminToken : (teacherToken || adminToken);
   if (token) {
@@ -51,7 +56,15 @@ export const AuthService = {
     const res = await api.post('/auth/admin-master-login', { password });
     return res.data;
   },
-  register: async (data: { name: string; email: string; password: string; role?: string; assigned_classes?: number[] }) => {
+  register: async (data: {
+    name: string;
+    email: string;
+    password: string;
+    role?: string;
+    institution_id?: number;
+    department?: string;
+    assigned_classes?: number[];
+  }) => {
     const res = await api.post('/auth/register', data);
     return res.data;
   },
@@ -526,6 +539,8 @@ export const StudentPortalService = {
       student_id: res.data.student_id,
       name: res.data.name,
       face_registration_complete: res.data.face_registration_complete,
+      approval_status: res.data.approval_status,
+      institution_id: res.data.institution_id,
       access_token: res.data.access_token,
     };
   },
@@ -537,6 +552,8 @@ export const StudentPortalService = {
       student_id: res.data.student_id,
       name: res.data.name,
       face_registration_complete: res.data.face_registration_complete,
+      approval_status: res.data.approval_status,
+      institution_id: res.data.institution_id,
       access_token: res.data.access_token,
     };
   },

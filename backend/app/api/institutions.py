@@ -2,7 +2,7 @@ import datetime
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, text
 
 from app.database.session import get_db
 from app.models.models import Institution, User, Class, Student, SystemHeartbeat
@@ -105,9 +105,20 @@ def get_approved_institutions(db: Session = Depends(get_db)):
         ))
     return out
 
+def _require_super_admin(token_payload: dict, db: Session) -> User:
+    caller_id = token_payload.get("sub")
+    caller = db.query(User).filter(User.id == int(caller_id)).first() if caller_id else None
+    if not caller or caller.role not in ("ADMIN", "SUPER_ADMIN"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Platform Super Admin access required."
+        )
+    return caller
+
 @router.get("/pending", response_model=List[InstitutionOut])
 def get_pending_institutions(token_payload: dict = Depends(get_current_user_token), db: Session = Depends(get_db)):
     """Super Admin Desk: Fetch all institutions awaiting verification and approval."""
+    _require_super_admin(token_payload, db)
     institutions = db.query(Institution).filter(Institution.status == "PENDING_APPROVAL").order_by(Institution.created_at.desc()).all()
     out = []
     for inst in institutions:
@@ -131,6 +142,7 @@ def get_pending_institutions(token_payload: dict = Depends(get_current_user_toke
 @router.put("/{institution_id}/approve")
 def approve_institution(institution_id: int, token_payload: dict = Depends(get_current_user_token), db: Session = Depends(get_db)):
     """Super Admin: Approve a pending institution and immediately activate its Institution Admin."""
+    _require_super_admin(token_payload, db)
     inst = db.query(Institution).filter(Institution.id == institution_id).first()
     if not inst:
         raise HTTPException(status_code=404, detail="Institution not found")
@@ -156,6 +168,7 @@ def approve_institution(institution_id: int, token_payload: dict = Depends(get_c
 @router.put("/{institution_id}/reject")
 def reject_institution(institution_id: int, action_req: Optional[InstitutionApproveAction] = None, token_payload: dict = Depends(get_current_user_token), db: Session = Depends(get_db)):
     """Super Admin: Reject or suspend an institution."""
+    _require_super_admin(token_payload, db)
     inst = db.query(Institution).filter(Institution.id == institution_id).first()
     if not inst:
         raise HTTPException(status_code=404, detail="Institution not found")
@@ -197,7 +210,12 @@ def trigger_keep_alive_heartbeat(db: Session = Depends(get_db)):
     """Record a fresh keep-alive heartbeat in the database."""
     import time
     start = time.time()
+    db.execute(text("SELECT 1"))
     latency = round((time.time() - start) * 1000, 2)
+
+    cutoff = datetime.datetime.utcnow() - datetime.timedelta(days=14)
+    db.query(SystemHeartbeat).filter(SystemHeartbeat.pinged_at < cutoff).delete(synchronize_session=False)
+
     beat = SystemHeartbeat(
         worker_id="web-keep-alive-api",
         pinged_at=datetime.datetime.utcnow(),
@@ -211,6 +229,7 @@ def trigger_keep_alive_heartbeat(db: Session = Depends(get_db)):
         "status": "ok",
         "message": "Keep-alive transaction recorded. Supabase inactivity timer refreshed.",
         "heartbeat_id": beat.id,
+        "latency_ms": beat.latency_ms,
         "pinged_at": beat.pinged_at.isoformat()
     }
 

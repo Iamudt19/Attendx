@@ -18,14 +18,19 @@ def get_subjects(class_id: Optional[int] = None, db: Session = Depends(get_db), 
         query = query.filter(Subject.class_id == class_id)
     elif caller and caller.role == "TEACHER" and caller.assigned_classes and len(caller.assigned_classes) > 0:
         query = query.filter(Subject.class_id.in_(caller.assigned_classes))
+    elif caller and caller.role == "INSTITUTION_ADMIN" and caller.institution_id:
+        query = query.filter(Subject.institution_id == caller.institution_id)
     return query.all()
 
 @router.post("", response_model=SubjectOut)
 def create_subject(req: SubjectCreate, db: Session = Depends(get_db), token: dict = Depends(get_current_user_token)):
+    from app.models.models import Class
+    cls = db.query(Class).filter(Class.id == req.class_id).first()
     subject = Subject(
         name=req.name,
         code=req.code,
-        class_id=req.class_id
+        class_id=req.class_id,
+        institution_id=(cls.institution_id if cls and cls.institution_id else 1)
     )
     db.add(subject)
     db.commit()

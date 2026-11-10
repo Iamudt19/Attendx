@@ -742,7 +742,7 @@ export const AdminPortal: React.FC = () => {
 
         {/* Tab Navigation */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex gap-1 overflow-x-auto no-scrollbar border-t border-[var(--border-color)] py-1 bg-[var(--bg-surface)] text-xs font-mono">
-          {[
+          {([
             { id: 'overview', label: 'Overview & Telemetry', icon: Activity },
             { 
               id: 'institutions', 
@@ -767,7 +767,7 @@ export const AdminPortal: React.FC = () => {
             { id: 'students', label: `Students (${students.length})`, icon: Users },
             { id: 'subjects', label: `Subjects (${subjects.length})`, icon: Sliders },
             { id: 'diagnostics', label: 'System Diagnostics', icon: Cpu },
-          ].map((tab) => {
+          ] as Array<{ id: AdminTab; label: string; icon: React.ComponentType<{ className?: string }>; highlight?: boolean }>).map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
@@ -840,7 +840,37 @@ export const AdminPortal: React.FC = () => {
             </div>
 
             {/* Quick Management Shortcuts */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="swiss-card p-5 rounded-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
+                    <Building2 className="w-4 h-4 text-emerald-500" />
+                    Institutions
+                  </h3>
+                  {pendingInstitutions.length > 0 && (
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 font-bold animate-pulse">
+                      {pendingInstitutions.length} Pending
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-[var(--text-secondary)]">
+                  {pendingInstitutions.length > 0
+                    ? `${pendingInstitutions.length} campus registration(s) awaiting Super Admin approval.`
+                    : `${institutions.length} verified campus(es) active on platform.`}
+                </p>
+                <button
+                  onClick={() => setActiveTab('institutions')}
+                  className={`w-full py-2 text-xs font-mono flex items-center justify-center gap-1.5 rounded-lg ${
+                    pendingInstitutions.length > 0
+                      ? 'bg-amber-600 hover:bg-amber-500 text-white font-bold'
+                      : 'btn-secondary'
+                  }`}
+                >
+                  <Building2 className="w-3.5 h-3.5" />
+                  <span>{pendingInstitutions.length > 0 ? 'Verify Institutions' : 'View Campuses'}</span>
+                </button>
+              </div>
+
               <div className="swiss-card p-5 rounded-lg space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
@@ -868,6 +898,61 @@ export const AdminPortal: React.FC = () => {
                 >
                   <UserCheck className="w-3.5 h-3.5" />
                   <span>{pendingTeachers.length > 0 ? 'Review Approvals' : 'Manage Teachers'}</span>
+                </button>
+              </div>
+
+              <div className="swiss-card p-5 rounded-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
+                    <GraduationCap className="w-4 h-4 text-blue-500" />
+                    Student Approvals
+                  </h3>
+                  {pendingStudents.length > 0 && (
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 font-bold animate-pulse">
+                      {pendingStudents.length} Pending
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-[var(--text-secondary)]">
+                  {pendingStudents.length > 0
+                    ? `${pendingStudents.length} student enrollment request(s) pending class verification.`
+                    : 'All student class enrollments are approved.'}
+                </p>
+                <button
+                  onClick={() => setActiveTab('student_approvals')}
+                  className={`w-full py-2 text-xs font-mono flex items-center justify-center gap-1.5 rounded-lg ${
+                    pendingStudents.length > 0
+                      ? 'bg-amber-600 hover:bg-amber-500 text-white font-bold'
+                      : 'btn-secondary'
+                  }`}
+                >
+                  <GraduationCap className="w-3.5 h-3.5" />
+                  <span>{pendingStudents.length > 0 ? 'Review Enrollments' : 'Enrollment Desk'}</span>
+                </button>
+              </div>
+
+              <div className="swiss-card p-5 rounded-lg space-y-3 border border-emerald-500/30 bg-emerald-500/5">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-[var(--text-primary)] flex items-center gap-2">
+                    <Radio className="w-4 h-4 text-emerald-500" />
+                    Database Keep-Alive
+                  </h3>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 font-bold">
+                    {heartbeats.length > 0 && heartbeats[0].latency_ms != null ? `${heartbeats[0].latency_ms}ms` : 'Active'}
+                  </span>
+                </div>
+                <p className="text-xs text-[var(--text-secondary)]">
+                  {heartbeats.length > 0
+                    ? `Last ping: ${new Date(heartbeats[0].pinged_at).toLocaleString()}`
+                    : 'Periodic keep-alive pings prevent Supabase inactivity pause.'}
+                </p>
+                <button
+                  onClick={handleTriggerHeartbeat}
+                  disabled={isTriggeringHeartbeat}
+                  className="btn-primary w-full py-2 text-xs font-mono font-bold flex items-center justify-center gap-1.5"
+                >
+                  <Zap className={`w-3.5 h-3.5 ${isTriggeringHeartbeat ? 'animate-spin' : ''}`} />
+                  <span>{isTriggeringHeartbeat ? 'Pinging DB...' : 'Trigger Keep-Alive Ping'}</span>
                 </button>
               </div>
 
@@ -1954,7 +2039,7 @@ export const AdminPortal: React.FC = () => {
                       className="btn-primary px-3 py-1 text-xs font-mono font-bold flex items-center gap-1.5"
                     >
                       <Zap className={`w-3.5 h-3.5 ${isTriggeringHeartbeat ? 'animate-spin' : ''}`} />
-                      <span>{isTriggeringHeartbeat ? 'Pinging DB...' : '⚡ Trigger Keep-Alive Ping'}</span>
+                      <span>{isTriggeringHeartbeat ? 'Pinging DB...' : 'Trigger Keep-Alive Ping'}</span>
                     </button>
                   </div>
                 </div>

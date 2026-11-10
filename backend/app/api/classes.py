@@ -26,8 +26,13 @@ def get_classes(db: Session = Depends(get_db), token: dict = Depends(get_current
     caller = db.query(User).filter(User.id == int(caller_id)).first() if caller_id else None
 
     query = db.query(Class)
-    if caller and caller.role == "TEACHER" and caller.assigned_classes and len(caller.assigned_classes) > 0:
-        query = query.filter(Class.id.in_(caller.assigned_classes))
+    if caller and caller.role == "TEACHER":
+        if caller.assigned_classes and len(caller.assigned_classes) > 0:
+            query = query.filter(Class.id.in_(caller.assigned_classes))
+        elif caller.institution_id:
+            query = query.filter(Class.institution_id == caller.institution_id)
+    elif caller and caller.role == "INSTITUTION_ADMIN" and caller.institution_id:
+        query = query.filter(Class.institution_id == caller.institution_id)
 
     classes = query.all()
     results = []
@@ -40,10 +45,13 @@ def get_classes(db: Session = Depends(get_db), token: dict = Depends(get_current
 
 @router.post("", response_model=ClassOut)
 def create_class(req: ClassCreate, db: Session = Depends(get_db), token: dict = Depends(get_current_user_token)):
+    caller_id = token.get("sub")
+    caller = db.query(User).filter(User.id == int(caller_id)).first() if caller_id else None
     cls = Class(
         name=req.name,
         section=req.section,
-        academic_year=req.academic_year
+        academic_year=req.academic_year,
+        institution_id=(caller.institution_id if caller and caller.institution_id else 1)
     )
     db.add(cls)
     db.commit()

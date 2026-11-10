@@ -51,16 +51,33 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         }
       })
       .catch(() => {});
+  }, []);
 
-    AuthService.getPublicClasses()
+  useEffect(() => {
+    if (!selectedInstitutionId) return;
+    InstitutionService.getInstitutionClasses(selectedInstitutionId)
       .then(data => {
-        setAvailableClasses(data || []);
         if (data && data.length > 0) {
+          setAvailableClasses(data);
           setSelectedClasses(data.map(c => c.id));
+        } else {
+          return AuthService.getPublicClasses().then(allCls => {
+            setAvailableClasses(allCls || []);
+            setSelectedClasses([]);
+          });
         }
       })
-      .catch(() => {});
-  }, []);
+      .catch(() => {
+        AuthService.getPublicClasses()
+          .then(data => {
+            setAvailableClasses(data || []);
+            if (data && data.length > 0) {
+              setSelectedClasses(data.map(c => c.id));
+            }
+          })
+          .catch(() => {});
+      });
+  }, [selectedInstitutionId]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,10 +125,8 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         password: regPassword,
         role: 'TEACHER',
         assigned_classes: selectedClasses,
-        ...({
-          institution_id: selectedInstitutionId,
-          department: department.trim() || undefined
-        } as any)
+        institution_id: selectedInstitutionId,
+        department: department.trim() || undefined,
       });
       if (data.user?.is_approved && data.access_token) {
         localStorage.setItem('attendx_token', data.access_token);
@@ -531,7 +546,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                   </div>
                   {selectedClasses.length === 0 && (
                     <div className="text-[11px] text-amber-500 font-medium mt-1.5 flex items-center gap-1">
-                      ⚠️ Please select at least one class section.
+                      Please select at least one class section.
                     </div>
                   )}
                 </div>

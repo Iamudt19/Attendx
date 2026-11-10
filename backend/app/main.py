@@ -13,48 +13,44 @@ from app.api import auth, classes, subjects, students, attendance, export, stude
 # Create DB tables
 Base.metadata.create_all(bind=engine)
 
-async def vault_guardian_loop():
+async def keep_alive_loop():
     """
-    Background anti-pause guardian loop.
-    Pings Supabase PostgreSQL periodically to prevent the free-tier 7-day inactivity pause,
-    and updates the local snapshot backup in backups/attendx_backup_latest.json.
+    Background loop that pings the database every 4 hours to prevent
+    Supabase free-tier inactivity pause, and takes a local JSON backup.
     """
     from app.database.session import SessionLocal
     from app.services.vault_sync import vault_sync_service
     from app.models.models import SystemHeartbeat
     import datetime
 
-    # Initial grace period on boot
+    # Let the app finish booting first
     await asyncio.sleep(15)
 
     while True:
         try:
             db = SessionLocal()
             try:
-                # 1. Keep-alive heartbeat ping to Supabase
-                beat = SystemHeartbeat(worker_id="app-lifespan-guardian", status="HEALTHY")
+                beat = SystemHeartbeat(worker_id="background-keepalive", status="HEALTHY")
                 db.add(beat)
                 db.commit()
-                # 2. Local snapshot backup
                 vault_sync_service.run_snapshot_backup(db)
-                print(f"🛡️ [VAULT GUARDIAN] Keep-alive ping & snapshot backup completed at {datetime.datetime.utcnow().isoformat()}")
+                print(f"[KEEPALIVE] Ping + snapshot done at {datetime.datetime.utcnow().isoformat()}")
             finally:
                 db.close()
         except Exception as e:
-            print(f"⚠️ [VAULT GUARDIAN] Background cycle notice: {e}")
+            print(f"[KEEPALIVE] Error: {e}")
 
-        # Sleep for 4 hours (14400 seconds)
-        await asyncio.sleep(14400)
+        await asyncio.sleep(14400)  # 4 hours
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    guardian_task = asyncio.create_task(vault_guardian_loop())
+    bg_task = asyncio.create_task(keep_alive_loop())
     yield
-    guardian_task.cancel()
+    bg_task.cancel()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    description="AttendX — AI-Powered Classroom Attendance System API",
+    description="AttendX - Classroom Attendance System API",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -107,7 +103,7 @@ def root():
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>AttendX — AI Attendance API</title>
+        <title>AttendX API</title>
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -129,13 +125,13 @@ def root():
     </head>
     <body>
         <div class="card">
-            <h1>📸 AttendX API</h1>
-            <p class="tagline">AI-Powered Facial Recognition Attendance System</p>
+            <h1>AttendX API</h1>
+            <p class="tagline">Facial Recognition Attendance System</p>
             <div class="status">Online &amp; Ready</div>
             <div class="links">
-                <a href="/docs">📖 Interactive API Docs (Swagger)</a>
-                <a href="/gradio">🧪 Face Recognition &amp; GPU Playground</a>
-                <a href="/api/health">🩺 Health Check</a>
+                <a href="/docs">API Docs (Swagger)</a>
+                <a href="/gradio">Face Recognition Playground</a>
+                <a href="/api/health">Health Check</a>
             </div>
         </div>
     </body>

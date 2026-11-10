@@ -18,6 +18,7 @@ import {
   Lock,
   Database,
   Check,
+  Building2,
 } from 'lucide-react';
 import { Logo } from '../components/Logo';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -175,14 +176,38 @@ export const HeroLanding: React.FC = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
-                            Institution Admin
+                            Super Admin Desk
                           </span>
                           <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold">
                             Admin
                           </span>
                         </div>
                         <p className="text-[10px] text-slate-500 dark:text-zinc-400 leading-tight mt-0.5">
-                          Department classes, student directories &amp; policies
+                          Institutions, faculty approvals, directories &amp; telemetry
+                        </p>
+                      </div>
+                    </button>
+
+                    {/* Register Institution Item */}
+                    <button
+                      type="button"
+                      onClick={() => { setShowPortalDropdown(false); navigate('/register/institution'); }}
+                      className="w-full text-left p-2.5 rounded-xl hover:bg-amber-50 dark:hover:bg-amber-950/40 bg-transparent transition-colors flex items-start gap-3 group border border-transparent hover:border-amber-200 dark:hover:border-amber-800/40"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
+                        <Building2 className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400">
+                            Register Institution
+                          </span>
+                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold">
+                            Campus
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 dark:text-zinc-400 leading-tight mt-0.5">
+                          Onboard a new school, college, or university portal
                         </p>
                       </div>
                     </button>
@@ -552,13 +577,24 @@ export const HeroLanding: React.FC = () => {
       {/* ── Section 03: Verified Institutional Stories ────────────────────── */}
       <section id="institutions" className="border-b border-[var(--border-color)] py-20 bg-[var(--bg-surface)]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="max-w-2xl mb-12">
-            <span className="text-xs font-mono font-bold text-blue-600 uppercase tracking-wider">
-              Deployment Reports
-            </span>
-            <h2 className="text-3xl font-extrabold text-[var(--text-primary)] mt-1">
-              Trusted in large lecture halls and engineering departments.
-            </h2>
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-12">
+            <div className="max-w-2xl">
+              <span className="text-xs font-mono font-bold text-blue-600 uppercase tracking-wider">
+                Deployment Reports
+              </span>
+              <h2 className="text-3xl font-extrabold text-[var(--text-primary)] mt-1">
+                Trusted in large lecture halls and engineering departments.
+              </h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => navigate('/register/institution')}
+              className="btn-primary px-4 py-2.5 text-xs font-mono font-bold flex items-center gap-2 shrink-0 self-start sm:self-auto"
+            >
+              <Building2 className="w-4 h-4" />
+              <span>Register Your Institution</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

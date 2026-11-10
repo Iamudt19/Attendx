@@ -15,9 +15,10 @@ import {
   ChevronRight,
   GraduationCap,
   Check,
-  X
+  X,
+  UserCheck
 } from 'lucide-react';
-import { AttendanceService, ClassService, StudentService, EnrollmentApprovalService, StudentApprovalItem } from '../services/api';
+import { AuthService, AttendanceService, ClassService, StudentService, EnrollmentApprovalService, StudentApprovalItem } from '../services/api';
 import { AttendanceSessionOut, ClassItem, StudentItem, User } from '../types';
 
 interface DashboardProps {
@@ -31,6 +32,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [students, setStudents] = useState<StudentItem[]>([]);
   const [pendingStudents, setPendingStudents] = useState<StudentApprovalItem[]>([]);
+  const [pendingTeachers, setPendingTeachers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<'all' | 'verified' | 'audit'>('all');
@@ -41,25 +43,29 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
+  const isInstitutionAdmin = user?.role === 'INSTITUTION_ADMIN' || user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
+
   const loadDashboardData = useCallback(async () => {
     try {
-      const [sessData, classData, stuData, pendingData] = await Promise.all([
+      const [sessData, classData, stuData, pendingData, pendingTchs] = await Promise.all([
         AttendanceService.getSessions().catch(() => []),
         ClassService.getClasses().catch(() => []),
         StudentService.getStudents().catch(() => []),
-        EnrollmentApprovalService.getPendingStudents().catch(() => [])
+        EnrollmentApprovalService.getPendingStudents().catch(() => []),
+        isInstitutionAdmin ? AuthService.getPendingTeachers().catch(() => []) : Promise.resolve([])
       ]);
       setSessions(sessData || []);
       setClasses(classData || []);
       setStudents(stuData || []);
       setPendingStudents(pendingData || []);
+      setPendingTeachers(pendingTchs || []);
     } catch (err) {
       console.error("Dashboard fetch error:", err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [isInstitutionAdmin]);
 
   useEffect(() => {
     loadDashboardData();
@@ -114,6 +120,27 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
       loadDashboardData();
     } catch (err) {
       showToast('Failed to reject student.');
+    }
+  };
+
+  const handleApproveTeacher = async (teacherId: number, teacherName: string) => {
+    try {
+      await AuthService.approveTeacher(teacherId);
+      showToast(`Educator "${teacherName}" approved for your institution.`);
+      loadDashboardData();
+    } catch (err) {
+      showToast('Failed to approve educator.');
+    }
+  };
+
+  const handleRejectTeacher = async (teacherId: number, teacherName: string) => {
+    if (!window.confirm(`Reject registration for "${teacherName}"?`)) return;
+    try {
+      await AuthService.rejectTeacher(teacherId);
+      showToast(`Registration for "${teacherName}" rejected.`);
+      loadDashboardData();
+    } catch (err) {
+      showToast('Failed to reject educator.');
     }
   };
 
@@ -234,6 +261,58 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           </div>
         </div>
       </section>
+
+      {/* ── Pending Faculty Approvals Queue (Institution Admin Tier 2 -> Tier 3) ── */}
+      {isInstitutionAdmin && pendingTeachers.length > 0 && (
+        <section className="swiss-card p-4 sm:p-5 rounded-xl border border-blue-500/30 bg-blue-500/5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <UserCheck className="w-4 h-4 text-blue-500" />
+              <h2 className="text-sm font-bold text-[var(--text-primary)]">
+                Faculty Approval Queue ({pendingTeachers.length} Pending)
+              </h2>
+            </div>
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-400">
+              CAMPUS ADMIN
+            </span>
+          </div>
+          <p className="text-xs text-[var(--text-secondary)] font-sans">
+            Educators who registered under your institution require approval before they can sign in and take attendance.
+          </p>
+
+          <div className="divide-y divide-[var(--border-color)] border border-[var(--border-color)] rounded-lg overflow-hidden bg-[var(--bg-surface)]">
+            {pendingTeachers.map((teacher) => (
+              <div key={teacher.id} className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-mono">
+                <div className="space-y-0.5">
+                  <div className="font-bold text-[var(--text-primary)] flex items-center gap-2">
+                    <span>{teacher.name}</span>
+                    {teacher.department && (
+                      <span className="text-[10px] text-blue-500 font-bold">({teacher.department})</span>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-[var(--text-secondary)]">{teacher.email}</div>
+                </div>
+
+                <div className="flex items-center gap-2 self-end sm:self-center">
+                  <button
+                    onClick={() => handleRejectTeacher(teacher.id, teacher.name)}
+                    className="px-2.5 py-1 rounded text-rose-500 hover:bg-rose-500/10 border border-rose-500/30 text-[11px]"
+                  >
+                    Reject
+                  </button>
+                  <button
+                    onClick={() => handleApproveTeacher(teacher.id, teacher.name)}
+                    className="btn-primary px-3 py-1 text-[11px] font-bold flex items-center gap-1"
+                  >
+                    <Check className="w-3 h-3" />
+                    <span>Approve Faculty</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── Pending Student Enrollments Queue (Tier 4 Gate) ── */}
       {pendingStudents.length > 0 && (

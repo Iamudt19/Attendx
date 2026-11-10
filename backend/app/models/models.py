@@ -122,7 +122,7 @@ class FaceEmbedding(Base):
     student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
     embedding = Column(JSON, nullable=False) # Array of floats representing 128-d embedding
     source_image = Column(String(255), nullable=True)
-    image_base64 = Column(Text, nullable=True) # Direct Base64 thumbnail data URI (resilient against ephemeral disk loss)
+    image_base64 = Column(Text, nullable=True) # Base64 encoded thumbnail stored in DB
     angle_label = Column(String(50), nullable=True)  # e.g. 'front', 'left', 'right', 'chin_down', 'smile'
     source = Column(String(50), default="portal_scan")  # 'portal_scan', 'teacher_verified', 'manual_upload'
     is_deleted = Column(Boolean, default=False)
@@ -133,23 +133,21 @@ class FaceEmbedding(Base):
 
 class ImmutableFaceVault(Base):
     """
-    Indestructible Face Biometric Vault.
-    Stores every face vector and thumbnail image ever registered.
-    Records in this table are append-only and NEVER deleted, ensuring biometric
-    identity cannot be lost across server restarts, container redeployments,
-    or accidental student profile deletions.
+    Permanent backup of face embeddings. Append-only — records here
+    are never deleted so biometric data survives accidental deletes
+    or container restarts.
     """
     __tablename__ = "immutable_face_vault"
 
     id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(String(50), index=True, nullable=False) # e.g. STU001 or roll number
+    student_id = Column(String(50), index=True, nullable=False)
     student_db_id = Column(Integer, nullable=True)
     student_name = Column(String(100), nullable=False)
     roll_number = Column(String(50), nullable=True)
     class_id = Column(Integer, nullable=True)
     institution_id = Column(Integer, nullable=True)
-    embedding = Column(JSON, nullable=False) # 128-d biometric vector
-    image_base64 = Column(Text, nullable=True) # Direct Base64 data URI (never lost)
+    embedding = Column(JSON, nullable=False) # 128-d face vector
+    image_base64 = Column(Text, nullable=True) # Base64 thumbnail
     source_image = Column(String(255), nullable=True)
     angle_label = Column(String(50), nullable=True)
     source = Column(String(50), default="portal_scan")
@@ -195,8 +193,8 @@ class AttendanceAuditLog(Base):
     session_id = Column(Integer, ForeignKey("attendance_sessions.id"), nullable=False)
     student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
     teacher_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    original_status = Column(String(20), nullable=True)  # AI proposed status
-    original_score = Column(Float, nullable=True)        # AI match score
+    original_status = Column(String(20), nullable=True)  # System proposed status
+    original_score = Column(Float, nullable=True)        # Match score
     final_status = Column(String(20), nullable=False)    # Teacher confirmed status
     reason = Column(String(255), nullable=True)          # Reason for change / override
     created_at = Column(DateTime, default=datetime.datetime.utcnow)

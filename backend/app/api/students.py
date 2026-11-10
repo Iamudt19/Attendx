@@ -39,6 +39,8 @@ def list_students(class_id: Optional[int] = None, db: Session = Depends(get_db),
         query = query.filter(Student.class_id == class_id)
     elif caller and caller.role == "TEACHER" and caller.assigned_classes and len(caller.assigned_classes) > 0:
         query = query.filter(Student.class_id.in_(caller.assigned_classes))
+    elif caller and caller.role == "INSTITUTION_ADMIN" and caller.institution_id:
+        query = query.filter(Student.institution_id == caller.institution_id)
 
     students = query.order_by(Student.roll_number).all()
     results = []
@@ -155,6 +157,17 @@ def get_student_detail(student_id: int, db: Session = Depends(get_db), token: di
     return s_out
 
 
+def _get_student_with_scope(student_id: int, token: dict, db: Session) -> tuple[Optional[User], Student]:
+    caller_id = token.get("sub")
+    caller = db.query(User).filter(User.id == int(caller_id)).first() if caller_id else None
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    if caller and caller.role == "INSTITUTION_ADMIN" and caller.institution_id and student.institution_id != caller.institution_id:
+        raise HTTPException(status_code=403, detail="You can only manage students in your own institution.")
+    return caller, student
+
+
 @router.post("/{student_id}/face-images", response_model=FaceRegistrationResult)
 def upload_student_face_images(
     student_id: int, 
@@ -162,9 +175,7 @@ def upload_student_face_images(
     db: Session = Depends(get_db), 
     token: dict = Depends(get_current_user_token)
 ):
-    student = db.query(Student).filter(Student.id == student_id).first()
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
+    _, student = _get_student_with_scope(student_id, token, db)
 
     registered_count = 0
     warnings = []
@@ -199,7 +210,7 @@ def upload_student_face_images(
             raw_face=raw_face
         )
 
-        # Base64 thumbnail generation for zero-data-loss database storage
+        # Generate base64 thumbnail to store alongside the embedding
         b64_thumbnail = vault_sync_service.encode_face_to_base64(cropped)
 
         # Reset file seek for saving
@@ -217,8 +228,8 @@ def upload_student_face_images(
         )
         db.add(face_emb_record)
 
-        # Mirror into ImmutableFaceVault (never deleted)
-        vault_sync_service.archive_biometric_face(
+        # Save a permanent copy in the vault
+        vault_sync_service.archive_face(
             db=db,
             student=student,
             embedding=embedding,
@@ -248,13 +259,8 @@ def upload_student_face_images(
 
 @router.delete("/{student_id}/face-data")
 def delete_student_face_data(student_id: int, db: Session = Depends(get_db), token: dict = Depends(get_current_user_token)):
-    """
-    Privacy compliance endpoint: soft-deletes face embeddings for a student while
-    preserving immutable vault records for regulatory integrity and auditability.
-    """
-    student = db.query(Student).filter(Student.id == student_id).first()
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
+    """Soft-delete active face embeddings for a student while keeping vault backup records."""
+    _, student = _get_student_with_scope(student_id, token, db)
 
     embeddings = db.query(FaceEmbedding).filter(
         FaceEmbedding.student_id == student_id,
@@ -278,17 +284,12 @@ def delete_student_face_data(student_id: int, db: Session = Depends(get_db), tok
     except Exception:
         pass
 
-    return {"message": f"Successfully de-activated {count} face biometric records for student {student.name}. Safe vault backup preserved."}
+    return {"message": f"Deactivated {count} face records for student {student.name}."}
 
 @router.delete("/{student_id}")
 def delete_student(student_id: int, db: Session = Depends(get_db), token: dict = Depends(get_current_user_token)):
-    """
-    Soft-delete student profile. Historical records and biometric identity remain
-    safely archived in the ImmutableFaceVault.
-    """
-    student = db.query(Student).filter(Student.id == student_id).first()
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
+    """Soft-delete a student profile while preserving history and vault records."""
+    _, student = _get_student_with_scope(student_id, token, db)
     
     student.active = False
     student.is_deleted = True
@@ -309,16 +310,12 @@ def delete_student(student_id: int, db: Session = Depends(get_db), token: dict =
     except Exception:
         pass
 
-    return {"message": f"Student '{student.name}' successfully archived. Biometric records preserved in vault."}
+    return {"message": f"Student '{student.name}' archived."}
 
 @router.post("/{student_id}/restore")
 def restore_student(student_id: int, db: Session = Depends(get_db), token: dict = Depends(get_current_user_token)):
-    """
-    Restore a soft-deleted student and recover their biometric vectors from the immutable vault.
-    """
-    student = db.query(Student).filter(Student.id == student_id).first()
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
+    """Restore a soft-deleted student and recover embeddings from the vault."""
+    _, student = _get_student_with_scope(student_id, token, db)
 
     student.active = True
     student.is_deleted = False
@@ -328,7 +325,7 @@ def restore_student(student_id: int, db: Session = Depends(get_db), token: dict 
         emb.is_deleted = False
         emb.deleted_at = None
 
-    # If active embeddings count is 0, recover from ImmutableFaceVault
+    # Recover from vault if active embeddings are missing
     active_embs = [e for e in student.embeddings if not e.is_deleted]
     if len(active_embs) == 0:
         recovered = vault_sync_service.recover_embeddings_from_vault(db, student.id)
@@ -337,15 +334,11 @@ def restore_student(student_id: int, db: Session = Depends(get_db), token: dict 
 
     db.commit()
     vault_sync_service.log_event("STUDENT_RESTORED", {"student_id": student.student_id})
-    return {"message": f"Student '{student.name}' successfully restored with full biometric integrity."}
+    return {"message": f"Student '{student.name}' restored."}
 
 @router.get("/faces/{emb_id}/image")
 def get_face_embedding_image(emb_id: int, db: Session = Depends(get_db)):
-    """
-    Stream face image directly.
-    Checks: 1) Local disk file, 2) In-database Base64 thumbnail, 3) ImmutableFaceVault.
-    Guarantees image availability even across container redeployments and disk resets.
-    """
+    """Return face image from local disk, DB base64 thumbnail, or vault."""
     emb = db.query(FaceEmbedding).filter(FaceEmbedding.id == emb_id).first()
     if not emb:
         raise HTTPException(status_code=404, detail="Face embedding not found")
@@ -424,12 +417,7 @@ def approve_student_enrollment(
     db: Session = Depends(get_db)
 ):
     """Educator: Approve a student's enrollment into the class roster."""
-    caller_id = token.get("sub")
-    caller = db.query(User).filter(User.id == int(caller_id)).first() if caller_id else None
-
-    student = db.query(Student).filter(Student.id == student_id).first()
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
+    caller, student = _get_student_with_scope(student_id, token, db)
 
     student.approval_status = "APPROVED"
     student.approved_by_teacher_id = caller.id if caller else None
@@ -449,9 +437,7 @@ def reject_student_enrollment(
     db: Session = Depends(get_db)
 ):
     """Educator: Reject or remove a student from the class roster."""
-    student = db.query(Student).filter(Student.id == student_id).first()
-    if not student:
-        raise HTTPException(status_code=404, detail="Student not found")
+    _, student = _get_student_with_scope(student_id, token, db)
 
     student.approval_status = "REJECTED"
     student.active = False

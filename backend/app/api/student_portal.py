@@ -213,7 +213,9 @@ def get_student_me(
         total_embeddings=total_embs,
         total_required=TOTAL_REQUIRED,
         training_level=training_lvl,
-        recognition_readiness_score=readiness_score
+        recognition_readiness_score=readiness_score,
+        approval_status=student.approval_status or "APPROVED",
+        institution_id=student.institution_id or 1
     )
 
 
@@ -253,7 +255,9 @@ def update_student_class(
         total_embeddings=total_embs,
         total_required=TOTAL_REQUIRED,
         training_level=training_lvl,
-        recognition_readiness_score=readiness_score
+        recognition_readiness_score=readiness_score,
+        approval_status=student.approval_status or "APPROVED",
+        institution_id=student.institution_id or 1
     )
 
 
@@ -371,8 +375,8 @@ async def submit_face_frame(
     )
     db.add(face_emb)
 
-    # Mirror into ImmutableFaceVault (zero-data-loss biometric archive)
-    vault_sync_service.archive_biometric_face(
+    # Save permanent copy to vault
+    vault_sync_service.archive_face(
         db=db,
         student=student,
         embedding=embedding,
@@ -395,7 +399,7 @@ async def submit_face_frame(
     db.commit()
     db.refresh(student)
 
-    # Trigger background snapshot update
+    # Update local backup
     try:
         vault_sync_service.run_snapshot_backup(db)
     except Exception:

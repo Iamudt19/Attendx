@@ -34,6 +34,8 @@ export const StudentPortal: React.FC = () => {
             student_id: profile.student_id,
             name: profile.name,
             face_registration_complete: profile.face_registration_complete,
+            approval_status: profile.approval_status,
+            institution_id: profile.institution_id,
             access_token: token,
           });
         })
@@ -78,6 +80,8 @@ export const StudentPortal: React.FC = () => {
   if (!student) {
     return <StudentLogin onLoginSuccess={handleLoginSuccess} />;
   }
+
+  const approvalStatus = studentProfile?.approval_status ?? student.approval_status;
 
   return (
     <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-primary)] flex flex-col font-sans transition-colors">
@@ -145,17 +149,27 @@ export const StudentPortal: React.FC = () => {
             }`}
           >
             <Camera className="w-3.5 h-3.5" />
-            <span>Face ID Calibration ({student.face_registration_complete ? '✓ Active' : '⚠ Incomplete'})</span>
+            <span>Face ID Calibration ({student.face_registration_complete ? 'Active' : 'Incomplete'})</span>
           </button>
         </div>
       </header>
 
-      {student.approval_status === 'PENDING_APPROVAL' && (
+      {approvalStatus === 'PENDING_APPROVAL' && (
         <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2.5 text-xs text-amber-500 flex items-center justify-between font-mono">
           <div className="flex items-center gap-2 max-w-7xl mx-auto w-full">
             <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
             <span>
               <strong>Enrollment Pending Approval:</strong> Your registration has been submitted to your educator. You can complete your 5-angle Face ID calibration now so you are ready when approved.
+            </span>
+          </div>
+        </div>
+      )}
+      {approvalStatus === 'REJECTED' && (
+        <div className="bg-rose-500/10 border-b border-rose-500/20 px-4 py-2.5 text-xs text-rose-500 flex items-center justify-between font-mono">
+          <div className="flex items-center gap-2 max-w-7xl mx-auto w-full">
+            <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
+            <span>
+              <strong>Enrollment Rejected:</strong> Your enrollment request was not approved. Please contact your course educator or institution administrator.
             </span>
           </div>
         </div>

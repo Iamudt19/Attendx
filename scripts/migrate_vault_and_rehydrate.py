@@ -96,3 +96,4 @@ print(f"  Vault Records:   {vault_count}")
 
 cur.close()
 conn.close()
+

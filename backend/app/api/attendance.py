@@ -107,7 +107,7 @@ async def analyze_classroom_photo(
         if embs:
             student_embeddings_map[s.id] = [e.embedding for e in embs]
         else:
-            # Self-healing resilience: auto-recover vectors from ImmutableFaceVault
+            # If no active embeddings found, try recovering from vault
             recovered = vault_sync_service.recover_embeddings_from_vault(db, s.id)
             if recovered:
                 student_embeddings_map[s.id] = recovered

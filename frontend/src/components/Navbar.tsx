@@ -198,8 +198,10 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="hidden md:flex flex-col text-left">
                 <span className="text-xs text-[var(--text-primary)] font-semibold leading-tight">{user.name}</span>
                 <span className="text-[10px] text-[var(--text-muted)] font-mono leading-tight flex items-center gap-1">
-                  {user.role === 'ADMIN' ? (
+                  {user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' ? (
                     <span className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-0.5"><Shield className="w-2.5 h-2.5" /> ADMIN</span>
+                  ) : user.role === 'INSTITUTION_ADMIN' ? (
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-0.5"><Shield className="w-2.5 h-2.5" /> CAMPUS ADMIN</span>
                   ) : (
                     <span>FACULTY</span>
                   )}

@@ -2,7 +2,12 @@ export interface User {
   id: number;
   name: string;
   email: string;
-  role: 'TEACHER' | 'ADMIN';
+  role: 'TEACHER' | 'ADMIN' | 'SUPER_ADMIN' | 'INSTITUTION_ADMIN';
+  institution_id?: number;
+  department?: string;
+  status?: string;
+  is_approved?: boolean;
+  assigned_classes?: number[];
   created_at: string;
 }
 
@@ -12,6 +17,8 @@ export interface StudentUser {
   student_id: string;
   name: string;
   face_registration_complete: boolean;
+  approval_status?: string;
+  institution_id?: number;
   access_token: string;
 }
 
@@ -29,6 +36,7 @@ export interface StudentSelfRegisterData {
   name: string;
   roll_number: string;
   class_id: number;
+  institution_id?: number;
   email?: string;
   password?: string;
 }
@@ -80,6 +88,8 @@ export interface FaceRegistrationStatus {
   total_required: number;
   training_level?: string;
   recognition_readiness_score?: number;
+  approval_status?: string;
+  institution_id?: number;
 }
 
 
@@ -88,6 +98,7 @@ export interface ClassItem {
   name: string;
   section: string;
   academic_year: string;
+  institution_id?: number;
   student_count?: number;
 }
 
@@ -106,6 +117,8 @@ export interface StudentItem {
   class_id: number;
   email?: string;
   active: boolean;
+  approval_status?: string;
+  institution_id?: number;
   face_count?: number;
   face_registration_complete?: boolean;
   embeddings_count?: number;

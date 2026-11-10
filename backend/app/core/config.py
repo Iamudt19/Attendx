@@ -29,14 +29,14 @@ class Settings(BaseSettings):
         canonical_sqlite = os.path.join(backend_dir, "attendx.db").replace("\\", "/")
         
         if not raw or not isinstance(raw, str):
-            # Production resilience fallback: primary Supabase IPv4 connection
+            # Fallback to Supabase pooler
             return "postgresql+psycopg2://postgres.vffgjjlucktyrfjhbqbp:doctordoom1812@aws-0-ap-south-1.pooler.supabase.com:6543/postgres"
         
         url = raw.strip().strip("'\"").strip()
         if url.startswith("psql "):
             url = url[5:].strip().strip("'\"").strip()
         
-        # Auto-correct common credential typos & IPv6-only hosts for Render compatibility
+        # Fix known bad credentials and direct-connect hosts
         if "doctorvondoom" in url:
             url = url.replace("doctorvondoom", "doctordoom1812")
         if "db.vffgjjlucktyrfjhbqbp.supabase.co" in url:
@@ -60,7 +60,7 @@ class Settings(BaseSettings):
 
 
     # ── Face Recognition Pipeline Configuration ──────────────────────────────────
-    # Calibrated for OpenCV SFace Deep Neural 128-d Metric with Multi-Angle 3D Vector Banks
+    # OpenCV SFace 128-d embedding thresholds
     FACE_MATCH_THRESHOLD: float = 0.65       # Similarity >= 0.65 + Margin >= 0.06 → PRESENT
     FACE_REVIEW_THRESHOLD: float = 0.48      # 0.48 <= Similarity < 0.65 → NEEDS_REVIEW (<0.48 is UNKNOWN)
     FACE_MIN_MARGIN: float = 0.06            # Minimum gap between Top-1 and Top-2 match

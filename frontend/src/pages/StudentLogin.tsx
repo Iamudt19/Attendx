@@ -41,7 +41,7 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Fetch institutions and classes when register tab is shown
+  // Fetch institutions when register tab is shown
   useEffect(() => {
     if (activeTab === 'register') {
       InstitutionService.getApprovedInstitutions()
@@ -50,17 +50,36 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
           if (insts && insts.length > 0) setRegInstitutionId(insts[0].id);
         })
         .catch(() => {});
-
-      setClassesLoading(true);
-      StudentPortalService.getPublicClasses()
-        .then((data) => {
-          setClasses(data);
-          if (data.length > 0) setRegClassId(data[0].id);
-        })
-        .catch(() => {})
-        .finally(() => setClassesLoading(false));
     }
   }, [activeTab]);
+
+  // Fetch classes scoped to selected institution
+  useEffect(() => {
+    if (activeTab !== 'register' || !regInstitutionId) return;
+    setClassesLoading(true);
+    InstitutionService.getInstitutionClasses(regInstitutionId)
+      .then((data) => {
+        if (data && data.length > 0) {
+          setClasses(data);
+          setRegClassId(data[0].id);
+        } else {
+          return StudentPortalService.getPublicClasses().then((allCls) => {
+            setClasses(allCls || []);
+            if (allCls && allCls.length > 0) setRegClassId(allCls[0].id);
+            else setRegClassId(0);
+          });
+        }
+      })
+      .catch(() => {
+        StudentPortalService.getPublicClasses()
+          .then((data) => {
+            setClasses(data);
+            if (data.length > 0) setRegClassId(data[0].id);
+          })
+          .catch(() => {});
+      })
+      .finally(() => setClassesLoading(false));
+  }, [activeTab, regInstitutionId]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -107,7 +126,7 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
         institution_id: regInstitutionId,
         email: regEmail.trim() || undefined,
         password: regPassword.trim(),
-      } as any);
+      });
       localStorage.setItem('attendx_student_token', student.access_token);
       setSuccessMsg('Registration successful! Redirecting to face enrollment...');
       setTimeout(() => {
@@ -390,6 +409,12 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
                     }`}>
                       Academic Institution *
                     </label>
+                    <a
+                      href="/register/institution"
+                      className="text-[11px] text-emerald-400 hover:underline font-mono"
+                    >
+                      + Register Campus
+                    </a>
                   </div>
                   <select
                     value={regInstitutionId}

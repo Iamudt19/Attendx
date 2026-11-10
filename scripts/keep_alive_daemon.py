@@ -1,7 +1,7 @@
 """
-AttendX — Anti-Pause Keep-Alive Heartbeat Daemon ⚡
-Permanently prevents Supabase Free-Tier inactivity pause (7-day rule).
-Executes a lightweight heartbeat transaction every 4 hours and logs latency telemetry.
+AttendX database keep-alive daemon.
+Runs a periodic transaction every 4 hours to prevent Supabase free-tier inactivity pauses
+and logs latency to system_heartbeats.
 """
 import os
 import sys
@@ -45,15 +45,15 @@ def execute_heartbeat(db_url: str):
         conn.close()
         
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        print(f"[{ts}] 🟢 Heartbeat Ping Succeeded — Latency: {latency}ms | Active Students: {scnt} | Ping ID: {rec['id']}")
+        print(f"[{ts}] [OK] Heartbeat ping - Latency: {latency}ms | Active Students: {scnt} | Ping ID: {rec['id']}")
         return True, latency
     except Exception as e:
         ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        print(f"[{ts}] 🔴 Heartbeat Ping Failed: {e}", file=sys.stderr)
+        print(f"[{ts}] [FAIL] Heartbeat ping: {e}", file=sys.stderr)
         return False, None
 
 def main():
-    parser = argparse.ArgumentParser(description="AttendX Supabase Anti-Pause Keep-Alive Daemon")
+    parser = argparse.ArgumentParser(description="AttendX database keep-alive daemon")
     parser.add_argument("--once", action="store_true", help="Execute single heartbeat and exit")
     parser.add_argument("--interval", type=int, default=14400, help="Interval in seconds between heartbeats (default: 14400 = 4 hours)")
     args = parser.parse_args()
@@ -61,7 +61,7 @@ def main():
     db_url = os.getenv("DATABASE_URL", DEFAULT_DB_URL)
     
     print("=" * 60)
-    print(" AttendX Cloud Keep-Alive Daemon — Supabase Anti-Pause Protection")
+    print(" AttendX Keep-Alive Daemon")
     print(f" Target Database: {db_url.split('@')[-1]}")
     print(f" Mode: {'Single Execution' if args.once else f'Continuous Loop ({args.interval}s interval)'}")
     print("=" * 60)
@@ -73,7 +73,7 @@ def main():
     # Continuous daemon mode
     while True:
         execute_heartbeat(db_url)
-        print(f"💤 Sleeping for {args.interval} seconds until next heartbeat...")
+        print(f"Sleeping for {args.interval} seconds until next heartbeat...")
         time.sleep(args.interval)
 
 if __name__ == "__main__":

@@ -79,11 +79,11 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
             detail="Invalid email or password"
         )
 
-    # Teacher approval check
-    if user.role == "TEACHER" and not user.is_approved:
+    # Approval check for teachers and institution admins
+    if user.role in ("TEACHER", "INSTITUTION_ADMIN") and not user.is_approved:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Your educator account is pending administrator approval. Please contact your institution administrator to activate your access."
+            detail="Your account is pending administrator approval. Please wait for verification before signing in."
         )
 
     access_token = create_access_token(subject=user.id)
@@ -191,6 +191,13 @@ def approve_teacher(
     db.refresh(teacher)
     return teacher
 
+def _require_faculty_admin(token_payload: dict, db: Session) -> User:
+    caller_id = token_payload.get("sub")
+    caller = db.query(User).filter(User.id == int(caller_id)).first() if caller_id else None
+    if not caller or caller.role not in ("ADMIN", "SUPER_ADMIN", "INSTITUTION_ADMIN"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Administrator access required.")
+    return caller
+
 @router.put("/teacher/{teacher_id}/classes", response_model=UserOut)
 def update_teacher_classes(
     teacher_id: int,
@@ -199,14 +206,13 @@ def update_teacher_classes(
     db: Session = Depends(get_db)
 ):
     """Assign or modify classes for a teacher."""
-    caller_id = token_payload.get("sub")
-    caller = db.query(User).filter(User.id == int(caller_id)).first()
-    if not caller or caller.role != "ADMIN":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
+    caller = _require_faculty_admin(token_payload, db)
 
     teacher = db.query(User).filter(User.id == teacher_id).first()
     if not teacher:
         raise HTTPException(status_code=404, detail="Teacher account not found.")
+    if caller.role == "INSTITUTION_ADMIN" and caller.institution_id and teacher.institution_id != caller.institution_id:
+        raise HTTPException(status_code=403, detail="You can only manage faculty for your own institution.")
 
     teacher.assigned_classes = req_body.assigned_classes
     db.commit()
@@ -220,14 +226,13 @@ def reject_teacher(
     db: Session = Depends(get_db)
 ):
     """Reject and remove a pending teacher registration."""
-    caller_id = token_payload.get("sub")
-    caller = db.query(User).filter(User.id == int(caller_id)).first()
-    if not caller or caller.role != "ADMIN":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
+    caller = _require_faculty_admin(token_payload, db)
 
     teacher = db.query(User).filter(User.id == teacher_id, User.is_approved == False).first()
     if not teacher:
         raise HTTPException(status_code=404, detail="Pending teacher account not found.")
+    if caller.role == "INSTITUTION_ADMIN" and caller.institution_id and teacher.institution_id != caller.institution_id:
+        raise HTTPException(status_code=403, detail="You can only manage faculty for your own institution.")
 
     db.delete(teacher)
     db.commit()
@@ -239,12 +244,12 @@ def list_all_teachers(
     db: Session = Depends(get_db)
 ):
     """List all registered teachers and their approval status."""
-    caller_id = token_payload.get("sub")
-    caller = db.query(User).filter(User.id == int(caller_id)).first()
-    if not caller or caller.role != "ADMIN":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required.")
+    caller = _require_faculty_admin(token_payload, db)
 
-    teachers = db.query(User).filter(User.role == "TEACHER").order_by(User.created_at.desc()).all()
+    query = db.query(User).filter(User.role == "TEACHER")
+    if caller.role == "INSTITUTION_ADMIN" and caller.institution_id:
+        query = query.filter(User.institution_id == caller.institution_id)
+    teachers = query.order_by(User.created_at.desc()).all()
     return teachers
 
 @router.get("/me", response_model=UserOut)
