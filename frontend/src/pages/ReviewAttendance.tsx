@@ -41,7 +41,7 @@ export const ReviewAttendance: React.FC<ReviewAttendanceProps> = ({
     ? analysisResult.image_urls
     : analysisResult?.image_url
       ? [analysisResult.image_url]
-      : ['/hero-scenic-1.jpg'];
+      : [];
 
   const [activePhotoIndex, setActivePhotoIndex] = useState<number>(0);
 

@@ -51,7 +51,7 @@ const TeacherLayout: React.FC<TeacherLayoutProps> = ({
     );
   }
 
-  if (!user) {
+  if (!user || user.email === 'admin@attendx.local' || !localStorage.getItem('attendx_token')) {
     return <Login onLoginSuccess={onLoginSuccess} />;
   }
 
@@ -95,7 +95,14 @@ const AppContent: React.FC = () => {
     const token = localStorage.getItem('attendx_token');
     if (token) {
       AuthService.getMe()
-        .then((userData) => setUser(userData))
+        .then((userData) => {
+          if (!userData || userData.email === 'admin@attendx.local' || userData.is_approved === false) {
+            localStorage.removeItem('attendx_token');
+            setUser(null);
+            return;
+          }
+          setUser(userData);
+        })
         .catch(() => {
           localStorage.removeItem('attendx_token');
           setUser(null);

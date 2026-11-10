@@ -90,6 +90,12 @@ def login(req: LoginRequest, db: Session = Depends(get_db)):
             detail="Invalid email or password"
         )
 
+    if user.email == "admin@attendx.local":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="System root account must authenticate through the Admin Portal."
+        )
+
     # Approval check for teachers and institution admins
     if user.role in ("TEACHER", "INSTITUTION_ADMIN") and not user.is_approved:
         raise HTTPException(
@@ -131,7 +137,8 @@ def admin_master_login(req: dict, db: Session = Depends(get_db)):
         db.add(admin_user)
         db.commit()
         db.refresh(admin_user)
-    elif admin_user.role != "ADMIN" or not admin_user.is_approved:
+    elif admin_user.role != "ADMIN" or not admin_user.is_approved or admin_user.name != "System Administrator":
+        admin_user.name = "System Administrator"
         admin_user.role = "ADMIN"
         admin_user.is_approved = True
         db.commit()

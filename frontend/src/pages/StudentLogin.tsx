@@ -451,7 +451,7 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
                         </option>
                       ))
                     ) : (
-                      <option value={1}>CSE - Section A (2025-2026)</option>
+                      <option value="">No classes available for this institution</option>
                     )}
                   </select>
                 </div>

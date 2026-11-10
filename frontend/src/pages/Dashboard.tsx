@@ -150,7 +150,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   const totalSessionsCount = sessions.length;
   const avgAttendancePct = sessions.length > 0
     ? Math.round(sessions.reduce((acc, s) => acc + ((s.present_count / (s.total_enrolled || 1)) * 100), 0) / sessions.length)
-    : 94;
+    : 0;
 
   const filteredSessions = sessions.filter(sess => {
     const rate = sess.total_enrolled > 0 ? (sess.present_count / sess.total_enrolled) * 100 : 0;
