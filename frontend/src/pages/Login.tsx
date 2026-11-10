@@ -62,7 +62,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
         setSelectedClasses(list.map(c => c.id));
       })
       .catch(() => {
-        AuthService.getPublicClasses()
+        AuthService.getPublicClasses(selectedInstitutionId)
           .then(data => {
             const list = data || [];
             setAvailableClasses(list);
@@ -105,7 +105,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       return;
     }
 
-    if (selectedClasses.length === 0) {
+    if (availableClasses.length > 0 && selectedClasses.length === 0) {
       setError('Please select at least one class section you teach.');
       return;
     }
@@ -533,11 +533,11 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
                       })
                     ) : (
                       <div className="p-3 text-center text-xs text-zinc-400 col-span-2">
-                        Loading available campus class sections...
+                        No class sections created for this campus yet. Your Campus Admin can assign classes once created.
                       </div>
                     )}
                   </div>
-                  {selectedClasses.length === 0 && (
+                  {availableClasses.length > 0 && selectedClasses.length === 0 && (
                     <div className="text-[11px] text-amber-500 font-medium mt-1.5 flex items-center gap-1">
                       Please select at least one class section.
                     </div>

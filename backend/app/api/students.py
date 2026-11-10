@@ -36,9 +36,24 @@ def list_students(class_id: Optional[int] = None, db: Session = Depends(get_db),
 
     query = db.query(Student).filter(Student.active == True, Student.is_deleted == False)
     if class_id:
+        target_cls = db.query(Class).filter(Class.id == class_id).first()
+        if not target_cls:
+            raise HTTPException(status_code=404, detail="Class not found")
+        if caller and caller.role in ("TEACHER", "INSTITUTION_ADMIN") and caller.institution_id:
+            if target_cls.institution_id and target_cls.institution_id != caller.institution_id:
+                raise HTTPException(status_code=403, detail="Access denied for this institution.")
+        if caller and caller.role == "TEACHER" and caller.assigned_classes is not None:
+            if class_id not in (caller.assigned_classes or []):
+                raise HTTPException(status_code=403, detail="You are not assigned to this class.")
         query = query.filter(Student.class_id == class_id)
-    elif caller and caller.role == "TEACHER" and caller.assigned_classes and len(caller.assigned_classes) > 0:
-        query = query.filter(Student.class_id.in_(caller.assigned_classes))
+    elif caller and caller.role == "TEACHER":
+        if caller.assigned_classes and len(caller.assigned_classes) > 0:
+            query = query.filter(
+                Student.class_id.in_(caller.assigned_classes),
+                Student.institution_id == caller.institution_id
+            )
+        else:
+            return [] # Teacher has no assigned classes yet
     elif caller and caller.role == "INSTITUTION_ADMIN" and caller.institution_id:
         query = query.filter(Student.institution_id == caller.institution_id)
 
@@ -73,6 +88,20 @@ def list_students(class_id: Optional[int] = None, db: Session = Depends(get_db),
 
 @router.post("", response_model=StudentOut)
 def create_student(req: StudentCreate, db: Session = Depends(get_db), token: dict = Depends(get_current_user_token)):
+    caller_id = token.get("sub")
+    caller = db.query(User).filter(User.id == int(caller_id)).first() if caller_id else None
+
+    target_cls = db.query(Class).filter(Class.id == req.class_id).first()
+    if not target_cls:
+        raise HTTPException(status_code=404, detail="Selected class not found")
+    if caller and caller.role in ("TEACHER", "INSTITUTION_ADMIN") and caller.institution_id:
+        if target_cls.institution_id and target_cls.institution_id != caller.institution_id:
+            raise HTTPException(status_code=403, detail="Cannot add student to a class outside your institution.")
+        if caller.role == "TEACHER" and caller.assigned_classes is not None and req.class_id not in (caller.assigned_classes or []):
+            raise HTTPException(status_code=403, detail="You are not assigned to this class.")
+
+    inst_id = target_cls.institution_id or (caller.institution_id if caller else 1)
+
     existing = db.query(Student).filter(Student.student_id == req.student_id).first()
     if existing:
         if existing.is_deleted:
@@ -82,7 +111,7 @@ def create_student(req: StudentCreate, db: Session = Depends(get_db), token: dic
             existing.name = req.name
             existing.roll_number = req.roll_number
             existing.class_id = req.class_id
-            existing.institution_id = req.institution_id or 1
+            existing.institution_id = inst_id
             existing.email = req.email
             db.commit()
             db.refresh(existing)
@@ -103,7 +132,7 @@ def create_student(req: StudentCreate, db: Session = Depends(get_db), token: dic
         name=req.name,
         roll_number=req.roll_number,
         class_id=req.class_id,
-        institution_id=req.institution_id or 1,
+        institution_id=inst_id,
         email=req.email,
         password_hash=get_password_hash(req.student_id),
         active=True,
@@ -165,6 +194,11 @@ def _get_student_with_scope(student_id: int, token: dict, db: Session) -> tuple[
         raise HTTPException(status_code=404, detail="Student not found")
     if caller and caller.role == "INSTITUTION_ADMIN" and caller.institution_id and student.institution_id != caller.institution_id:
         raise HTTPException(status_code=403, detail="You can only manage students in your own institution.")
+    if caller and caller.role == "TEACHER":
+        if caller.institution_id and student.institution_id != caller.institution_id:
+            raise HTTPException(status_code=403, detail="You can only manage students in your own institution.")
+        if caller.assigned_classes is not None and student.class_id not in (caller.assigned_classes or []):
+            raise HTTPException(status_code=403, detail="You can only approve or manage students enrolled in your assigned class.")
     return caller, student
 
 
@@ -384,10 +418,23 @@ def get_pending_students(
 
     query = db.query(Student).filter(Student.approval_status == "PENDING_APPROVAL")
     if class_id:
+        cls = db.query(Class).filter(Class.id == class_id).first()
+        if not cls:
+            raise HTTPException(status_code=404, detail="Class not found")
+        if caller and caller.role in ("TEACHER", "INSTITUTION_ADMIN") and caller.institution_id and cls.institution_id != caller.institution_id:
+            raise HTTPException(status_code=403, detail="Access denied for this institution.")
+        if caller and caller.role == "TEACHER" and caller.assigned_classes is not None and class_id not in (caller.assigned_classes or []):
+            raise HTTPException(status_code=403, detail="You are not assigned to this class.")
         query = query.filter(Student.class_id == class_id)
-    elif caller and caller.role == "TEACHER" and caller.assigned_classes and len(caller.assigned_classes) > 0:
-        query = query.filter(Student.class_id.in_(caller.assigned_classes))
-    elif caller and caller.institution_id:
+    elif caller and caller.role == "TEACHER":
+        if caller.assigned_classes and len(caller.assigned_classes) > 0:
+            query = query.filter(
+                Student.class_id.in_(caller.assigned_classes),
+                Student.institution_id == caller.institution_id
+            )
+        else:
+            return [] # Teacher has no assigned classes, so no pending students
+    elif caller and caller.role == "INSTITUTION_ADMIN" and caller.institution_id:
         query = query.filter(Student.institution_id == caller.institution_id)
 
     pending = query.order_by(Student.created_at.desc()).all()

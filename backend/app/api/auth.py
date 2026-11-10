@@ -75,11 +75,14 @@ def register(req: UserCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Registration error: {str(e)}")
 
 @router.get("/classes")
-def get_public_classes_for_signup(db: Session = Depends(get_db)):
+def get_public_classes_for_signup(institution_id: Optional[int] = None, db: Session = Depends(get_db)):
     """Public endpoint to fetch active classes for teacher account creation."""
     from app.models.models import Class
-    classes = db.query(Class).all()
-    return [{"id": c.id, "name": c.name, "section": c.section, "academic_year": c.academic_year} for c in classes]
+    query = db.query(Class)
+    if institution_id:
+        query = query.filter(Class.institution_id == institution_id)
+    classes = query.all()
+    return [{"id": c.id, "name": c.name, "section": c.section, "academic_year": c.academic_year, "institution_id": c.institution_id} for c in classes]
 
 @router.post("/login", response_model=TokenResponse)
 def login(req: LoginRequest, db: Session = Depends(get_db)):
@@ -201,7 +204,14 @@ def approve_teacher(
     teacher.approved_by = caller.id
     teacher.approved_at = datetime.datetime.utcnow()
     if req_body and req_body.assigned_classes is not None:
-        teacher.assigned_classes = req_body.assigned_classes
+        if teacher.institution_id:
+            valid_classes = db.query(Class.id).filter(
+                Class.institution_id == teacher.institution_id,
+                Class.id.in_(req_body.assigned_classes)
+            ).all()
+            teacher.assigned_classes = [c[0] for c in valid_classes]
+        else:
+            teacher.assigned_classes = req_body.assigned_classes
     db.commit()
     db.refresh(teacher)
     return teacher
@@ -229,7 +239,16 @@ def update_teacher_classes(
     if caller.role == "INSTITUTION_ADMIN" and caller.institution_id and teacher.institution_id != caller.institution_id:
         raise HTTPException(status_code=403, detail="You can only manage faculty for your own institution.")
 
-    teacher.assigned_classes = req_body.assigned_classes
+    target_classes = req_body.assigned_classes or []
+    if teacher.institution_id:
+        valid_classes = db.query(Class.id).filter(
+            Class.institution_id == teacher.institution_id,
+            Class.id.in_(target_classes)
+        ).all()
+        teacher.assigned_classes = [c[0] for c in valid_classes]
+    else:
+        teacher.assigned_classes = target_classes
+
     db.commit()
     db.refresh(teacher)
     return teacher

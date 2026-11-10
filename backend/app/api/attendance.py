@@ -440,9 +440,8 @@ def get_attendance_sessions(
     elif caller and caller.role == "TEACHER":
         if caller.assigned_classes and len(caller.assigned_classes) > 0:
             query = query.filter(AttendanceSession.class_id.in_(caller.assigned_classes))
-        elif caller.institution_id:
-            inst_class_ids = [c[0] for c in db.query(Class.id).filter(Class.institution_id == caller.institution_id).all()]
-            query = query.filter(AttendanceSession.class_id.in_(inst_class_ids))
+        else:
+            return []
     elif caller and caller.role == "INSTITUTION_ADMIN" and caller.institution_id:
         inst_class_ids = [c[0] for c in db.query(Class.id).filter(Class.institution_id == caller.institution_id).all()]
         query = query.filter(AttendanceSession.class_id.in_(inst_class_ids))

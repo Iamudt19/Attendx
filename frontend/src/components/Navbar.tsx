@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, Plus, LogOut, X, CheckCircle2, 
-  ChevronDown, Sun, Moon, Menu, Sparkles, Shield 
+  ChevronDown, Sun, Moon, Menu, Sparkles, Shield, Building2 
 } from 'lucide-react';
 import { User, ClassItem } from '../types';
 import { ClassService } from '../services/api';
@@ -30,15 +30,17 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewSessionModal, setShowNewSessionModal] = useState(false);
   const [showTermDropdown, setShowTermDropdown] = useState(false);
-  const [selectedTerm, setSelectedTerm] = useState('Fall 2024 • Term A');
+  const currentYear = new Date().getFullYear();
+  const currentTermDefault = `Academic Year ${currentYear}-${(currentYear + 1).toString().slice(2)}`;
+  const [selectedTerm, setSelectedTerm] = useState(currentTermDefault);
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<number | ''>('');
   const [selectedMode, setSelectedMode] = useState<'upload' | 'camera'>('upload');
 
   const terms = [
-    'Fall 2024 • Term A (Current)',
-    'Spring 2025 • Term B',
-    'Academic Year 2026-27'
+    `${currentTermDefault} (Current)`,
+    `Term ${currentYear}-${(currentYear + 1).toString().slice(2)} · Semester I`,
+    `Term ${currentYear}-${(currentYear + 1).toString().slice(2)} · Semester II`,
   ];
 
   useEffect(() => {
@@ -112,12 +114,20 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Middle: Desktop Term Selector & Search Bar */}
-        <div className="hidden lg:flex items-center gap-4 flex-1 max-w-xl">
+        <div className="hidden lg:flex items-center gap-3 flex-1 max-w-xl">
+          {/* Institution Badge if available */}
+          {user?.institution_name && (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[11px] font-mono font-bold shrink-0">
+              <Building2 className="w-3.5 h-3.5" />
+              <span className="truncate max-w-[130px]">{user.institution_name}</span>
+            </div>
+          )}
+
           {/* Term selector dropdown */}
           <div className="relative">
             <button
               onClick={() => setShowTermDropdown(!showTermDropdown)}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-secondary)] text-[11px] uppercase tracking-wider font-semibold font-mono hover:border-indigo-500/40 transition-colors"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[var(--border-color)] bg-[var(--bg-surface)] text-[var(--text-secondary)] text-[11px] uppercase tracking-wider font-semibold font-mono hover:border-indigo-500/40 transition-colors shrink-0"
             >
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
               <span>{selectedTerm}</span>
@@ -201,9 +211,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                   {user.role === 'ADMIN' || user.role === 'SUPER_ADMIN' ? (
                     <span className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-0.5"><Shield className="w-2.5 h-2.5" /> ADMIN</span>
                   ) : user.role === 'INSTITUTION_ADMIN' ? (
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-0.5"><Shield className="w-2.5 h-2.5" /> CAMPUS ADMIN</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-0.5">
+                      <Shield className="w-2.5 h-2.5" /> {user.institution_code || 'CAMPUS ADMIN'}
+                    </span>
                   ) : (
-                    <span>FACULTY</span>
+                    <span className="flex items-center gap-1">
+                      <span>FACULTY</span>
+                      {user.institution_code && <span className="text-blue-500 font-semibold">• {user.institution_code}</span>}
+                    </span>
                   )}
                 </span>
               </div>

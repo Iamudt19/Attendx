@@ -1,4 +1,5 @@
 import datetime
+from typing import Optional
 from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, ForeignKey, Text, JSON
 from sqlalchemy.orm import relationship
 from app.database.session import Base
@@ -50,6 +51,14 @@ class User(Base):
 
     institution = relationship("Institution", back_populates="users")
     sessions = relationship("AttendanceSession", back_populates="teacher")
+
+    @property
+    def institution_name(self) -> Optional[str]:
+        return self.institution.name if self.institution else None
+
+    @property
+    def institution_code(self) -> Optional[str]:
+        return self.institution.code if self.institution else None
 
 class Class(Base):
     __tablename__ = "classes"

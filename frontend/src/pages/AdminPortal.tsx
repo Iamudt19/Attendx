@@ -655,7 +655,7 @@ export const AdminPortal: React.FC = () => {
             <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
               <Logo size="sm" showSubtitle={false} />
               <span className="text-[10px] font-mono px-2 py-0.5 rounded border border-[var(--border-color)] bg-[var(--bg-inset)] text-blue-600 font-bold">
-                INSTITUTIONAL ADMIN
+                PLATFORM SUPER ADMIN
               </span>
             </div>
 
@@ -1423,7 +1423,12 @@ export const AdminPortal: React.FC = () => {
                       return (
                         <tr key={teacher.id} className="hover:bg-[var(--bg-inset)] transition-colors bg-amber-500/[0.03]">
                           <td className="py-3.5 px-4 font-bold text-[var(--text-primary)] font-sans">
-                            {teacher.name}
+                            <div>{teacher.name}</div>
+                            {teacher.institution_name && (
+                              <div className="text-[10px] text-blue-600 dark:text-blue-400 font-mono font-medium">
+                                {teacher.institution_name}
+                              </div>
+                            )}
                           </td>
                           <td className="py-3.5 px-4 text-[var(--text-secondary)]">
                             {teacher.email}

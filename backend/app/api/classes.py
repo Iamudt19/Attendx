@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database.session import get_db
@@ -9,12 +9,15 @@ from app.core.security import get_current_user_token
 router = APIRouter(prefix="/classes", tags=["Classes"])
 
 @router.get("/public", response_model=List[ClassOut])
-def get_public_classes(db: Session = Depends(get_db)):
+def get_public_classes(institution_id: Optional[int] = None, db: Session = Depends(get_db)):
     """Public unauthenticated list of classes for registration."""
-    classes = db.query(Class).all()
+    query = db.query(Class)
+    if institution_id:
+        query = query.filter(Class.institution_id == institution_id)
+    classes = query.all()
     results = []
     for c in classes:
-        student_count = db.query(Student).filter(Student.class_id == c.id, Student.active == True).count()
+        student_count = db.query(Student).filter(Student.class_id == c.id, Student.active == True, Student.is_deleted == False).count()
         c_out = ClassOut.model_validate(c)
         c_out.student_count = student_count
         results.append(c_out)
@@ -28,16 +31,19 @@ def get_classes(db: Session = Depends(get_db), token: dict = Depends(get_current
     query = db.query(Class)
     if caller and caller.role == "TEACHER":
         if caller.assigned_classes and len(caller.assigned_classes) > 0:
-            query = query.filter(Class.id.in_(caller.assigned_classes))
-        elif caller.institution_id:
-            query = query.filter(Class.institution_id == caller.institution_id)
+            query = query.filter(
+                Class.id.in_(caller.assigned_classes),
+                Class.institution_id == caller.institution_id
+            )
+        else:
+            return [] # Teacher has no assigned classes yet
     elif caller and caller.role == "INSTITUTION_ADMIN" and caller.institution_id:
         query = query.filter(Class.institution_id == caller.institution_id)
 
     classes = query.all()
     results = []
     for c in classes:
-        student_count = db.query(Student).filter(Student.class_id == c.id, Student.active == True).count()
+        student_count = db.query(Student).filter(Student.class_id == c.id, Student.active == True, Student.is_deleted == False).count()
         c_out = ClassOut.model_validate(c)
         c_out.student_count = student_count
         results.append(c_out)
@@ -47,11 +53,21 @@ def get_classes(db: Session = Depends(get_db), token: dict = Depends(get_current
 def create_class(req: ClassCreate, db: Session = Depends(get_db), token: dict = Depends(get_current_user_token)):
     caller_id = token.get("sub")
     caller = db.query(User).filter(User.id == int(caller_id)).first() if caller_id else None
+    if not caller:
+        raise HTTPException(status_code=401, detail="Authentication required.")
+
+    inst_id = caller.institution_id
+    if not inst_id:
+        if caller.role in ("ADMIN", "SUPER_ADMIN"):
+            inst_id = 1
+        else:
+            raise HTTPException(status_code=400, detail="Account must belong to an institution to create classes.")
+
     cls = Class(
-        name=req.name,
-        section=req.section,
-        academic_year=req.academic_year,
-        institution_id=(caller.institution_id if caller and caller.institution_id else 1)
+        name=req.name.strip(),
+        section=req.section.strip(),
+        academic_year=req.academic_year.strip(),
+        institution_id=inst_id
     )
     db.add(cls)
     db.commit()
@@ -72,6 +88,8 @@ def _get_scoped_class(class_id: int, token: dict, db: Session, require_admin: bo
         raise HTTPException(status_code=404, detail="Class not found")
     if caller.role in ("TEACHER", "INSTITUTION_ADMIN") and caller.institution_id and cls.institution_id and cls.institution_id != caller.institution_id:
         raise HTTPException(status_code=403, detail="Access denied for this institution.")
+    if caller.role == "TEACHER" and caller.assigned_classes is not None and class_id not in (caller.assigned_classes or []):
+        raise HTTPException(status_code=403, detail="You are not assigned to this class.")
     return cls
 
 

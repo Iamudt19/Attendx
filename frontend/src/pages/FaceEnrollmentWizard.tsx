@@ -185,7 +185,7 @@ export const FaceEnrollmentWizard: React.FC<FaceEnrollmentWizardProps> = ({
         setClasses(data || []);
       })
       .catch(() => {
-        StudentPortalService.getPublicClasses()
+        StudentPortalService.getPublicClasses(student.institution_id)
           .then((data) => setClasses(data || []))
           .catch(() => {});
       });

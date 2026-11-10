@@ -61,12 +61,15 @@ def _get_remaining_angles(completed: List[str]) -> List[str]:
 # ── Public Endpoints (no auth required) ──────────────────────────────────────
 
 @router.get("/classes", response_model=List[StudentPublicClassOut])
-def get_public_classes(db: Session = Depends(get_db)):
+def get_public_classes(institution_id: Optional[int] = None, db: Session = Depends(get_db)):
     """
-    Public endpoint — returns all available classes so students can pick
-    their class during self-registration. No auth token required.
+    Public endpoint — returns available classes for the selected institution
+    so students can pick their class during self-registration. No auth token required.
     """
-    classes = db.query(Class).order_by(Class.name, Class.section).all()
+    query = db.query(Class)
+    if institution_id:
+        query = query.filter(Class.institution_id == institution_id)
+    classes = query.order_by(Class.name, Class.section).all()
     return classes
 
 
@@ -241,6 +244,7 @@ def update_student_class(
         raise HTTPException(status_code=403, detail="Cannot switch to a class in a different institution.")
 
     student.class_id = req.class_id
+    student.approval_status = "PENDING_APPROVAL"
     db.commit()
     db.refresh(student)
 

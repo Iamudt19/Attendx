@@ -152,38 +152,14 @@ export const HeroLanding: React.FC = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400">
-                            Faculty Portal
+                            Faculty &amp; Staff Portal
                           </span>
                           <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-600 dark:text-purple-400 font-semibold">
-                            Teacher
+                            Faculty
                           </span>
                         </div>
                         <p className="text-[10px] text-slate-500 dark:text-zinc-400 leading-tight mt-0.5">
-                          Optical roll-call, review queue &amp; roster reports
-                        </p>
-                      </div>
-                    </button>
-
-                    {/* Admin Portal Item */}
-                    <button
-                      type="button"
-                      onClick={() => { setShowPortalDropdown(false); navigate('/admin'); }}
-                      className="w-full text-left p-2.5 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-950/40 bg-transparent transition-colors flex items-start gap-3 group border border-transparent hover:border-emerald-200 dark:hover:border-emerald-800/40"
-                    >
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
-                        <School className="w-4 h-4" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400">
-                            Super Admin Desk
-                          </span>
-                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold">
-                            Admin
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-slate-500 dark:text-zinc-400 leading-tight mt-0.5">
-                          Institutions, faculty approvals, directories &amp; telemetry
+                          Educator roll-call, review queue &amp; campus admin login
                         </p>
                       </div>
                     </button>

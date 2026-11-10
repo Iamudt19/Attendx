@@ -70,8 +70,10 @@ export const AuthService = {
     const res = await api.post('/auth/register', data);
     return res.data;
   },
-  getPublicClasses: async (): Promise<ClassItem[]> => {
-    const res = await api.get('/auth/classes');
+  getPublicClasses: async (institutionId?: number): Promise<ClassItem[]> => {
+    const res = await api.get('/auth/classes', {
+      params: institutionId ? { institution_id: institutionId } : undefined
+    });
     return res.data;
   },
   getMe: async (): Promise<User> => {
@@ -105,8 +107,10 @@ export const ClassService = {
     const res = await api.get('/classes');
     return res.data;
   },
-  getPublicClasses: async (): Promise<ClassItem[]> => {
-    const res = await api.get('/classes/public');
+  getPublicClasses: async (institutionId?: number): Promise<ClassItem[]> => {
+    const res = await api.get('/classes/public', {
+      params: institutionId ? { institution_id: institutionId } : undefined
+    });
     return res.data;
   },
   createClass: async (data: { name: string; section: string; academic_year: string }): Promise<ClassItem> => {
@@ -542,8 +546,10 @@ studentApi.interceptors.request.use((config) => {
 });
 
 export const StudentPortalService = {
-  getPublicClasses: async (): Promise<StudentPublicClass[]> => {
-    const res = await api.get('/student/classes');
+  getPublicClasses: async (institutionId?: number): Promise<StudentPublicClass[]> => {
+    const res = await api.get('/student/classes', {
+      params: institutionId ? { institution_id: institutionId } : undefined
+    });
     return res.data;
   },
 

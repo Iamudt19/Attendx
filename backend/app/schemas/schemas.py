@@ -36,6 +36,8 @@ class UserOut(BaseModel):
     approved_at: Optional[datetime] = None
     approved_by: Optional[int] = None
     institution_id: Optional[int] = None
+    institution_name: Optional[str] = None
+    institution_code: Optional[str] = None
     department: Optional[str] = None
     status: Optional[str] = "APPROVED"
     created_at: Optional[datetime] = None
@@ -50,12 +52,14 @@ class TeacherApprovalItem(BaseModel):
     assigned_classes: Optional[List[int]] = []
     is_approved: bool
     institution_id: Optional[int] = None
+    institution_name: Optional[str] = None
+    institution_code: Optional[str] = None
     department: Optional[str] = None
     status: Optional[str] = "PENDING_APPROVAL"
     created_at: Optional[datetime] = None
 
 class TeacherClassAssignRequest(BaseModel):
-    assigned_classes: List[int]
+    assigned_classes: Optional[List[int]] = None
 
 # Class Schemas
 class ClassCreate(BaseModel):
@@ -143,6 +147,7 @@ class StudentPublicClassOut(BaseModel):
     name: str
     section: str
     academic_year: str
+    institution_id: Optional[int] = None
 
 class StudentSelfRegisterRequest(BaseModel):
     """Student self-registration — fills their own details and picks their class."""

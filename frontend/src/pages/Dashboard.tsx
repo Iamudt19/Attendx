@@ -175,15 +175,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         <div className="space-y-0.5">
           <div className="flex items-center gap-1.5 font-mono text-[10px] sm:text-[11px] text-[var(--text-muted)] uppercase tracking-wider">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span>Term 2026–27</span>
+            <span>Academic Year 2026–27</span>
             <span>•</span>
-            <span className="text-[var(--text-secondary)] font-bold">{user?.role || 'TEACHER'}</span>
+            <span className="text-[var(--text-secondary)] font-bold">
+              {user?.role === 'INSTITUTION_ADMIN' ? 'CAMPUS ADMIN' : user?.role || 'TEACHER'}
+            </span>
+            {user?.institution_name && (
+              <>
+                <span>•</span>
+                <span className="text-blue-500 font-bold">{user.institution_name}</span>
+              </>
+            )}
           </div>
           <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight text-[var(--text-primary)]">
-            Attendance Ledger & Studio
+            Attendance Ledger &amp; Studio
           </h1>
           <p className="text-[11px] sm:text-xs text-[var(--text-secondary)] hidden sm:block">
-            Roll-call console for {user?.name || 'Faculty Member'}
+            {isInstitutionAdmin 
+              ? `Campus administration console for ${user?.name || 'Administrator'}`
+              : `Roll-call console for ${user?.name || 'Faculty Member'}`
+            }
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -314,8 +325,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
         </section>
       )}
 
-      {/* ── Pending Student Enrollments Queue (Tier 4 Gate) ── */}
-      {pendingStudents.length > 0 && (
+      {/* ── Pending Student Enrollments Queue (Tier 4 Gate: Teachers approve students for their class) ── */}
+      {!isInstitutionAdmin && pendingStudents.length > 0 && (
         <section className="swiss-card p-4 sm:p-5 rounded-xl border border-amber-500/30 bg-amber-500/5 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">

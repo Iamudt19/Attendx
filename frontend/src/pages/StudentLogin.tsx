@@ -64,10 +64,11 @@ export const StudentLogin: React.FC<StudentLoginProps> = ({ onLoginSuccess }) =>
         setRegClassId(list.length > 0 ? list[0].id : 0);
       })
       .catch(() => {
-        StudentPortalService.getPublicClasses()
+        StudentPortalService.getPublicClasses(regInstitutionId)
           .then((data) => {
-            setClasses(data);
-            if (data.length > 0) setRegClassId(data[0].id);
+            const list = data || [];
+            setClasses(list);
+            if (list.length > 0) setRegClassId(list[0].id);
           })
           .catch(() => {});
       })

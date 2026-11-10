@@ -4,6 +4,8 @@ export interface User {
   email: string;
   role: 'TEACHER' | 'ADMIN' | 'SUPER_ADMIN' | 'INSTITUTION_ADMIN';
   institution_id?: number;
+  institution_name?: string;
+  institution_code?: string;
   department?: string;
   status?: string;
   is_approved?: boolean;
@@ -28,6 +30,7 @@ export interface StudentPublicClass {
   name: string;
   section: string;
   academic_year: string;
+  institution_id?: number;
 }
 
 // Payload for student self-registration
